@@ -1,0 +1,144 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/factorial/select-optimal-design/before-you-start/example-of-augmenting-an-optimal-design/",
+ "title": "Example of augmenting D-optimal response surface design - Minitab",
+ "steps": [
+  "In the Example of selecting a D-optimal response surface design, a materials scientist selects a subset of 20 design points from a candidate set of 30 points.",
+  "After the scientist collects the data for the 20 selected design points, the scientist decides they have resources to run five additional design points. Because the scientist already collected the data for the original design, the scientist needs to protect these points in the augmented design so they cannot be excluded during the augmentation/optimization procedure. To protect these points, use negative indicators for the design points that were already selected for the first optimal design.",
+  "The scientist decides to run 5 additional design points. Because the scientist has already collected the data for the original design, those points cannot be excluded during the augmentation/optimization procedure. To protect the 20 original design points, the scientist uses negative indicators for the design points that were already selected for the first optimal design. See step #2 for details on how to create a column of indicators.",
+  "Open the sample data, CrystalGrowth_optimal_design.MWX. C1-C8 contains the design. C9 contains the optimal design point indicators: 1 = the points are in the optimal design, 0 = the points are not included in the optimal design.",
+  "To protect the 20 original design points, create an indicator column, using −1 and 0 as indicators.",
+  "Choose Calc > Calculator.",
+  "In Store",
+  "result in variable, type Keep runs with −1.",
+  "In Expression, enter −1 * 'OptPoint'.",
+  "Click OK.",
+  "C10 contains the indicator column to use for augmenting the design: −1 = the points to keep in the optimal design, 0 = previously excluded points that may be added to the optimal design.",
+  "Choose Stat > DOE > Response Surface > Select Optimal Design.",
+  "Under Task, choose Augment/improve design, then enter 'Keep runs with −1' in the box. Keep runs with −1 is the indicator column that was created in step #2.",
+  "In Number of points in optimal design, type 25.",
+  "Click Terms.",
+  "Click OK in each dialog box.",
+  "In this example, the first design was generated sequentially and the exchange method was used to improve the first design, exchanging one design point at a time.",
+  "Experimental runs in the order that they were chosen",
+  "The numbers shown identify the row of the experimental run in the original worksheet.",
+  "Note",
+  "The design points that are selected depend on the row order of the points in the candidate set. Therefore, Minitab can select a different optimal design from the same set of candidate points if they are in a different order. This can occur because multiple D-optimal designs can exist for a specified candidate set of points.",
+  "Statistics",
+  "You can use optimality metrics to compare designs, but remember that the optimality of a given D-optimal design is model dependent. That is, optimality is defined for a fixed design size and for a particular model. For instance, when comparing designs, larger D-optimality are better, but smaller A-optimality values better.",
+  "Response surface design augmented according to D-optimality",
+  "Number of candidate design points: 30",
+  "Number of design points to augment/improve: 20",
+  "Number of design points in optimal design: 25",
+  "Model terms: Block, A, B, C, D, AA, BB, CC, DD, AB, AC, AD, BC, BD, CD",
+  "Initial design augmented by Sequential method",
+  "Initial design improved by Exchange method",
+  "Number of design points exchanged is 1",
+  "Optimal Design",
+  "Row number of selected design points: 1, 3, 4, 6, 8, 9, 10, 13, 15, 16, 17, 19, 22, 23, 24,",
+  "25, 26, 27, 28, 30, 2, 5, 14, 18, 20"
+ ],
+ "tables": [
+  {
+   "heading": "",
+   "header": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9"
+   ],
+   "rows": [
+    [
+     "StdOrder",
+     "RunOrder",
+     "PtType",
+     "Blocks",
+     "A",
+     "B",
+     "C",
+     "D",
+     "OptPoint"
+    ],
+    [
+     "12",
+     "1",
+     "1",
+     "1",
+     "8.25",
+     "55",
+     "0.75",
+     "6.5",
+     "1"
+    ],
+    [
+     "11",
+     "2",
+     "1",
+     "1",
+     "6.75",
+     "55",
+     "0.75",
+     "6.5",
+     "0"
+    ]
+   ]
+  },
+  {
+   "heading": "",
+   "header": [
+    "C9",
+    "C10"
+   ],
+   "rows": [
+    [
+     "OptPoint",
+     "Keep runs with −1"
+    ],
+    [
+     "1",
+     "−1"
+    ],
+    [
+     "0",
+     "0"
+    ]
+   ]
+  },
+  {
+   "heading": "25, 26, 27, 28, 30, 2, 5, 14, 18, 20",
+   "header": [
+    "Condition number:",
+    "8.53018"
+   ],
+   "rows": [
+    [
+     "D-optimality (determinant of XTX):",
+     "3.73547E+20"
+    ],
+    [
+     "A-optimality (trace of inv(XTX)):",
+     "1.99479"
+    ],
+    [
+     "G-optimality (avg leverage/max leverage):",
+     "0.64"
+    ],
+    [
+     "V-optimality (average leverage):",
+     "0.64"
+    ],
+    [
+     "Maximum leverage:",
+     "1"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "This design is a subset of 25 points from a candidate set of 30 experimental runs that keeps the 20 experimental runs from the original optimal design."
+ ]
+}

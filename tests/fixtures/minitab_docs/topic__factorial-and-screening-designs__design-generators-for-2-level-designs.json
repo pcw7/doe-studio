@@ -1,0 +1,321 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/supporting-topics/factorial-and-screening-designs/design-generators-for-2-level-designs/",
+ "title": "Design generators for 2-level designs - Minitab",
+ "steps": [],
+ "tables": [
+  {
+   "heading": "Learn more about Minitab",
+   "header": [
+    "Factors",
+    "Runs",
+    "Resolution",
+    "Design Generators"
+   ],
+   "rows": [
+    [
+     "2",
+     "4",
+     "-",
+     "Full 2(AB)3"
+    ],
+    [
+     "3",
+     "4",
+     "III",
+     "C=AB No blocking"
+    ],
+    [
+     "3",
+     "8",
+     "-",
+     "Full 2(ABC)4 4(AB,AC)3"
+    ],
+    [
+     "4",
+     "8",
+     "IV",
+     "D=ABC 2(AB)3 4(AB,AC)3"
+    ],
+    [
+     "4",
+     "16",
+     "-",
+     "Full 2(ABCD)5 4(BC,ABD)3 8(AB,BC,CD)3"
+    ],
+    [
+     "5",
+     "8",
+     "III",
+     "D=AB, E=AC 2(BC)3"
+    ],
+    [
+     "5",
+     "16",
+     "V",
+     "E=ABCD (E=ABC for 8 blocks) 2(AB)3 4(AB,AC)3 8(AB,AC,AD)3"
+    ],
+    [
+     "5",
+     "16",
+     "V",
+     "E=ABCD (E=ABC for 8 blocks) 2(AB)3 4(AB,AC)3 8(AB,AC,AD)3"
+    ],
+    [
+     "5",
+     "32",
+     "-",
+     "Full 2(ABCDE)6 4(ABC,CDE)4 8(AC,BD,ADE)3 16(AB,AC,CD,DE)3"
+    ],
+    [
+     "6",
+     "8",
+     "III",
+     "D=AB, E=AC, F=BC 2(BE)3"
+    ],
+    [
+     "6",
+     "16",
+     "IV",
+     "E=ABC, F=BCD 2(ACD)4 4(AE,ACD)3 8(AB,BC,BF)3"
+    ],
+    [
+     "6",
+     "32",
+     "VI",
+     "F=ABCDE 2(ABF)4 4(BC,ABF)3 8(AD,BC,ABF)3 16(AB,BC,CD,DE)3"
+    ],
+    [
+     "6",
+     "64",
+     "-",
+     "Full 2(ABCDEF)7 4(ABCF,ABDE)5 8(ACE,ADF,BCF)4 16(AD,BE,CE,ABF)3 32(AB,BC,CD,DE,EF)3"
+    ],
+    [
+     "7",
+     "8",
+     "III",
+     "D=AB, E=AC, F=BC, G=ABC no blocking"
+    ],
+    [
+     "7",
+     "16",
+     "IV",
+     "E=ABC, F=BCD, G=ACD 2(ABD)4 4(AB,AC)3 8(AB,AC,AD)3"
+    ],
+    [
+     "7",
+     "32",
+     "IV",
+     "F=ABCD, G=ABDE 2(CDE)4 4(CF,CDE)3 8(AB,AD,CG)3"
+    ],
+    [
+     "7",
+     "64",
+     "VII",
+     "G=ABCDEF 2(CDE)4 4(ACF,CDE)4 8(ACF,ADG,CDE)4 16(AB,AC,EF,EG)3"
+    ],
+    [
+     "7",
+     "128",
+     "-",
+     "Full 2(ABCDEFG)8 4(ABDE,ABCFG)5 8(ABC,AFG,DEF)4 16(ABE,ADG,CDE,EFG)4 32(AC,BD,CE,DF,ABG)3 64(AB,BC,CD,DE,EF,FG)3"
+    ],
+    [
+     "8",
+     "16",
+     "IV",
+     "E=BCD, F=ACD, G=ABC, H=ABD 2(AB)3 4(AB,AC)3 8(AB,AC,AD)3"
+    ],
+    [
+     "8",
+     "32",
+     "IV",
+     "F=ABC, G=ABD, H=BCDE 2(ABE)4 4(EH,ABE)3 8(AB,AC,BD)3"
+    ],
+    [
+     "8",
+     "64",
+     "V",
+     "G=ABCD, H=ABEF 2(ACE)4 4(ACE,BDF)4 8(BC,FH,BDF)3 16(BC,DE,FH,BDF)3"
+    ],
+    [
+     "8",
+     "128",
+     "VIII",
+     "H=ABCDEFG 2(ABCD)5 4(ABCD,ABEF)5 8(ABCD,ABEF,BCEG)5 16(BF,DE,ABG,AEH)3 32(AC,BD,BF,DE,AEH)3"
+    ],
+    [
+     "9",
+     "16",
+     "III",
+     "E=ABC, F=BCD, G=ACD, H=ABD, J =ABCD 2(AB)3 4(AB,AC)3"
+    ],
+    [
+     "9",
+     "32",
+     "IV",
+     "F=BCDE,G=ACDE,H=ABDE,J=ABCE 2(AEF)4 4(AB,CD)3 8(AB,AC,CD)3"
+    ],
+    [
+     "9",
+     "64",
+     "IV",
+     "G=ABCD, H=ACEF, J=CDEF 2(BCE)4 4(ABF,ACJ)4 8(AD,AH,BDE)3 16(AC,AD,AJ,BF)3"
+    ],
+    [
+     "9",
+     "128",
+     "VI",
+     "H=ACDFG, J=BCEFG 2(CDEJ)5 4(ABFJ,CDEJ)5 8(ACF,AHJ,BCJ)4 16(AE,CG,BCJ,BDE)3"
+    ],
+    [
+     "10",
+     "16",
+     "III",
+     "E=ABC, F=BCD, G=ACD, H=ABD, J =ABCD, K=AB 2(AC)3 4(AD,AG)3"
+    ],
+    [
+     "10",
+     "32",
+     "IV",
+     "F=BCDE,G=ACDE,H=ABDE,J=ABCE 2(AB)3 4(AB,BC)3 8(AB,AC,AH)3"
+    ],
+    [
+     "10",
+     "64",
+     "IV",
+     "G=BCDF, H=ACDF, J=ABDE, K=ABCE 2(AGJ)4 4(CD,AGJ)3 8(AG,CJ,CK)3 16(AC,AG,CJ,CK)3"
+    ],
+    [
+     "10",
+     "128",
+     "V",
+     "H=ABCG, J=BCDE, K=ACDF 2(ADG)4 4(ADG,BDF)4 8(AEH,AGK,CDH)4 16(BH,EG,JK,ADG)3"
+    ],
+    [
+     "11",
+     "16",
+     "III",
+     "E=ABC, F=BCD, G=ACD, H=ABD, J=ABCD, K=AB, L=AC 2(AD)3 4(AE,AH)3"
+    ],
+    [
+     "11",
+     "32",
+     "IV",
+     "F=ABC, G=BCD, H=CDE, J=ACD, K=ADE, L=BDE 2(ABD)4 4(AK,ABD)3 8(AB,AC,AD)3"
+    ],
+    [
+     "11",
+     "64",
+     "IV",
+     "G=CDE, H=ABCD, J=ABF, K=BDEF, L=ADEF 2(AHJ)4 4(FL,AHJ)3 8(CD,CE,DL)3 16(AB,AC,AE,AF)3"
+    ],
+    [
+     "11",
+     "128",
+     "V",
+     "H=ABCG, J=BCDE, K=ACDF 2(ADJ)4 4(ADJ,BFH)4 8(ADJ,AHL,BFH)4 16(BC,DF,GL,BFH)3"
+    ],
+    [
+     "12",
+     "16",
+     "III",
+     "E=ABC, F=ABD, G=ACD, H=BCD, J=ABCD, K=AB, L=AC, M=AD 2(AG)3 4(AF,AG)3"
+    ],
+    [
+     "12",
+     "32",
+     "IV",
+     "F=ACE, G=ACD, H=ABD, J=ABE, K=CDE, L=ABCDE, M=ADE 2(ABC)4 4(DG,DH)3 8(AB,AC,AD)3"
+    ],
+    [
+     "12",
+     "64",
+     "IV",
+     "G=DEF, H=ABC, J=BCDE, K=BCDF, L=ABEF, M=ACEF 2(ABM)4 4(AB,AC)3 8(AB,AC,BM)3 16(AB,AD,BE,BM)3"
+    ],
+    [
+     "12",
+     "128",
+     "IV",
+     "H=ACDG, J=ABCD, K=BCFG, L=ABDEFG, M=CDEF 2(ACF)4 4(BG,BJ)3 8(BG,BJ,AGM)3 16(BG,BJ,FM,AGM)3"
+    ],
+    [
+     "13",
+     "16",
+     "III",
+     "E=ABC, F=ABD, G=ACD, H=BCD, J=ABCD, K=AB, L=AC, M=AD, N=BC 2(AG)3"
+    ],
+    [
+     "13",
+     "32",
+     "IV",
+     "F=ACE, G=BCE, H=ABC, J=CDE, K=ABCDE, L=ABE, M=ACD, N=ADE 2(ABD)4 4(CG,GH)3 8(AB,AC,AD)3"
+    ],
+    [
+     "13",
+     "64",
+     "IV",
+     "G=ABC, H=DEF, J=BCDF, K=BCDE, L=ABEF, M=ACEF, N=BCEF 2(AB)3 4(AB,AC)3 8(AB,AC,AN)3 16(AB,AD,BE,BM)3"
+    ],
+    [
+     "13",
+     "128",
+     "IV",
+     "H=DEFG, J=BCEG, K=BCDFG, L=ABDEF, M=ACEF, N=ABC 2(ACF)4 4(BG,BJ)3 8(BG,BJ,AGM)3 16(BG,BJ,FM,AGM)3"
+    ],
+    [
+     "14",
+     "16",
+     "III",
+     "E=ABC, F=ABD, G=ACD, H=BCD, J=ABCD, K=AB, L=AC, M=AD, N=BC, O=BD 2(AG)3"
+    ],
+    [
+     "14",
+     "32",
+     "IV",
+     "F=ABC, G=ABD, H=ABE, J=ACD, K=ACE, L=ADE, M=BCD, N=BCE, O=BDE 2(ACL)4 4(AB,ACL)3 8(AC,AL,AO)3"
+    ],
+    [
+     "14",
+     "64",
+     "IV",
+     "G=BEF, H=BCF, J=DEF, K=CEF, L=BCE, M=CDF, N=ACDE, O=BCDEF 2(ABC)4 4(BC,BE)3 8(BC,BE,BG)3 16(AB,BC,BE,BG)3"
+    ],
+    [
+     "14",
+     "128",
+     "IV",
+     "H=EFG, J=BCFG, K=BCEG, L=ABEF, M=ACEF, N=BCDEF, O=ABC 2(ADE)4 4(AB,AC)3 8(AB,AC,BM)3 16(AB,AC,BM,DG)3"
+    ],
+    [
+     "15",
+     "16",
+     "III",
+     "E=ABC, F=ABD, G=ACD, H=BCD, J=ABCD, K=AB, L=AC, M=AD, N=BC, O=BD,P=CD No blocking"
+    ],
+    [
+     "15",
+     "32",
+     "IV",
+     "F=ABC, G=ABD, H=ABE, J=ACD, K=ACE, L=ADE, M=BCD, N=BCE, O=BDE, P=CDE 2(ABP)4 4(AB,BP)3 8(AB,AD,AK)3"
+    ],
+    [
+     "15",
+     "64",
+     "IV",
+     "G=ABC, H=ABD, J=ABE, K=ABF, L=ACD, M=ACE, N=ACF, O=ADE, P=ADF 2(ABL)4 4(AM,ABL)3 8(AB,AC,AD)3 16(AB,AC,AD,AE)3"
+    ],
+    [
+     "15",
+     "128",
+     "IV",
+     "H=ABFG, J=ACDEF, K=BEF, L=ABCEG, M=CDFG, N=ACDEG, O=EFG, P=ABDEFG 2(ADE)4 4(EG,GP)3 8(EG,GP,OP)3 16(BO,EG,GP,OP)3"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "Design generators for 2-level designs"
+ ]
+}

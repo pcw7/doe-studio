@@ -1,0 +1,81 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/supporting-topics/factorial-and-screening-designs/available-definitive-screening-designs/",
+ "title": "Available definitive screening designs - Minitab",
+ "steps": [],
+ "tables": [
+  {
+   "heading": "Learn more about Minitab",
+   "header": [
+    "Number of factors",
+    "Number of runs"
+   ],
+   "rows": [
+    [
+     "2–6",
+     "13"
+    ],
+    [
+     "7–8",
+     "17"
+    ],
+    [
+     "9–10",
+     "21"
+    ],
+    [
+     "11–12",
+     "25"
+    ],
+    [
+     "13–14",
+     "29"
+    ],
+    [
+     "15–16",
+     "33"
+    ],
+    [
+     "17–18",
+     "37"
+    ],
+    [
+     "19–20",
+     "41"
+    ],
+    [
+     "21–24",
+     "49"
+    ],
+    [
+     "25–26",
+     "53"
+    ],
+    [
+     "27–30",
+     "61"
+    ],
+    [
+     "31–32",
+     "65"
+    ],
+    [
+     "33–38",
+     "77"
+    ],
+    [
+     "39–42",
+     "85"
+    ],
+    [
+     "43–44",
+     "89"
+    ],
+    [
+     "45–48",
+     "97"
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

@@ -1,0 +1,38 @@
+# DOE Studio (작업명)
+
+화학기업 연구원을 위한 실험계획법(DOE) 도구입니다. **Minitab 의 Stat > DOE 메뉴와 같은 워크플로, 같은 통계 결과**를 내는 것을 목표로 하며, 설치 없이 쓰는 웹앱 형태로 만듭니다.
+
+- 기능·화면·통계 절차는 Minitab DOE 를 기준으로 재현합니다.
+- 이름, 로고, 아이콘, 도움말 문구, 화면 디자인은 베끼지 않습니다. 검증은 Minitab 공식 문서의 예제 출력(정답 숫자)과 비교해 합니다.
+
+## 폴더 구조
+
+| 경로 | 내용 |
+|---|---|
+| `docs/` | 사양서(`spec-minitab-doe.md`), 조사 결과 |
+| `doe_core/` | 순수 Python 엔진. UI 와 분리되어 단독 테스트 가능 |
+| `doe_core/designs/` | 설계 생성(요인·반응표면·혼합물·선별·최적설계) |
+| `doe_core/analysis/` | 모형 적합, 분산분석, 효과도 통계(Lenth PSE 등) |
+| `doe_core/optimize/` | 반응 최적화기(만족도 함수), 예측 |
+| `doe_core/plots/` | Pareto·정규확률도·주효과·교호작용·등고선·표면도 |
+| `doe_core/io/` | 워크시트(설계 정보 포함) 저장·불러오기, CSV/Excel |
+| `app/` | Streamlit 화면 |
+| `tests/` | pytest. `tests/fixtures/minitab_docs/` 에 Minitab 문서 예제의 출력표를 JSON 으로 보관(정답지) |
+| `research/` | 문서 수집 도구와 URL 목록. 문서 원문 사본은 `research/minitab_docs/` (git 제외) |
+
+## 개발 환경
+
+```powershell
+python -m pip install -e .[dev]
+python -m pytest
+streamlit run app/Home.py   # 화면이 생긴 뒤
+```
+
+## 진행 상태
+
+- [x] 0단계: Minitab DOE 문서 조사(226편), 메뉴 트리(en/ko), 예제 출력표 픽스처 48개, 기능 요약 A/B/C, 사양서
+- [ ] 1단계: 2수준 요인설계 생성·분석(분산분석표, 효과도, 잔차)
+  - [x] 2수준 완전·부분요인 생성 엔진(카탈로그 49행 검증, 생성자·정의관계·별칭·블록·중앙점·랜덤화) — 테스트 15개 통과
+  - [ ] Plackett-Burman, 일반 완전요인, 접기 · 워크시트 저장 · 분석 · 그래프 · 화면
+- [ ] 2단계: 반응표면(CCD·Box-Behnken), 등고선·표면도, 반응 최적화기
+- [ ] 3단계: 혼합물, 확정적 선별설계, 최적설계, 분할구

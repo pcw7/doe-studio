@@ -1,0 +1,113 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/factorial/analyze-factorial-design/interpret-the-results/all-statistics-and-graphs/residual-plots/",
+ "title": "Residual plots for Analyze Factorial Design - Minitab",
+ "steps": [
+  "In This Topic",
+  "Histogram of residuals",
+  "Normal probability plot of residuals",
+  "Residuals versus fits",
+  "Residuals versus order",
+  "Residuals versus the variables",
+  "Histogram of residuals",
+  "The histogram of the residuals shows the distribution of the residuals for all observations.",
+  "Interpretation",
+  "Use the histogram of the residuals to determine whether the data are skewed or include outliers. The patterns in the following table may indicate that the model does not meet the model assumptions.",
+  "Because the appearance of a histogram depends on the number of intervals used to group the data, don't use a histogram to assess the normality of the residuals. Instead, use a normal probability plot.",
+  "A histogram is most effective when you have approximately 20 or more data points. If the sample is too small, then each bar on the histogram does not contain enough data points to reliably show skewness or outliers.",
+  "Normal probability plot of residuals",
+  "The normal probability plot of the residuals displays the residuals versus their expected values when the distribution is normal.",
+  "Interpretation",
+  "Use the normal probability plot of the residuals to verify the assumption that the residuals are normally distributed. The normal probability plot of the residuals should approximately follow a straight line.",
+  "The following patterns violate the assumption that the residuals are normally distributed.",
+  "S-curve implies a distribution with long tails.",
+  "Inverted S-curve implies a distribution with short tails.",
+  "Downward curve implies a right-skewed distribution.",
+  "A few points lying away from the line implies a distribution with outliers.",
+  "If you see a nonnormal pattern, use the other residual plots to check for other problems with the model, such as missing terms or a time order effect. If the residuals do not follow a normal distribution, the confidence intervals and p-values can be inaccurate.",
+  "Residuals versus fits",
+  "The residuals versus fits graph plots the residuals on the y-axis and the fitted values on the x-axis.",
+  "Interpretation",
+  "Use the residuals versus fits plot to verify the assumption that the residuals are randomly distributed and have constant variance. Ideally, the points should fall randomly on both sides of 0, with no recognizable patterns in the points.",
+  "The patterns in the following table may indicate that the model does not meet the model assumptions.",
+  "The following graphs show an outlier and a violation of the assumption that the variance of the residuals is constant.",
+  "Plot with outlier",
+  "One of the points is much larger than all of the other points. Therefore, the point is an outlier. If there are too many outliers, the model may not be acceptable. You should try to identify the cause of any outlier. Correct any data entry or measurement errors. Consider removing data values that are associated with abnormal, one-time events (special causes). Then, repeat the analysis.",
+  "Plot with nonconstant variance",
+  "The variance of the residuals increases with the fitted values. Notice that, as the value of the fits increases, the scatter among the residuals widens. This pattern indicates that the variances of the residuals are unequal (nonconstant).",
+  "If you identify any patterns or outliers in your residual versus fits plot, consider the following solutions:",
+  "Residuals versus order",
+  "The residuals versus order plot displays the residuals in the order that the data were collected.",
+  "Interpretation",
+  "Use the residuals versus order plot to verify the assumption that the residuals are independent from one another. Independent residuals show no trends or patterns when displayed in time order. Patterns in the points may indicate that residuals near each other may be correlated, and thus, not independent. Ideally, the residuals on the plot should fall randomly around the center line:",
+  "If you see a pattern, investigate the cause. The following types of patterns may indicate that the residuals are dependent.",
+  "Trend",
+  "Shift",
+  "Cycle",
+  "Residuals versus the variables",
+  "The residual versus variables plot displays the residuals versus another variable. The variable could already be included in your model. Or, the variable may not be in the model, but you suspect it affects the response.",
+  "Interpretation",
+  "If you see a non-random pattern in the residuals, it indicates that the variable affects the response in a systematic way. Consider including this variable in an analysis."
+ ],
+ "tables": [
+  {
+   "heading": "Interpretation",
+   "header": [
+    "Pattern",
+    "What the pattern may indicate"
+   ],
+   "rows": [
+    [
+     "A long tail in one direction",
+     "Skewness"
+    ],
+    [
+     "A bar that is far away from the other bars",
+     "An outlier"
+    ]
+   ]
+  },
+  {
+   "heading": "Interpretation",
+   "header": [
+    "Pattern",
+    "What the pattern may indicate"
+   ],
+   "rows": [
+    [
+     "Fanning or uneven spreading of residuals across fitted values",
+     "Nonconstant variance"
+    ],
+    [
+     "Curvilinear",
+     "A missing higher-order term"
+    ],
+    [
+     "A point that is far away from zero",
+     "An outlier"
+    ],
+    [
+     "A point that is far away from the other points in the x-direction",
+     "An influential point"
+    ]
+   ]
+  },
+  {
+   "heading": "If you identify any patterns or outliers in your residual versus fits plot, consider the following solutions:",
+   "header": [
+    "Issue",
+    "Possible solution"
+   ],
+   "rows": [
+    [
+     "Nonconstant variance",
+     "Consider using a Box-Cox transformation of the response variable or weights.."
+    ],
+    [
+     "An outlier or influential point",
+     "Verify that the observation is not a measurement error or data-entry error. Consider performing the analysis without this observation to determine how it impacts your results."
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

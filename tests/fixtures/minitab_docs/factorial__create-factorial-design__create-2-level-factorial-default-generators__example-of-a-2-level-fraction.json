@@ -1,0 +1,209 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/factorial/create-factorial-design/create-2-level-factorial-default-generators/before-you-start/example-of-a-2-level-fractional-design/",
+ "title": "Example of Create 2-Level Factorial Design (Default Generators) - Minitab",
+ "steps": [
+  "Choose Stat > DOE > Factorial > Create Factorial Design.",
+  "From Number of factors, select 6.",
+  "Click Designs.",
+  "Select the 1/4 fraction design.",
+  "Click OK in each dialog box."
+ ],
+ "tables": [
+  {
+   "heading": "Design Summary",
+   "header": [
+    "Factors:",
+    "6",
+    "Base Design:",
+    "6, 16",
+    "Resolution:",
+    "IV"
+   ],
+   "rows": [
+    [
+     "Runs:",
+     "16",
+     "Replicates:",
+     "1",
+     "Fraction:",
+     "1/4"
+    ],
+    [
+     "Blocks:",
+     "1",
+     "Center pts (total):",
+     "0",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Alias Structure",
+   "header": [
+    "I + ABCE + ADEF + BCDF"
+   ],
+   "rows": [
+    [
+     "A + BCE + DEF + ABCDF"
+    ],
+    [
+     "B + ACE + CDF + ABDEF"
+    ],
+    [
+     "C + ABE + BDF + ACDEF"
+    ],
+    [
+     "D + AEF + BCF + ABCDE"
+    ],
+    [
+     "E + ABC + ADF + BCDEF"
+    ],
+    [
+     "F + ADE + BCD + ABCEF"
+    ],
+    [
+     "AB + CE + ACDF + BDEF"
+    ],
+    [
+     "AC + BE + ABDF + CDEF"
+    ],
+    [
+     "AD + EF + ABCF + BCDE"
+    ],
+    [
+     "AE + BC + DF + ABCDEF"
+    ],
+    [
+     "AF + DE + ABCD + BCEF"
+    ],
+    [
+     "BD + CF + ABEF + ACDE"
+    ],
+    [
+     "BF + CD + ABDE + ACEF"
+    ],
+    [
+     "ABD + ACF + BEF + CDE"
+    ],
+    [
+     "ABF + ACD + BDE + CEF"
+    ]
+   ]
+  },
+  {
+   "heading": "Alias Structure",
+   "header": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "C10"
+   ],
+   "rows": [
+    [
+     "StdOrder",
+     "RunOrder",
+     "CenterPt",
+     "Blocks",
+     "A",
+     "B",
+     "C",
+     "D",
+     "E",
+     "F"
+    ],
+    [
+     "12",
+     "1",
+     "1",
+     "1",
+     "1",
+     "−1",
+     "−1",
+     "−1",
+     "1",
+     "−1"
+    ],
+    [
+     "2",
+     "2",
+     "1",
+     "1",
+     "−1",
+     "1",
+     "1",
+     "−1",
+     "−1",
+     "−1"
+    ],
+    [
+     "6",
+     "3",
+     "1",
+     "1",
+     "−1",
+     "−1",
+     "−1",
+     "−1",
+     "−1",
+     "−1"
+    ],
+    [
+     "9",
+     "4",
+     "1",
+     "1",
+     "−1",
+     "−1",
+     "−1",
+     "1",
+     "−1",
+     "1"
+    ],
+    [
+     "10",
+     "5",
+     "1",
+     "1",
+     "−1",
+     "−1",
+     "1",
+     "−1",
+     "1",
+     "1"
+    ],
+    [
+     "1",
+     "6",
+     "1",
+     "1",
+     "1",
+     "1",
+     "−1",
+     "1",
+     "−1",
+     "−1"
+    ],
+    [
+     "...",
+     "...",
+     "...",
+     "...",
+     "...",
+     "...",
+     "...",
+     "...",
+     "...",
+     "..."
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

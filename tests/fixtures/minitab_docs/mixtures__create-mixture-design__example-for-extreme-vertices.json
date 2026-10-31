@@ -1,0 +1,397 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/mixtures/create-mixture-design/before-you-start/example-for-extreme-vertices/",
+ "title": "Example for Create Mixture Design (Extreme Vertices) - Minitab",
+ "steps": [
+  "Choose Stat > DOE > Mixture > Create Mixture Design.",
+  "Under Type of Design, select Extreme vertices.",
+  "From Number of components, select 3.",
+  "Click Designs, and then click OK.",
+  "Click Components and complete the table as shown below.",
+  "Click Linear Constraints, and complete the table as shown below.",
+  "Click OK twice to return to the main dialog box.",
+  "Click Process Vars. Under Process Variables, choose Number and select 1.",
+  "Under Name, type Temperature. Under Low and High, type 80 and 90, respectively. Click OK.",
+  "Click Results. Select Detailed description and design table.",
+  "Click OK in each dialog box.",
+  "In some mixture experimentation, it is necessary to set a lower bound and/or an upper bound on some or all of the components. For this design, the components have bounds that are displayed in the bounds of mixture components table. For example, component A can have a proportion that ranges from 0.2 to 0.6. In addition to the individual bounds on the components, the linear constraint table indicates a requirement that the amount of Gruyere does not exceed the amount of Emmenthaler. For more information, go to How are linear constraints different than component bounds in a mixtures design?.",
+  "The design table displays the component values for each experimental run using coded component names and uncoded values. For example, in the first run, component A has a proportion set at 0.20000, B set at 0.20000, and C set at 0.60000. X1 is the process variable, temperature, which is set at the low setting of 80 degrees. With 3 components, the design has 18 runs. In the worksheet, Minitab displays the names of the components, process variable, and the levels.",
+  "Note",
+  "Minitab randomizes the design by default, so when you create this design, the run order will not match the order in the example output.",
+  "Design Summary",
+  "Mixture total: 1.00000",
+  "Number of Boundaries for Each Dimension",
+  "Number of Design Points for Each Type",
+  "Bounds of Mixture Components",
+  "Linear Constraints of Mixture Components",
+  "Design Table (randomized)"
+ ],
+ "tables": [
+  {
+   "heading": "",
+   "header": [
+    "Component",
+    "Name",
+    "Lower",
+    "Upper"
+   ],
+   "rows": [
+    [
+     "A",
+     "Emmenthaler",
+     "0.2",
+     "0.6"
+    ],
+    [
+     "B",
+     "Gruyere",
+     "0",
+     "0.3"
+    ],
+    [
+     "C",
+     "Broth",
+     "0.4",
+     "0.6"
+    ]
+   ]
+  },
+  {
+   "heading": "",
+   "header": [
+    "Component",
+    ""
+   ],
+   "rows": [
+    [
+     "Lower",
+     "0"
+    ],
+    [
+     "A",
+     "1"
+    ],
+    [
+     "B",
+     "-1"
+    ],
+    [
+     "C",
+     "0"
+    ],
+    [
+     "Upper",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Design Summary",
+   "header": [
+    "Components:",
+    "3",
+    "Design points:",
+    "18"
+   ],
+   "rows": [
+    [
+     "Process variables:",
+     "1",
+     "Design degree:",
+     "1"
+    ]
+   ]
+  },
+  {
+   "heading": "Number of Boundaries for Each Dimension",
+   "header": [
+    "Point Type",
+    "1",
+    "2",
+    "0"
+   ],
+   "rows": [
+    [
+     "Dimension",
+     "0",
+     "1",
+     "2"
+    ],
+    [
+     "Number",
+     "5",
+     "5",
+     "1"
+    ]
+   ]
+  },
+  {
+   "heading": "Number of Design Points for Each Type",
+   "header": [
+    "Point Type",
+    "1",
+    "2",
+    "3",
+    "0",
+    "-1"
+   ],
+   "rows": [
+    [
+     "Distinct",
+     "8",
+     "0",
+     "0",
+     "2",
+     "8"
+    ],
+    [
+     "Replicates",
+     "1",
+     "0",
+     "0",
+     "1",
+     "1"
+    ],
+    [
+     "Total number",
+     "8",
+     "0",
+     "0",
+     "2",
+     "8"
+    ]
+   ]
+  },
+  {
+   "heading": "Bounds of Mixture Components",
+   "header": [
+    "",
+    "Amount",
+    "Proportion",
+    "Pseudocomponent"
+   ],
+   "rows": [
+    [
+     "Comp",
+     "Lower",
+     "Upper",
+     "Lower",
+     "Upper",
+     "Lower",
+     "Upper"
+    ],
+    [
+     "A",
+     "0.20000",
+     "0.60000",
+     "0.20000",
+     "0.60000",
+     "0.00000",
+     "1.00000"
+    ],
+    [
+     "B",
+     "0.00000",
+     "0.30000",
+     "0.00000",
+     "0.30000",
+     "0.00000",
+     "0.75000"
+    ],
+    [
+     "C",
+     "0.40000",
+     "0.60000",
+     "0.40000",
+     "0.60000",
+     "0.00000",
+     "0.50000"
+    ]
+   ]
+  },
+  {
+   "heading": "Linear Constraints of Mixture Components",
+   "header": [
+    "Constraint",
+    "Lower",
+    "A",
+    "B",
+    "C",
+    "Upper"
+   ],
+   "rows": [
+    [
+     "1",
+     "0.00000",
+     "1.00000",
+     "-1.00000",
+     "0.00000",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Design Table (randomized)",
+   "header": [
+    "Run",
+    "Type",
+    "A",
+    "B",
+    "C",
+    "X1"
+   ],
+   "rows": [
+    [
+     "1",
+     "1",
+     "0.20000",
+     "0.20000",
+     "0.60000",
+     "-1"
+    ],
+    [
+     "2",
+     "1",
+     "0.20000",
+     "0.20000",
+     "0.60000",
+     "1"
+    ],
+    [
+     "3",
+     "0",
+     "0.37500",
+     "0.12500",
+     "0.50000",
+     "1"
+    ],
+    [
+     "4",
+     "1",
+     "0.30000",
+     "0.30000",
+     "0.40000",
+     "1"
+    ],
+    [
+     "5",
+     "1",
+     "0.40000",
+     "0.00000",
+     "0.60000",
+     "-1"
+    ],
+    [
+     "6",
+     "-1",
+     "0.33750",
+     "0.21250",
+     "0.45000",
+     "-1"
+    ],
+    [
+     "7",
+     "-1",
+     "0.28750",
+     "0.16250",
+     "0.55000",
+     "1"
+    ],
+    [
+     "8",
+     "-1",
+     "0.38750",
+     "0.06250",
+     "0.55000",
+     "1"
+    ],
+    [
+     "9",
+     "-1",
+     "0.48750",
+     "0.06250",
+     "0.45000",
+     "1"
+    ],
+    [
+     "10",
+     "1",
+     "0.30000",
+     "0.30000",
+     "0.40000",
+     "-1"
+    ],
+    [
+     "11",
+     "-1",
+     "0.33750",
+     "0.21250",
+     "0.45000",
+     "1"
+    ],
+    [
+     "12",
+     "-1",
+     "0.28750",
+     "0.16250",
+     "0.55000",
+     "-1"
+    ],
+    [
+     "13",
+     "-1",
+     "0.48750",
+     "0.06250",
+     "0.45000",
+     "-1"
+    ],
+    [
+     "14",
+     "1",
+     "0.40000",
+     "0.00000",
+     "0.60000",
+     "1"
+    ],
+    [
+     "15",
+     "0",
+     "0.37500",
+     "0.12500",
+     "0.50000",
+     "-1"
+    ],
+    [
+     "16",
+     "1",
+     "0.60000",
+     "0.00000",
+     "0.40000",
+     "1"
+    ],
+    [
+     "17",
+     "-1",
+     "0.38750",
+     "0.06250",
+     "0.55000",
+     "-1"
+    ],
+    [
+     "18",
+     "1",
+     "0.60000",
+     "0.00000",
+     "0.40000",
+     "-1"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "Minitab displays the number of design points for each point type. The interpretation of the point type value depends on whether the design is constrained or unconstrained. This is a constrained design because the proportions of all the components do not range from 0 to 1. The values for the point types indicate the following:",
+  "Type 1 is a vertex. Vertices are at the \"corners\" of the design space. This design has 8 vertices.",
+  "Type 2 is a point at the middle of an edge of the design space. These points correspond to blends in which the component proportions are the average proportions of the two vertices defining the edge. This design has 0 middle points.",
+  "Type 0 is the center point. The center point corresponds to the blend in which the component proportions are the averages of the corresponding vertex proportions. This design has 2 center points.",
+  "Type - 1 is an axial point. An axial point corresponds to the blend in which the component proportions are the averages of the center point proportions and the proportions in a vertex. This design has 8 axial points."
+ ]
+}

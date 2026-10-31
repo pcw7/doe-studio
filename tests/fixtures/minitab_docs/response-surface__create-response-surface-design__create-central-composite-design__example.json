@@ -1,0 +1,216 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/response-surface/create-response-surface-design/create-central-composite-design/before-you-start/example/",
+ "title": "Example of Create Response Surface Design (Central Composite) - Minitab",
+ "steps": [
+  "Choose Stat > DOE > Response Surface > Create Response Surface Design.",
+  "Under Type",
+  "of Design, select Central composite.",
+  "From Number of continuous factors, select 3.",
+  "Click Designs.",
+  "Select the second design (full design with 20 runs and 2 blocks) in the white box, and then click OK.",
+  "Click Results. Select Summary table and design table.",
+  "Click OK in each dialog box."
+ ],
+ "tables": [
+  {
+   "heading": "Design Summary",
+   "header": [
+    "Factors:",
+    "3",
+    "Replicates:",
+    "1"
+   ],
+   "rows": [
+    [
+     "Base runs:",
+     "20",
+     "Total runs:",
+     "20"
+    ],
+    [
+     "Base blocks:",
+     "2",
+     "Total blocks:",
+     "2"
+    ]
+   ]
+  },
+  {
+   "heading": "Point Types",
+   "header": [
+    "Cube points:",
+    "8"
+   ],
+   "rows": [
+    [
+     "Center points in cube:",
+     "4"
+    ],
+    [
+     "Axial points:",
+     "6"
+    ],
+    [
+     "Center points in axial:",
+     "2"
+    ]
+   ]
+  },
+  {
+   "heading": "Design Table (randomized)",
+   "header": [
+    "Run",
+    "Blk",
+    "A",
+    "B",
+    "C"
+   ],
+   "rows": [
+    [
+     "1",
+     "1",
+     "1.000",
+     "-1.000",
+     "1.000"
+    ],
+    [
+     "2",
+     "1",
+     "-1.000",
+     "-1.000",
+     "-1.000"
+    ],
+    [
+     "3",
+     "1",
+     "1.000",
+     "-1.000",
+     "-1.000"
+    ],
+    [
+     "4",
+     "1",
+     "-1.000",
+     "-1.000",
+     "1.000"
+    ],
+    [
+     "5",
+     "1",
+     "1.000",
+     "1.000",
+     "1.000"
+    ],
+    [
+     "6",
+     "1",
+     "-1.000",
+     "1.000",
+     "1.000"
+    ],
+    [
+     "7",
+     "1",
+     "-1.000",
+     "1.000",
+     "-1.000"
+    ],
+    [
+     "8",
+     "1",
+     "0.000",
+     "0.000",
+     "0.000"
+    ],
+    [
+     "9",
+     "1",
+     "1.000",
+     "1.000",
+     "-1.000"
+    ],
+    [
+     "10",
+     "1",
+     "0.000",
+     "0.000",
+     "0.000"
+    ],
+    [
+     "11",
+     "1",
+     "0.000",
+     "0.000",
+     "0.000"
+    ],
+    [
+     "12",
+     "1",
+     "0.000",
+     "0.000",
+     "0.000"
+    ],
+    [
+     "13",
+     "2",
+     "0.000",
+     "0.000",
+     "0.000"
+    ],
+    [
+     "14",
+     "2",
+     "1.633",
+     "0.000",
+     "0.000"
+    ],
+    [
+     "15",
+     "2",
+     "0.000",
+     "0.000",
+     "0.000"
+    ],
+    [
+     "16",
+     "2",
+     "0.000",
+     "-1.633",
+     "0.000"
+    ],
+    [
+     "17",
+     "2",
+     "0.000",
+     "0.000",
+     "-1.633"
+    ],
+    [
+     "18",
+     "2",
+     "-1.633",
+     "0.000",
+     "0.000"
+    ],
+    [
+     "19",
+     "2",
+     "0.000",
+     "1.633",
+     "0.000"
+    ],
+    [
+     "20",
+     "2",
+     "0.000",
+     "0.000",
+     "1.633"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "The design table displays the factor settings for each experimental run using coded factor names and levels. For example, in the first run, Factor A and Factor C are at level 1 and Factor B is at level −1. With 3 factors, the design has 20 runs. In the worksheet, Minitab displays the names of the factors and the uncoded levels.",
+  "α = 1.633"
+ ]
+}

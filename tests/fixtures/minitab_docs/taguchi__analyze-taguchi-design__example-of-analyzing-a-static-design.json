@@ -1,0 +1,423 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/taguchi/analyze-taguchi-design/before-you-start/example-of-analyzing-a-static-design/",
+ "title": "Example of Analyze Taguchi Design (Static) - Minitab",
+ "steps": [
+  "Open the sample data, GolfBall.MWX.",
+  "Choose Stat > DOE > Taguchi > Analyze Taguchi Design.",
+  "In Response data are in, enter Driver and Iron.",
+  "Click Analysis.",
+  "Under Fit linear model for, check Signal to Noise ratios and Means. Click OK.",
+  "Click Terms.",
+  "Move terms A: Material, B: Diameter, C: Dimples, D: Thickness, and AB from Available Terms to Selected Terms. Click OK.",
+  "Click Options.",
+  "Under Signal to Noise Ratio, select Larger is better. Click OK.",
+  "Click Analysis Graphs, then select Four in one.",
+  "Click OK in each dialog box.",
+  "In this example, for S/N ratios, all the factors have a p-value less than 0.05 and are statistically significant at a significance level of 0.05. Frequently, a significance level of 0.10 is used for evaluating terms in a model. The interaction is statistically significant at a significance level of 0.10. For means, core material (p = 0.045) and core diameter (p = 0.024) are statistically significant at a significance level of 0.05, and the interaction of material with diameter (p = 0.06) is statistically significant at a significance level of 0.10. However, because both factors are involved in the interaction, you need to understand the interaction before you can consider the effect of each factor individually.",
+  "The absolute value of the coefficient indicates the relative strength of each factor. The factor with the largest coefficient has the largest impact on a given response characteristic. In Taguchi designs, the magnitude of the factor coefficient usually mirrors the factor ranks in the response tables.",
+  "The response tables show the average of each response characteristic for each level of each factor. The tables include ranks based on Delta statistics, which compare the relative magnitude of effects. The Delta statistic is the highest minus the lowest average for each factor. Minitab assigns ranks based on Delta values; rank 1 to the highest Delta value, rank 2 to the second highest, and so on. Use the level averages in the response tables to determine which level of each factor provides the best result.",
+  "In Taguchi experiments, you always want to maximize the S/N ratio. In this example, the ranks",
+  "indicate that core diameter (B) has the most influence on both the S/N ratio and the",
+  "mean. For S/N ratio, cover thickness (D) has the next largest influence, followed by",
+  "core material (A) and dimples (C). For means, core material (A) has the next largest",
+  "influence, followed by dimples (C) and cover thickness (D).",
+  "For this example, because the goal is to increase ball flight distance, the engineer wants the",
+  "factor levels that produce the highest mean. The levels averages in the response",
+  "tables show that the S/N ratios and the means are maximized at the Level 1 value for",
+  "each factor, except for cover thickness. This corresponds with the following factor",
+  "settings:",
+  "Liquid core (A)",
+  "Core diameter (B) = 118",
+  "Dimples (C) = 392",
+  "Cover thickness (D) = 0.06",
+  "The main effects plots and the interaction plots confirm these results. The",
+  "interaction plots show that, with the liquid core, the flight distance is maximized",
+  "when the core diameter is 118.",
+  "To continue this analysis, the engineer can use Predict Taguchi",
+  "Results to determine the predicted S/N ratios and means at these factor settings. For more information, go to Example of Predict Taguchi Results",
+  "Estimated Model Coefficients for SN ratios",
+  "Model Summary",
+  "Analysis of Variance for SN ratios",
+  "Estimated Model Coefficients for Means",
+  "Model Summary",
+  "Analysis of Variance for Means",
+  "Response Table for Signal to Noise Ratios",
+  "Larger is better",
+  "Response Table for Means"
+ ],
+ "tables": [
+  {
+   "heading": "Estimated Model Coefficients for SN ratios",
+   "header": [
+    "Term",
+    "Coef",
+    "SE Coef",
+    "T",
+    "P"
+   ],
+   "rows": [
+    [
+     "Constant",
+     "38.181",
+     "0.4523",
+     "84.418",
+     "0.000"
+    ],
+    [
+     "Material Liquid",
+     "3.436",
+     "0.4523",
+     "7.596",
+     "0.017"
+    ],
+    [
+     "Diameter 118",
+     "3.967",
+     "0.4523",
+     "8.772",
+     "0.013"
+    ],
+    [
+     "Dimples 392",
+     "2.982",
+     "0.4523",
+     "6.593",
+     "0.022"
+    ],
+    [
+     "Thicknes 0.03",
+     "-3.479",
+     "0.4523",
+     "-7.692",
+     "0.016"
+    ],
+    [
+     "Material*Diameter Liquid 118",
+     "1.640",
+     "0.4523",
+     "3.625",
+     "0.068"
+    ]
+   ]
+  },
+  {
+   "heading": "Model Summary",
+   "header": [
+    "S",
+    "R-Sq",
+    "R-Sq(adj)"
+   ],
+   "rows": [
+    [
+     "1.2793",
+     "99.21%",
+     "97.23%"
+    ]
+   ]
+  },
+  {
+   "heading": "Analysis of Variance for SN ratios",
+   "header": [
+    "Source",
+    "DF",
+    "Seq SS",
+    "Adj SS",
+    "Adj MS",
+    "F",
+    "P"
+   ],
+   "rows": [
+    [
+     "Material",
+     "1",
+     "94.427",
+     "94.427",
+     "94.427",
+     "57.70",
+     "0.017"
+    ],
+    [
+     "Diameter",
+     "1",
+     "125.917",
+     "125.917",
+     "125.917",
+     "76.94",
+     "0.013"
+    ],
+    [
+     "Dimples",
+     "1",
+     "71.133",
+     "71.133",
+     "71.133",
+     "43.47",
+     "0.022"
+    ],
+    [
+     "Thickness",
+     "1",
+     "96.828",
+     "96.828",
+     "96.828",
+     "59.17",
+     "0.016"
+    ],
+    [
+     "Material*Diameter",
+     "1",
+     "21.504",
+     "21.504",
+     "21.504",
+     "13.14",
+     "0.068"
+    ],
+    [
+     "Residual Error",
+     "2",
+     "3.273",
+     "3.273",
+     "1.637",
+     "",
+     ""
+    ],
+    [
+     "Total",
+     "7",
+     "413.083",
+     "",
+     "",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Estimated Model Coefficients for Means",
+   "header": [
+    "Term",
+    "Coef",
+    "SE Coef",
+    "T",
+    "P"
+   ],
+   "rows": [
+    [
+     "Constant",
+     "110.40",
+     "8.098",
+     "13.634",
+     "0.005"
+    ],
+    [
+     "Material Liquid",
+     "36.86",
+     "8.098",
+     "4.552",
+     "0.045"
+    ],
+    [
+     "Diameter 118",
+     "51.30",
+     "8.098",
+     "6.335",
+     "0.024"
+    ],
+    [
+     "Dimples 392",
+     "23.25",
+     "8.098",
+     "2.871",
+     "0.103"
+    ],
+    [
+     "Thicknes 0.03",
+     "-22.84",
+     "8.098",
+     "-2.820",
+     "0.106"
+    ],
+    [
+     "Material*Diameter Liquid 118",
+     "31.61",
+     "8.098",
+     "3.904",
+     "0.060"
+    ]
+   ]
+  },
+  {
+   "heading": "Model Summary",
+   "header": [
+    "S",
+    "R-Sq",
+    "R-Sq(adj)"
+   ],
+   "rows": [
+    [
+     "22.9035",
+     "97.88%",
+     "92.58%"
+    ]
+   ]
+  },
+  {
+   "heading": "Analysis of Variance for Means",
+   "header": [
+    "Source",
+    "DF",
+    "Seq SS",
+    "Adj SS",
+    "Adj MS",
+    "F",
+    "P"
+   ],
+   "rows": [
+    [
+     "Material",
+     "1",
+     "10871",
+     "10871",
+     "10870.8",
+     "20.72",
+     "0.045"
+    ],
+    [
+     "Diameter",
+     "1",
+     "21054",
+     "21054",
+     "21053.5",
+     "40.13",
+     "0.024"
+    ],
+    [
+     "Dimples",
+     "1",
+     "4325",
+     "4325",
+     "4324.5",
+     "8.24",
+     "0.103"
+    ],
+    [
+     "Thickness",
+     "1",
+     "4172",
+     "4172",
+     "4172.4",
+     "7.95",
+     "0.106"
+    ],
+    [
+     "Material*Diameter",
+     "1",
+     "7995",
+     "7995",
+     "7994.8",
+     "15.24",
+     "0.060"
+    ],
+    [
+     "Residual Error",
+     "2",
+     "1049",
+     "1049",
+     "524.6",
+     "",
+     ""
+    ],
+    [
+     "Total",
+     "7",
+     "49465",
+     "",
+     "",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Larger is better",
+   "header": [
+    "Level",
+    "Material",
+    "Diameter",
+    "Dimples",
+    "Thickness"
+   ],
+   "rows": [
+    [
+     "1",
+     "41.62",
+     "42.15",
+     "41.16",
+     "34.70"
+    ],
+    [
+     "2",
+     "34.75",
+     "34.21",
+     "35.20",
+     "41.66"
+    ],
+    [
+     "Delta",
+     "6.87",
+     "7.93",
+     "5.96",
+     "6.96"
+    ],
+    [
+     "Rank",
+     "3",
+     "1",
+     "4",
+     "2"
+    ]
+   ]
+  },
+  {
+   "heading": "Response Table for Means",
+   "header": [
+    "Level",
+    "Material",
+    "Diameter",
+    "Dimples",
+    "Thickness"
+   ],
+   "rows": [
+    [
+     "1",
+     "147.26",
+     "161.70",
+     "133.65",
+     "87.56"
+    ],
+    [
+     "2",
+     "73.54",
+     "59.10",
+     "87.15",
+     "133.24"
+    ],
+    [
+     "Delta",
+     "73.73",
+     "102.60",
+     "46.50",
+     "45.68"
+    ],
+    [
+     "Rank",
+     "2",
+     "1",
+     "3",
+     "4"
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

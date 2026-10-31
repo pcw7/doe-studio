@@ -1,0 +1,40 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/using-fitted-models/how-to/overlaid-contour-plot/before-you-start/example-with-regression-models/",
+ "title": "Example of Overlaid Contour Plot with regression models - Minitab",
+ "steps": [
+  "Open the sample data, ThermalEnergyTest.MWX.",
+  "Choose Stat > Regression > Regression > Overlaid Contour Plot.",
+  "Under Responses, move Insolation and Heat Flux from the Available list to the Selected list.",
+  "Under Variables, select North from X Axis and select South from Y Axis.",
+  "Click Contours.",
+  "Complete the Low and High columns of the table as shown below, then click OK.",
+  "Click Settings.",
+  "Under Hold continuous variables at, enter 31.",
+  "Click OK in each dialog box."
+ ],
+ "tables": [
+  {
+   "heading": "",
+   "header": [
+    "Response",
+    "Low",
+    "High"
+   ],
+   "rows": [
+    [
+     "Insolation",
+     "725",
+     "775"
+    ],
+    [
+     "Heat Flux",
+     "175",
+     "225"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "The white area in the plot displays the combination of values for North and South that yield satisfactory fitted values for Isolation and Heat Flux when East is held at 31. To understand the feasible region that is formed by the three factors, you should repeat the process to obtain plots for all pairs of factors."
+ ]
+}

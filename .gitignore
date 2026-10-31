@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+
+# Minitab 공식 문서 원문 사본(저작권 자료, 로컬 참고용. 저장소에 올리지 않음)
+research/minitab_docs/
+
+# Minitab 샘플 데이터(.MWX 와 변환본) — 재배포 금지. research/fetch_samples.py 로 각자 내려받는다
+data/minitab_samples/

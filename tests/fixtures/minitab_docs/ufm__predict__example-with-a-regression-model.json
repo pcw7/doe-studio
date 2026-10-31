@@ -1,0 +1,63 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/using-fitted-models/how-to/predict/before-you-start/example-with-a-regression-model/",
+ "title": "Example of Predict with a regression model - Minitab",
+ "steps": [
+  "Open the sample data, ThermalEnergyTest.MWX.",
+  "Choose Stat > Regression > Regression > Predict.",
+  "From Response, select Heat Flux.",
+  "In the table, enter 35 for East, 34 for South, and 16 for North.",
+  "Click OK."
+ ],
+ "tables": [
+  {
+   "heading": "Regression Equation",
+   "header": [
+    "Heat Flux",
+    "=",
+    "389.2 + 2.12 East + 5.318 South - 24.13 North"
+   ],
+   "rows": []
+  },
+  {
+   "heading": "Settings",
+   "header": [
+    "Variable",
+    "Setting"
+   ],
+   "rows": [
+    [
+     "East",
+     "35"
+    ],
+    [
+     "South",
+     "34"
+    ],
+    [
+     "North",
+     "16"
+    ]
+   ]
+  },
+  {
+   "heading": "Prediction",
+   "header": [
+    "Fit",
+    "SE Fit",
+    "95% CI",
+    "95% PI"
+   ],
+   "rows": [
+    [
+     "258.242",
+     "2.35414",
+     "(253.393, 263.090)",
+     "(239.882, 276.601)"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "Minitab uses the stored model to calculate that the predicted strength is 258.242. The prediction interval indicates that the technicians can be 95% confident that a single future value will fall within the range of 239.882 to 276.601."
+ ]
+}

@@ -1,0 +1,103 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/taguchi/create-taguchi-design/before-you-start/example-of-creating-a-static-design/",
+ "title": "Example of Create Taguchi Design for a static design - Minitab",
+ "steps": [
+  "Choose Stat > DOE > Taguchi > Create Taguchi Design.",
+  "Under Type of Design, select 2-Level Design. Each factor has 2 levels.",
+  "In Number of factors, select 4. The experiment has 4 control factors and 1 noise factor.",
+  "Click Designs.",
+  "Select the L8 design.",
+  "Click OK in each dialog box."
+ ],
+ "tables": [
+  {
+   "heading": "Design Summary",
+   "header": [
+    "Taguchi Array",
+    "L8(2^4)"
+   ],
+   "rows": [
+    [
+     "Factors:",
+     "4"
+    ],
+    [
+     "Runs:",
+     "8"
+    ]
+   ]
+  },
+  {
+   "heading": "Columns of L8(2^7) array: 1 2 4 7",
+   "header": [
+    "C1",
+    "C2",
+    "C3",
+    "C4"
+   ],
+   "rows": [
+    [
+     "A",
+     "B",
+     "C",
+     "D"
+    ],
+    [
+     "1",
+     "1",
+     "1",
+     "1"
+    ],
+    [
+     "1",
+     "1",
+     "2",
+     "2"
+    ],
+    [
+     "1",
+     "2",
+     "1",
+     "2"
+    ],
+    [
+     "1",
+     "2",
+     "2",
+     "1"
+    ],
+    [
+     "2",
+     "1",
+     "1",
+     "2"
+    ],
+    [
+     "2",
+     "1",
+     "2",
+     "1"
+    ],
+    [
+     "2",
+     "2",
+     "1",
+     "1"
+    ],
+    [
+     "2",
+     "2",
+     "2",
+     "2"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "An engineer for a golf equipment manufacturer wants to design a new golf ball that has better flight distance. The engineer has identified four control factors (core material, core diameter, number of dimples, and cover thickness) and one noise factor (type of golf club). Each control factor has 2 levels. Because there is no signal factor, the engineer creates a static Taguchi design.",
+  "Minitab displays a summary of the L8 design, which includes 4 factors and 8 runs.",
+  "The Minitab worksheet shows the settings for each factor for all 8 experimental runs.",
+  "The design was created using the default settings of 1 for the first setting and 2",
+  "Columns of L8(2^7) array: 1 2 4 7"
+ ]
+}

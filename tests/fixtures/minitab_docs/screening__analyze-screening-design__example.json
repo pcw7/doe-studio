@@ -1,0 +1,305 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/screening/analyze-screening-design/before-you-start/example/",
+ "title": "Example of Analyze Definitive Screening Design - Minitab",
+ "steps": [
+  "Open the sample data, ultrasonic_cleaner.MWX.",
+  "Choose Stat > DOE > Screening > Analyze Screening Design.",
+  "In Responses, enter Power.",
+  "Click Terms.",
+  "In Include the following terms, choose Linear. Click OK.",
+  "Click Graphs.",
+  "Under Residual Plots, select Four in one.",
+  "Check Residuals versus variables. Enter Quiet and Sweep.",
+  "Click OK in each dialog box.",
+  "In the Pareto chart, the engineer sees that the largest main effects are for Train",
+  "(A) and Quiet (D). From the screening experiment, the engineer concludes that these",
+  "two factors deserve the most consideration for further analysis.",
+  "The residual versus fits plot shows a U-shaped curve. This pattern is an indication",
+  "that the model could be missing square terms or interactions. The plots of the",
+  "residuals against Quiet and Sweep show curves also. In the exploration of potential models, the engineer decides to",
+  "consider the square terms for these factors.",
+  "Coded Coefficients",
+  "Model Summary",
+  "Analysis of Variance",
+  "Regression Equation in Uncoded Units",
+  "Alias Structure (up to order 2)"
+ ],
+ "tables": [
+  {
+   "heading": "Coded Coefficients",
+   "header": [
+    "Term",
+    "Coef",
+    "SE Coef",
+    "T-Value",
+    "P-Value",
+    "VIF"
+   ],
+   "rows": [
+    [
+     "Constant",
+     "657.8",
+     "12.4",
+     "53.22",
+     "0.000",
+     ""
+    ],
+    [
+     "Train",
+     "52.4",
+     "13.6",
+     "3.85",
+     "0.004",
+     "1.00"
+    ],
+    [
+     "Degas",
+     "0.9",
+     "13.6",
+     "0.07",
+     "0.949",
+     "1.00"
+    ],
+    [
+     "Burst",
+     "8.6",
+     "13.6",
+     "0.63",
+     "0.542",
+     "1.00"
+    ],
+    [
+     "Quiet",
+     "-39.6",
+     "13.6",
+     "-2.91",
+     "0.017",
+     "1.00"
+    ],
+    [
+     "Center",
+     "-2.4",
+     "13.6",
+     "-0.17",
+     "0.866",
+     "1.00"
+    ],
+    [
+     "Bandwidth",
+     "3.5",
+     "13.6",
+     "0.26",
+     "0.803",
+     "1.00"
+    ],
+    [
+     "Sweep",
+     "2.8",
+     "13.6",
+     "0.21",
+     "0.839",
+     "1.00"
+    ]
+   ]
+  },
+  {
+   "heading": "Model Summary",
+   "header": [
+    "S",
+    "R-sq",
+    "R-sq(adj)",
+    "R-sq(pred)"
+   ],
+   "rows": [
+    [
+     "50.9634",
+     "72.56%",
+     "51.21%",
+     "4.50%"
+    ]
+   ]
+  },
+  {
+   "heading": "Analysis of Variance",
+   "header": [
+    "Source",
+    "DF",
+    "Adj SS",
+    "Adj MS",
+    "F-Value",
+    "P-Value"
+   ],
+   "rows": [
+    [
+     "Model",
+     "7",
+     "61803.7",
+     "8829.1",
+     "3.40",
+     "0.046"
+    ],
+    [
+     "Linear",
+     "7",
+     "61803.7",
+     "8829.1",
+     "3.40",
+     "0.046"
+    ],
+    [
+     "Train",
+     "1",
+     "38451.1",
+     "38451.1",
+     "14.80",
+     "0.004"
+    ],
+    [
+     "Degas",
+     "1",
+     "11.2",
+     "11.2",
+     "0.00",
+     "0.949"
+    ],
+    [
+     "Burst",
+     "1",
+     "1040.6",
+     "1040.6",
+     "0.40",
+     "0.542"
+    ],
+    [
+     "Quiet",
+     "1",
+     "21938.4",
+     "21938.4",
+     "8.45",
+     "0.017"
+    ],
+    [
+     "Center",
+     "1",
+     "77.8",
+     "77.8",
+     "0.03",
+     "0.866"
+    ],
+    [
+     "Bandwidth",
+     "1",
+     "171.5",
+     "171.5",
+     "0.07",
+     "0.803"
+    ],
+    [
+     "Sweep",
+     "1",
+     "113.1",
+     "113.1",
+     "0.04",
+     "0.839"
+    ],
+    [
+     "Error",
+     "9",
+     "23375.4",
+     "2597.3",
+     "",
+     ""
+    ],
+    [
+     "Total",
+     "16",
+     "85179.2",
+     "",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Regression Equation in Uncoded Units",
+   "header": [
+    "Power",
+    "=",
+    "626.5 + 116.5 Train + 2.0 Degas + 1.92 Burst - 8.80 Quiet - 0.47 Center+ 0.70 Bandwidth + 0.57 Sweep"
+   ],
+   "rows": []
+  },
+  {
+   "heading": "Alias Structure (up to order 2)",
+   "header": [
+    "Factor",
+    "Name"
+   ],
+   "rows": [
+    [
+     "A",
+     "Train"
+    ],
+    [
+     "B",
+     "Degas"
+    ],
+    [
+     "C",
+     "Burst"
+    ],
+    [
+     "D",
+     "Quiet"
+    ],
+    [
+     "E",
+     "Center"
+    ],
+    [
+     "F",
+     "Bandwidth"
+    ],
+    [
+     "G",
+     "Sweep"
+    ]
+   ]
+  },
+  {
+   "heading": "Alias Structure (up to order 2)",
+   "header": [
+    "Aliases"
+   ],
+   "rows": [
+    [
+     "I + 0.82 AA + 0.82 BB + 0.82 CC + 0.82 DD + 0.82 EE + 0.82 FF + 0.82 GG"
+    ],
+    [
+     "A"
+    ],
+    [
+     "B"
+    ],
+    [
+     "C"
+    ],
+    [
+     "D"
+    ],
+    [
+     "E"
+    ],
+    [
+     "F"
+    ],
+    [
+     "G"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "One of the engineers analyzes a definitive screening design to determine which of 7 factors have the greatest effect on the power output. Power output needs to be high enough to clean adequately. At the same time, power output needs to be low enough to clean without damaging the items."
+ ]
+}

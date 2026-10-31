@@ -1,0 +1,64 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/factorial/analyze-factorial-design/interpret-the-results/all-statistics-and-graphs/method-table/",
+ "title": "Method table for Analyze Factorial Design - Minitab",
+ "steps": [
+  "In This Topic",
+  "Rounded λ",
+  "Estimated λ",
+  "95% CI for λ",
+  "Rounded λ",
+  "By default, Minitab rounds the optimal λ (lambda) to the nearest half because these values correspond to a more intuitive transformation. If you want to use the optimal value for the transformation, choose File > Options > Linear Models > Display of Results.",
+  "Interpretation",
+  "The following are common rounded values of lambda and how they transform the response variable.",
+  "Estimated λ",
+  "When you use a Box-Cox transformation, the estimated λ (lambda) is the optimal value to produce transformed response values that are normally distributed. By default, Minitab uses the rounded lambda value.",
+  "Interpretation",
+  "Lambda is the exponent that Minitab uses to transform the response data. For example, if lambda = -1, then all response values (Y) are transformed as follows: −Y-1 = −1/Y. If lambda equals 0, this represents the natural log of Y rather than Y0.",
+  "95% CI for λ",
+  "The confidence intervals for λ (lambda) are ranges of values that are likely to contain the true value of λ for the entire population from which your sample was drawn.",
+  "Because samples are random, two samples from a population are unlikely to yield identical confidence intervals. However, if you take many random samples, a certain percentage of the resulting confidence intervals contain the unknown population parameter. The percentage of these confidence intervals that contain the parameter is the confidence level of the interval.",
+  "Interpretation",
+  "Use the confidence interval to assess the estimate of lambda for your sample.",
+  "For example, with a 95% confidence level, you can be 95% confident that the confidence interval contains the value of lambda for the population. The confidence interval helps you assess the practical significance of your results. Use your specialized knowledge to determine whether the confidence interval includes values that have practical significance for your situation. If the interval is too wide to be useful, consider increasing your sample size."
+ ],
+ "tables": [
+  {
+   "heading": "Interpretation",
+   "header": [
+    "Lambda",
+    "Transformation"
+   ],
+   "rows": [
+    [
+     "-2",
+     "−Y-2 = −1 / Y2"
+    ],
+    [
+     "-1",
+     "−Y-1 = −1 / Y"
+    ],
+    [
+     "-0.5",
+     "−Y-0.5 = −1 / (square root of Y)"
+    ],
+    [
+     "0",
+     "log (Y)"
+    ],
+    [
+     "0.5",
+     "Y0.5 = square root of Y"
+    ],
+    [
+     "1",
+     "Y"
+    ],
+    [
+     "2",
+     "Y2"
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

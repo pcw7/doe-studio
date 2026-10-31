@@ -1,0 +1,1144 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/factorial/create-factorial-design/create-2-level-factorial-default-generators/examine-the-design/all-statistics/",
+ "title": "All statistics for Create 2-Level Factorial Design (Default Generators) - Minitab",
+ "steps": [
+  "In This Topic",
+  "Factors",
+  "Runs",
+  "Blocks",
+  "Base design",
+  "Replicates",
+  "Center points",
+  "Fraction number",
+  "Resolution",
+  "Fraction",
+  "Design generators",
+  "Folded on factors",
+  "Block generators",
+  "Alias structure",
+  "Design table",
+  "Defining relation",
+  "Factors",
+  "The number shows how many factors are in the design.",
+  "Interpretation",
+  "The factors are the variables that you control in the experiment. Factors are also known as independent variables, explanatory variables, and predictor variables. Factors assume only a limited number of possible values, known as factor levels. Factors can have text or numeric levels. For numeric factors, you select specific levels for the experiment, even though many values for the factor are possible.",
+  "For example, you are studying factors that could affect plastic strength during the manufacturing process. You include factors for additive and temperature in the experiment. The additive is a categorical variable. Additive can be type A or type B. Temperature is a continuous variable. Because temperature is a factor, only two temperatures settings are in the experiment: 100°C and 200°C. If the design includes a center point, the numeric factor can have three levels (100°C, 150°C, and 200°C).",
+  "Runs",
+  "The number shows how many rows of data are in the design.",
+  "Interpretation",
+  "A run is an experimental condition or factor level combination at which the response is measured. Each run corresponds to a row in the worksheet and results in one or more response measurements, or observations. For example, you perform a full factorial design with 2 factors, each with 2 levels. Your experiment has 4 runs:",
+  "Note",
+  "When doing an experiment, the run order should be randomized. The randomized order is shown in the RunOrder column.",
+  "The entire set of runs represents the design. Multiple executions of the same factor level settings are considered separate runs and are called replicates.",
+  "In the design summary table, Minitab displays the runs for the base design and the total number of runs. For example, you create a fractional factorial design with 3 factors, 2 replicates, and 2 center points. The base design has 4 runs. With the replicates and center points, the final design has 10 total runs.",
+  "Design Summary",
+  "Blocks",
+  "The number shows how many blocks are in the design.",
+  "Interpretation",
+  "Blocks account for the differences that might occur between runs that are performed under different conditions. For example, an engineer designs an experiment to study welding and cannot collect all of the data on the same day. Weld quality is affected by several variables that change from day-to-day that the engineer cannot control, such as relative humidity. To account for these uncontrollable variables, the engineer groups the runs performed each day into separate blocks. The blocks account for the variation from the uncontrollable variables so that these effects are not confused with the effects of the factors the engineer wants to study. For more information on how Minitab assigns runs to blocks, go to What is a block?.",
+  "Base design",
+  "The table displays two numbers for the base design. The first number shows the number of factors in the design and the second number shows the number of runs in the base design.",
+  "Interpretation",
+  "The base design is the initial design, or starting point, from which Minitab can",
+  "build the final design. You can add center points, replicates, or fold your design,",
+  "which then adds runs to the base design. For example, you create a fractional",
+  "factorial design with 3 factors, 2 replicates, and 2 center points. The base design",
+  "has 4 runs. With the replicates and center points, the final design has 10 total",
+  "runs.",
+  "Design Summary",
+  "Replicates",
+  "The number shows how many replicates are in the design.",
+  "Interpretation",
+  "Replicates are multiple experimental runs with the same factor settings (levels). One replicate is equivalent to the base design, where you conduct each factor level combination once. With two replicates, you perform each factor level combination in the base design twice (in random order), and so on.",
+  "For example, if you have 3 factors with 2 levels each and you test all combinations of factor levels (full factorial design), the base design represents 1 replicate and has 8 runs (23). If you add 2 replicates, the design includes 3 replicates and has 24 runs.",
+  "When planning your experiment, consider the following when you decide whether to add replicates:",
+  "If you are trying to create a prediction model, multiple replicates can increase the precision of your model.",
+  "If you include replicates, you might be able to detect smaller effects or have greater power to detect an effect of fixed size.",
+  "Screening designs (2-level factorial designs), which are used to reduce a large set of factors, usually don't include replicates.",
+  "Your resources can dictate the number of replicates you can run. For example, if your experiment is extremely costly, you might be able to run the base design only one time.",
+  "For information on the difference between replicates and repeats, go to Replicates and repeats in designed experiments.",
+  "Center points",
+  "The number shows how many center points are in the design.",
+  "Interpretation",
+  "Use center points to detect curvature in the response and to estimate pure error.",
+  "Center points are runs where numeric factors are set midway between their low and high levels. For example, if a numeric factor has levels 100 and 200, the center point is set at 150. If you have text factors, then Minitab adds a center point at each level of the text factor and the midway level of the numeric factors. For example, your design includes a text factor with the levels A and B and a numeric factor with the levels 100 and 200. If you add 1 center point to the base design, Minitab adds 1 center point at levels A and 150 and 1 center point at levels B and 150. Thus, Minitab adds 2 center points for each center point that you specify.",
+  "If the design includes more than 1 block, then Minitab adds the number of center points that you specified to each block. For example, if you specify 2 center points per block and 2 blocks to your design, and the factors are numeric, Minitab adds 2 center points in block 1 and 2 center points in block 2.",
+  "Increasing the number of replicates does not add additional center points unless you also increase the number of blocks. For example, if you specify 3 center points, 2 replicates, and 1 block, then the design includes 3 center points.",
+  "For more information, go to How Minitab adds center points to a two-level factorial design.",
+  "Fraction number",
+  "The fraction number distinguishes the runs in the design from another set of runs that form the same size fraction. The possible values for fraction number depend on what size fraction of the full design you choose for your base design. For example, if the design is a ¼ fraction, then the possible fraction numbers are 1, 2, 3, and 4. Minitab only displays the fraction number when you change the fraction.",
+  "Interpretation",
+  "In Minitab, the principal fraction number equals the denominator of the number displayed as \"Fraction\". For example, if the design is a 1/8 fraction, then the principal fraction number is 8. The principal fraction is the fraction where all of the signs for the design generators are positive. By default, Minitab uses the principal fraction when creating the design.",
+  "If you can't use the principal fraction, it is usually because one or more combinations of factor levels that are in the principal fraction are impractical to run. For example, the principal fraction always includes the run where all of the factors are at their high setting. The other fractions do not. If setting all of the factors to their high levels is expensive or difficult, you can change the fraction number in the Options sub-dialog box.",
+  "Resolution",
+  "The design resolution is the length of the shortest word in the defining relation for the design. For example, if the defining relation is I = ABD = ACE = BCDE, the design resolution is III because ABD and ACE are the shortest words and each contain 3 letters.",
+  "Interpretation",
+  "The design resolution describes which effects in a fractional factorial design are aliased with other effects. For more information on aliasing, see the section on Alias structure.",
+  "Resolution III, IV, and V designs are most common.",
+  "Resolution III",
+  "No main effects are aliased with any other main effect, but main effects are aliased with 2-factor interactions.",
+  "Resolution IV",
+  "No main effects are aliased with any other main effect or 2-factor interactions, but some 2-factor interactions are aliased with other 2-factor interactions and main effects are aliased with 3-factor interactions.",
+  "Resolution V",
+  "No main effects or 2-factor interactions are aliased with any other main effect or 2-factor interactions, but 2-factor interactions are aliased with 3-factor interactions and main effects are aliased with 4-factor interactions.",
+  "A design with higher resolution has less aliasing among lower-order terms. When you create a design, you need to balance the number of runs you can perform with an alias structure that you can accept. Identifying the important effects can be more complicated in a lower resolution design because of the terms that are aliased but lower resolution designs are usually smaller and more affordable.",
+  "For a fixed number of runs, you have to balance how many runs to use to increase the power of the design to detect effects and how many runs to use to increase the terms that can be in the model. For example, a 3-factor design with 8 corner points and 2 center points can allocate the corner points two ways. One way is to replicate 4 factor combinations two times. In this design, the model cannot include the 2 or 3-factor interactions. However, the power to detect an effect of 3 standard deviations when the model contains only main effects and the center point term is over 90%.",
+  "The other way to allocate the points is to run 8 different factor combinations. With each factor combination in the design once, the model can include all the interactions. However, if the model includes the 2-factor interactions, the 3-factor interaction, and the center point term then the power to detect an effect of 3 standard deviations is close to 25%.",
+  "Fraction",
+  "The fraction indicates the proportion of runs from the full factorial design that are in the base design. For example, a full factorial, 2-level design with 4 factors has 16 runs. A ½ fraction of this design has 8 runs.",
+  "Interpretation",
+  "The fraction indicates how many different sets of runs exist with a similar alias structure. If an experiment is a ½ fraction, then 2 sets of runs exist with similar alias structures. If an experiment is an 1/8 fraction, then 8 sets of runs exist with similar alias structures.",
+  "Before you perform your designed experiment, an important step is to verify that all the runs are feasible to conduct. By default, Minitab uses the principal fraction for a fractional factorial. The principal fraction always includes the run where all the factors are set at the high level. This combination of settings could be unfeasible, unsafe, or too expensive to run. One way to avoid unfeasible settings in a fractional factorial experiment is to change the fraction number of the design. To change the fraction number, go to the Options sub-dialog box.",
+  "Design generators",
+  "Design generators are comprised of the factors that are multiplied together to determine the settings for another factor in the design. For example, the design generator D = ABC means that A, B, and C are multiplied together to determine the settings for D.",
+  "Interpretation",
+  "The design generators determine which fraction of runs are in the fractional factorial design. For example, to construct a ½ fraction, 4-factor design using the design generator D = ABC, Minitab does the following:",
+  "Construct the full 3-factor design where –1 and +1 represent the low and high factor levels, respectively.",
+  "Generate the runs for factor D by multiplying the settings for factors A, B, and C together. For example, the setting for factor D for the first run is –1 × –1 × –1 = –1 (the low setting).",
+  "Because the settings for factor D are equal to the settings for A × B × C, factor D is confounded with the ABC interaction. Because effects that are confounded cannot be estimated separately from each other, design generators should be carefully chosen. By default, Minitab uses the design generators that create the design with the highest resolution for the number of factors in the design. However, if you want to specify a different design generator, use Create",
+  "2-Level Factorial Design (Specify Generators).",
+  "Folded on factors",
+  "Folded on factors indicates whether you specified that folding is done on all factors or on a single factor.",
+  "Interpretation",
+  "When a design is folded, a new run is added for each run in the base design, with the sign reversed for the factors you are folding on. All other factors are kept at the same level as in the base design. For more information on folding, go to What is folding?.",
+  "Folding is a way to reduce aliasing. Aliasing, also known as confounding, occurs in fractional factorial designs because the design does not include all the combinations of factor levels. For example, if factor A is confounded with the 3-way interaction BCD, then the estimated effect for A is the sum of the effect of A and the effect of BCD. You cannot determine whether a significant effect is because of A, because of BCD, or because of both terms.",
+  "Resolution IV designs may be obtained from resolution III designs by folding on all factors. If you fold on one factor, then all terms involving that factor are free from aliasing with terms that do not involve that factor. If you fold on all factors, then all main effects are free from all 2-factor interactions.",
+  "For example, you create a design that has 3 factors and 4 runs:",
+  "Original fraction",
+  "Folded on all factors",
+  "When you fold on all factors, Minitab adds 4 runs to the design and reverses the signs of each factor in the second set of runs.",
+  "Folded on factor A",
+  "When you fold on one factor, Minitab adds four runs to the design, but only reverses the signs of the specified factor. The signs of the other factors remain the same. These rows are then appended to the end of the worksheet.",
+  "Defining relation and folding",
+  "When you fold a design, the defining relation or alias structure of the design is usually shortened because fewer terms are confounded with each other. Specifically, when you fold on all factors, any word in the defining relation that has an odd number of letters is omitted. When you fold on one factor, any word containing that factor is omitted from the defining relation. For example, you have a design with 5 factors. The defining relation for the unfolded and folded designs (both folded on all factors and folded on factor A) are:",
+  "Unfolded design",
+  "I + ABD + ACE + BCDE",
+  "Folded design",
+  "I + BCDE",
+  "If you fold a design with blocks, the number of runs per block doubles. The folded design has the same block generators as the unfolded design.",
+  "Note",
+  "If you fold a design and the defining relation is not shortened, then the folding adds replicates and it does not reduce confounding. Thus, Minitab does not create the design in the worksheet and displays an error message.",
+  "Block generators",
+  "Block generators are terms that determines which runs (or factor level combinations) go in each block. By default, Minitab uses the block generators that create the design with the highest resolution.",
+  "Interpretation",
+  "Use the block generators to determine how the runs are assigned to the blocks. If the number of replicates is not a multiple of the number of blocks, then the design uses a block generator. For example, to construct a ½ fraction, 4-factor design with 1 replicate and 2 blocks, Minitab uses AB as the block generator. Minitab does the following:",
+  "Construct the ½ fraction, 4-factor design in standard order where –1 and +1 represent the low and high factor levels, respectively.",
+  "Generate the runs for the blocks by multiplying the settings for factors A and B together. Rows with the same value of the block generator are assigned to the same block. For example, the value of AB for the first run is −1 × −1 = 1. The value for the second run is 1 × −1 = −1. These runs are assigned to different blocks.",
+  "Group the runs by block. Then, randomize the order of the blocks and the order of the runs within the blocks.",
+  "Alias structure",
+  "The alias structure describes the confounding pattern that occurs in a design. Terms that are confounded are also said to be aliased.",
+  "Aliasing, also known as confounding, occurs in fractional factorial designs because the design does not include all of the combinations of factor levels. For example, if factor A is confounded with the 3-way interaction BCD, then the estimated effect for A is the sum of the effect of A and the effect of BCD. You cannot determine whether a significant effect is because of A, because of BCD, or because of a combination of both. When you analyze the design in Minitab, you can include confounded terms in the model. Minitab removes the terms that are listed later in the terms list. However, certain terms are always fit first. For example, if you include blocks in the model, Minitab retains the block terms and removes any terms that are aliased with blocks.",
+  "You can use the alias structure to verify that important terms are not aliased with each other. If the alias structure is unacceptable, consider taking one of the following actions:",
+  "Create the design again, but enter the factors into Minitab in a different order.",
+  "Use a larger fraction of the design.",
+  "Fold the design.",
+  "Specify different design generators.",
+  "If the design has 7 or fewer factors, then the alias structure shows all the terms that are aliased.",
+  "If the design has 8–10 factors, then the alias structure shows the aliasing of terms up to and including 3-factor interactions.",
+  "If the design has 11–15 factors, then the alias structure shows the aliasing of terms up to and including 2-factor interactions.",
+  "To see how to determine the alias structure, go to the section on Defining relation.",
+  "Interpretation",
+  "In this design, the alias structure table shows that several terms are confounded with each other. For example, the second line in the table indicates that factor A is confounded with the terms BD, CE, and ABCDE. The third line shows that factor B is confounded with the terms AD, CDE, and ABCE.",
+  "The engineer who planned this design determines that the interaction AB is an important term and it cannot be aliased with any main effects. However, the alias structure shows that AB is aliased with the factor D. The engineer also sees that there are several other 2-way interactions that are not aliased with any main effects, including BC, DE, BE, and CD. By changing the order that the factors are entered in Minitab in the Factors sub-dialog box, the engineer can create a design where the AB is not aliased with any main effects. The engineer recreates the design and enters factor A in the third row in the dialog box, instead of the first row.",
+  "Design Summary",
+  "* NOTE * Some main effects are confounded with two-way interactions.",
+  "Design Generators: D = AB, E = AC",
+  "Alias Structure",
+  "Design table",
+  "The design table shows the factor settings for each experimental run. Because the design table takes up less space than the worksheet, it can be useful for reports with limited space.",
+  "The letters at the top of the columns represent the factors and follow the order that you used when you created the design. In each row, − indicates that the factor is at the low setting and + indicates that the factor is at the high setting. A 0 indicates that the point is a center point. Numeric factors are set midway between the low and high settings.",
+  "Interpretation",
+  "Use the design table to see the factor settings for each run and the order of the",
+  "runs in the design. In these results, the design table shows the 16 runs in 4",
+  "blocks, with 32 total runs. The blocks and the runs are randomized. The design does",
+  "not include center points, so there are no rows that contain 0. In the first run,",
+  "factors A, B, and C are at their high level and factors D and E are at their low",
+  "level.",
+  "You can also use the design table to identify runs that may be impractical or",
+  "impossible to run. For example, this fractional factorial design uses 16 runs for 5",
+  "factors. Because all of the factors are at their high settings in run 31, you know",
+  "that this is the principal fraction of the full design. If this combination of",
+  "factor settings is infeasible, you can recreate the design and choose to create a",
+  "different fraction in the Options sub-dialog box.",
+  "Design Table (randomized)",
+  "Defining relation",
+  "The defining relation is the total collection of terms that are held constant to define the fraction in a fractional factorial design. The defining relation is used to calculate the alias structure, which indicates which terms are aliased with each other.",
+  "Interpretation",
+  "These results show the defining relation and alias structure for a ¼ fractional factorial design",
+  "with five factors (A, B, C, D, and E).",
+  "* NOTE * Some main effects are confounded with two-way interactions.",
+  "Design Generators: D = AB, E = AC",
+  "Defining Relation:  I = ABD = ACE = BCDE",
+  "Alias Structure",
+  "Minitab uses the defining relation to calculate each line of the alias table. Any letter multiplied by itself is the identity, I (for example, A × A = I). The identity, I, multiplied by any letter is the same letter (for example, I × A = A). To determine which effects are confounded with a specific term, multiply the term of interest by each term in the defining relation, and then eliminate the squared terms. For example, the following list shows how to use the defining relation to find the terms that BC is confounded with:",
+  "(BC)(ABD) = AB2CD = ACD",
+  "(BC)(ACE) = ABC2E = ABE",
+  "(BC)(BCDE) = B2C2DE = DE",
+  "Therefore, BC is aliased with ACD, AE, and DE.",
+  "The identity column I is always a column of 1's (in coded units). Therefore, since I = ABD in our example, the product of the columns A, B, D is a column of 1’s. The same is true for ACE and BCDE."
+ ],
+ "tables": [
+  {
+   "heading": "Interpretation",
+   "header": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7"
+   ],
+   "rows": [
+    [
+     "StdOrder",
+     "RunOrder",
+     "Blocks",
+     "CenterPt",
+     "Factor 1",
+     "Factor 2",
+     "Response"
+    ],
+    [
+     "1",
+     "4",
+     "1",
+     "1",
+     "−1",
+     "−1",
+     "11"
+    ],
+    [
+     "2",
+     "2",
+     "1",
+     "1",
+     "1",
+     "−1",
+     "12"
+    ],
+    [
+     "3",
+     "1",
+     "1",
+     "1",
+     "−1",
+     "1",
+     "10"
+    ],
+    [
+     "4",
+     "3",
+     "1",
+     "1",
+     "1",
+     "1",
+     "9"
+    ]
+   ]
+  },
+  {
+   "heading": "Design Summary",
+   "header": [
+    "Factors:",
+    "3",
+    "Base Design:",
+    "3, 4",
+    "Resolution:",
+    "III"
+   ],
+   "rows": [
+    [
+     "Runs:",
+     "10",
+     "Replicates:",
+     "2",
+     "Fraction:",
+     "1/2"
+    ],
+    [
+     "Blocks:",
+     "1",
+     "Center pts (total):",
+     "2",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Design Summary",
+   "header": [
+    "Factors:",
+    "3",
+    "Base Design:",
+    "3, 4",
+    "Resolution:",
+    "III"
+   ],
+   "rows": [
+    [
+     "Runs:",
+     "10",
+     "Replicates:",
+     "2",
+     "Fraction:",
+     "1/2"
+    ],
+    [
+     "Blocks:",
+     "1",
+     "Center pts (total):",
+     "2",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Interpretation",
+   "header": [
+    "A",
+    "B",
+    "C"
+   ],
+   "rows": [
+    [
+     "–1",
+     "–1",
+     "–1"
+    ],
+    [
+     "+1",
+     "–1",
+     "–1"
+    ],
+    [
+     "–1",
+     "+1",
+     "–1"
+    ],
+    [
+     "+1",
+     "+1",
+     "–1"
+    ],
+    [
+     "–1",
+     "–1",
+     "+1"
+    ],
+    [
+     "+1",
+     "–1",
+     "+1"
+    ],
+    [
+     "–1",
+     "+1",
+     "+1"
+    ],
+    [
+     "+1",
+     "+1",
+     "+1"
+    ]
+   ]
+  },
+  {
+   "heading": "Interpretation",
+   "header": [
+    "A",
+    "B",
+    "C",
+    "D = ABC"
+   ],
+   "rows": [
+    [
+     "–1",
+     "–1",
+     "–1",
+     "–1"
+    ],
+    [
+     "+1",
+     "–1",
+     "–1",
+     "+1"
+    ],
+    [
+     "–1",
+     "+1",
+     "–1",
+     "+1"
+    ],
+    [
+     "+1",
+     "+1",
+     "–1",
+     "–1"
+    ],
+    [
+     "–1",
+     "–1",
+     "+1",
+     "+1"
+    ],
+    [
+     "+1",
+     "–1",
+     "+1",
+     "–1"
+    ],
+    [
+     "–1",
+     "+1",
+     "+1",
+     "–1"
+    ],
+    [
+     "+1",
+     "+1",
+     "+1",
+     "+1"
+    ]
+   ]
+  },
+  {
+   "heading": "Original fraction",
+   "header": [
+    "A",
+    "B",
+    "C"
+   ],
+   "rows": [
+    [
+     "–",
+     "–",
+     "+"
+    ],
+    [
+     "+",
+     "–",
+     "–"
+    ],
+    [
+     "–",
+     "+",
+     "–"
+    ],
+    [
+     "+",
+     "+",
+     "+"
+    ]
+   ]
+  },
+  {
+   "heading": "Folded on all factors",
+   "header": [
+    "A",
+    "B",
+    "C"
+   ],
+   "rows": [
+    [
+     "–",
+     "–",
+     "+"
+    ],
+    [
+     "+",
+     "–",
+     "–"
+    ],
+    [
+     "–",
+     "+",
+     "–"
+    ],
+    [
+     "+",
+     "+",
+     "+"
+    ],
+    [
+     "+",
+     "+",
+     "–"
+    ],
+    [
+     "–",
+     "+",
+     "+"
+    ],
+    [
+     "+",
+     "–",
+     "+"
+    ],
+    [
+     "–",
+     "–",
+     "–"
+    ]
+   ]
+  },
+  {
+   "heading": "Folded on factor A",
+   "header": [
+    "A",
+    "B",
+    "C"
+   ],
+   "rows": [
+    [
+     "–",
+     "–",
+     "+"
+    ],
+    [
+     "+",
+     "–",
+     "–"
+    ],
+    [
+     "–",
+     "+",
+     "–"
+    ],
+    [
+     "+",
+     "+",
+     "+"
+    ],
+    [
+     "+",
+     "–",
+     "+"
+    ],
+    [
+     "–",
+     "–",
+     "–"
+    ],
+    [
+     "+",
+     "+",
+     "–"
+    ],
+    [
+     "–",
+     "+",
+     "+"
+    ]
+   ]
+  },
+  {
+   "heading": "Interpretation",
+   "header": [
+    "A",
+    "B",
+    "C",
+    "D"
+   ],
+   "rows": [
+    [
+     "–1",
+     "–1",
+     "–1",
+     "–1"
+    ],
+    [
+     "+1",
+     "–1",
+     "–1",
+     "+1"
+    ],
+    [
+     "–1",
+     "+1",
+     "–1",
+     "+1"
+    ],
+    [
+     "+1",
+     "+1",
+     "–1",
+     "–1"
+    ],
+    [
+     "–1",
+     "–1",
+     "+1",
+     "+1"
+    ],
+    [
+     "+1",
+     "–1",
+     "+1",
+     "–1"
+    ],
+    [
+     "–1",
+     "+1",
+     "+1",
+     "–1"
+    ],
+    [
+     "+1",
+     "+1",
+     "+1",
+     "+1"
+    ]
+   ]
+  },
+  {
+   "heading": "Interpretation",
+   "header": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "AB",
+    "Blocks"
+   ],
+   "rows": [
+    [
+     "–1",
+     "–1",
+     "–1",
+     "–1",
+     "+1",
+     "1"
+    ],
+    [
+     "+1",
+     "–1",
+     "–1",
+     "+1",
+     "–1",
+     "2"
+    ],
+    [
+     "–1",
+     "+1",
+     "–1",
+     "+1",
+     "–1",
+     "2"
+    ],
+    [
+     "+1",
+     "+1",
+     "–1",
+     "–1",
+     "+1",
+     "1"
+    ],
+    [
+     "–1",
+     "–1",
+     "+1",
+     "+1",
+     "+1",
+     "1"
+    ],
+    [
+     "+1",
+     "–1",
+     "+1",
+     "–1",
+     "–1",
+     "2"
+    ],
+    [
+     "–1",
+     "+1",
+     "+1",
+     "–1",
+     "–1",
+     "2"
+    ],
+    [
+     "+1",
+     "+1",
+     "+1",
+     "+1",
+     "+1",
+     "1"
+    ]
+   ]
+  },
+  {
+   "heading": "Interpretation",
+   "header": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "AB",
+    "Blocks"
+   ],
+   "rows": [
+    [
+     "+1",
+     "–1",
+     "+1",
+     "–1",
+     "–1",
+     "2"
+    ],
+    [
+     "–1",
+     "+1",
+     "+1",
+     "–1",
+     "–1",
+     "2"
+    ],
+    [
+     "–1",
+     "+1",
+     "–1",
+     "+1",
+     "–1",
+     "2"
+    ],
+    [
+     "+1",
+     "–1",
+     "–1",
+     "+1",
+     "–1",
+     "2"
+    ],
+    [
+     "+1",
+     "+1",
+     "+1",
+     "+1",
+     "+1",
+     "1"
+    ],
+    [
+     "+1",
+     "+1",
+     "–1",
+     "–1",
+     "+1",
+     "1"
+    ],
+    [
+     "–1",
+     "–1",
+     "+1",
+     "+1",
+     "+1",
+     "1"
+    ],
+    [
+     "–1",
+     "–1",
+     "–1",
+     "–1",
+     "+1",
+     "1"
+    ]
+   ]
+  },
+  {
+   "heading": "Design Summary",
+   "header": [
+    "Factors:",
+    "5",
+    "Base Design:",
+    "5, 8",
+    "Resolution:",
+    "III"
+   ],
+   "rows": [
+    [
+     "Runs:",
+     "8",
+     "Replicates:",
+     "1",
+     "Fraction:",
+     "1/4"
+    ],
+    [
+     "Blocks:",
+     "1",
+     "Center pts (total):",
+     "0",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Alias Structure",
+   "header": [
+    "I + ABD + ACE + BCDE"
+   ],
+   "rows": [
+    [
+     "A + BD + CE + ABCDE"
+    ],
+    [
+     "B + AD + CDE + ABCE"
+    ],
+    [
+     "C + AE + BDE + ABCD"
+    ],
+    [
+     "D + AB + BCE + ACDE"
+    ],
+    [
+     "E + AC + BCD + ABDE"
+    ],
+    [
+     "BC + DE + ABE + ACD"
+    ],
+    [
+     "BE + CD + ABC + ADE"
+    ]
+   ]
+  },
+  {
+   "heading": "Design Table (randomized)",
+   "header": [
+    "Run",
+    "Blk",
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+   ],
+   "rows": [
+    [
+     "1",
+     "2",
+     "+",
+     "+",
+     "+",
+     "-",
+     "-"
+    ],
+    [
+     "2",
+     "2",
+     "-",
+     "-",
+     "+",
+     "-",
+     "-"
+    ],
+    [
+     "3",
+     "2",
+     "+",
+     "+",
+     "-",
+     "+",
+     "-"
+    ],
+    [
+     "4",
+     "2",
+     "-",
+     "-",
+     "-",
+     "-",
+     "+"
+    ],
+    [
+     "5",
+     "2",
+     "+",
+     "+",
+     "+",
+     "+",
+     "+"
+    ],
+    [
+     "6",
+     "2",
+     "-",
+     "-",
+     "+",
+     "+",
+     "+"
+    ],
+    [
+     "7",
+     "2",
+     "+",
+     "+",
+     "-",
+     "-",
+     "+"
+    ],
+    [
+     "8",
+     "2",
+     "-",
+     "-",
+     "-",
+     "+",
+     "-"
+    ],
+    [
+     "9",
+     "3",
+     "+",
+     "-",
+     "+",
+     "-",
+     "+"
+    ],
+    [
+     "10",
+     "3",
+     "-",
+     "+",
+     "+",
+     "+",
+     "-"
+    ],
+    [
+     "11",
+     "3",
+     "-",
+     "+",
+     "-",
+     "-",
+     "-"
+    ],
+    [
+     "12",
+     "3",
+     "+",
+     "-",
+     "-",
+     "+",
+     "+"
+    ],
+    [
+     "13",
+     "3",
+     "-",
+     "+",
+     "+",
+     "-",
+     "+"
+    ],
+    [
+     "14",
+     "3",
+     "+",
+     "-",
+     "+",
+     "+",
+     "-"
+    ],
+    [
+     "15",
+     "3",
+     "+",
+     "-",
+     "-",
+     "-",
+     "-"
+    ],
+    [
+     "16",
+     "3",
+     "-",
+     "+",
+     "-",
+     "+",
+     "+"
+    ],
+    [
+     "17",
+     "1",
+     "+",
+     "-",
+     "-",
+     "-",
+     "-"
+    ],
+    [
+     "18",
+     "1",
+     "-",
+     "+",
+     "+",
+     "-",
+     "+"
+    ],
+    [
+     "19",
+     "1",
+     "+",
+     "-",
+     "+",
+     "+",
+     "-"
+    ],
+    [
+     "20",
+     "1",
+     "-",
+     "+",
+     "-",
+     "+",
+     "+"
+    ],
+    [
+     "21",
+     "1",
+     "-",
+     "+",
+     "+",
+     "+",
+     "-"
+    ],
+    [
+     "22",
+     "1",
+     "+",
+     "-",
+     "-",
+     "+",
+     "+"
+    ],
+    [
+     "23",
+     "1",
+     "+",
+     "-",
+     "+",
+     "-",
+     "+"
+    ],
+    [
+     "24",
+     "1",
+     "-",
+     "+",
+     "-",
+     "-",
+     "-"
+    ],
+    [
+     "25",
+     "4",
+     "-",
+     "-",
+     "+",
+     "-",
+     "-"
+    ],
+    [
+     "26",
+     "4",
+     "-",
+     "-",
+     "+",
+     "+",
+     "+"
+    ],
+    [
+     "27",
+     "4",
+     "+",
+     "+",
+     "+",
+     "-",
+     "-"
+    ],
+    [
+     "28",
+     "4",
+     "-",
+     "-",
+     "-",
+     "+",
+     "-"
+    ],
+    [
+     "29",
+     "4",
+     "-",
+     "-",
+     "-",
+     "-",
+     "+"
+    ],
+    [
+     "30",
+     "4",
+     "+",
+     "+",
+     "-",
+     "-",
+     "+"
+    ],
+    [
+     "31",
+     "4",
+     "+",
+     "+",
+     "+",
+     "+",
+     "+"
+    ],
+    [
+     "32",
+     "4",
+     "+",
+     "+",
+     "-",
+     "+",
+     "-"
+    ]
+   ]
+  },
+  {
+   "heading": "Alias Structure",
+   "header": [
+    "I + ABD + ACE + BCDE"
+   ],
+   "rows": [
+    [
+     "A + BD + CE + ABCDE"
+    ],
+    [
+     "B + AD + CDE + ABCE"
+    ],
+    [
+     "C + AE + BDE + ABCD"
+    ],
+    [
+     "D + AB + BCE + ACDE"
+    ],
+    [
+     "E + AC + BCD + ABDE"
+    ],
+    [
+     "BC + DE + ABE + ACD"
+    ],
+    [
+     "BE + CD + ABC + ADE"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "2-Level Factorial Design (Default Generators)",
+  "Find definitions and interpretation guidance for every statistic that is provided with the creation of a 2-level factorial with default generators."
+ ]
+}

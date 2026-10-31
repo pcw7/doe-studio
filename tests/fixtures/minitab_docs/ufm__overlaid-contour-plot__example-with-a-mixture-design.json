@@ -1,0 +1,43 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/using-fitted-models/how-to/overlaid-contour-plot/before-you-start/example-with-a-mixture-design/",
+ "title": "Example of Overlaid Contour Plot with a mixture design - Minitab",
+ "steps": [
+  "Open the sample data, FondueRecipe_model.MWX.",
+  "Choose Stat > DOE > Mixture > Overlaid Contour Plot.",
+  "Under Responses, move Flavor, Quantity and Burned from the Available list to the Selected list.",
+  "Under Select components or process variables as",
+  "axes, select 3 Components.",
+  "Under X-Axis, choose Emmenthaler. Under Y-Axis, choose Gruyere. Under Z-Axis, choose Broth.",
+  "Click Contours.",
+  "Complete the Low and High columns of the table as shown below.",
+  "Click OK in each dialog box."
+ ],
+ "tables": [
+  {
+   "heading": "",
+   "header": [
+    "",
+    "Low",
+    "High"
+   ],
+   "rows": [
+    [
+     "Flavor",
+     "80",
+     "100"
+    ],
+    [
+     "Quantity",
+     "1.5",
+     "3"
+    ],
+    [
+     "Burned",
+     "0",
+     "1.5"
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

@@ -1,0 +1,119 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/using-fitted-models/how-to/response-optimizer/before-you-start/example-with-regression-models/",
+ "title": "Example of Response Optimizer with regression models - Minitab",
+ "steps": [
+  "Open the sample data, ThermalEnergyTest.MWX.",
+  "Choose Stat > Regression > Regression > Response Optimizer.",
+  "In the Insolation row, select Target in Goal, and enter 750 in Target.",
+  "In the Heat Flux row, select Target in Goal, and enter 200 in Target.",
+  "Click OK."
+ ],
+ "tables": [
+  {
+   "heading": "Parameters",
+   "header": [
+    "Response",
+    "Goal",
+    "Lower",
+    "Target",
+    "Upper",
+    "Weight",
+    "Importance"
+   ],
+   "rows": [
+    [
+     "Insolation",
+     "Target",
+     "568.55",
+     "750",
+     "909.45",
+     "1",
+     "1"
+    ],
+    [
+     "Heat Flux",
+     "Target",
+     "181.50",
+     "200",
+     "278.70",
+     "1",
+     "1"
+    ]
+   ]
+  },
+  {
+   "heading": "Solution",
+   "header": [
+    "Solution",
+    "East",
+    "South",
+    "North",
+    "InsolationFit",
+    "Heat FluxFit",
+    "CompositeDesirability"
+   ],
+   "rows": [
+    [
+     "1",
+     "32.2129",
+     "34.9758",
+     "18.3831",
+     "750",
+     "200",
+     "1"
+    ]
+   ]
+  },
+  {
+   "heading": "Multiple Response Prediction",
+   "header": [
+    "Variable",
+    "Setting"
+   ],
+   "rows": [
+    [
+     "East",
+     "32.2129"
+    ],
+    [
+     "South",
+     "34.9758"
+    ],
+    [
+     "North",
+     "18.3831"
+    ]
+   ]
+  },
+  {
+   "heading": "Multiple Response Prediction",
+   "header": [
+    "Response",
+    "Fit",
+    "SE Fit",
+    "95% CI",
+    "95% PI"
+   ],
+   "rows": [
+    [
+     "Insolation",
+     "750.0",
+     "34.3",
+     "(679.3, 820.7)",
+     "(621.8, 878.2)"
+    ],
+    [
+     "Heat Flux",
+     "200.00",
+     "5.14",
+     "(189.41, 210.59)",
+     "(179.37, 220.63)"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "Minitab uses the two stored models to estimate the predictor settings that optimize the values of both response variables. The combined or composite desirability of these two responses is 1, which indicates an excellent solution.",
+  "The engineer decides to set the focal points at the values shown in the graph. That is, set East at 32.2129, South at 34.9758, and North at 18.3831. The output indicates that the predicted responses for these settings are 750.0 for Insolation and 200.00 for HeatFlux. The prediction intervals indicate the precision of these predictions."
+ ]
+}

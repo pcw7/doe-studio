@@ -1,0 +1,132 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/factorial/analyze-factorial-design/interpret-the-results/all-statistics-and-graphs/means-table/",
+ "title": "Means table for Analyze Factorial Design - Minitab",
+ "steps": [
+  "In This Topic",
+  "Fitted Mean (factors)",
+  "SE Mean",
+  "Data Mean (covariate)",
+  "Standard Deviation (StDev)",
+  "Fitted Mean (factors)",
+  "Fitted means use the coefficients from the fitted model to compute the mean response for each level combination of a factor or interaction.",
+  "Interpretation",
+  "The fitted means are useful because the data means might not be good indicators of main effects and interaction effects. Differences between the data means can represent unbalanced experimental conditions instead of differences due to changes in the factor levels. Fitted means solve this problem by estimating the results of a balanced design.",
+  "Use the Means table to understand the statistically significant differences between the factor levels. The mean of each group provides an estimate of each population mean. Look for differences between group means for terms that are statistically significant.",
+  "For main effects, the table displays the groups within each factor and their means. For interaction effects, the table displays all possible combinations of the groups. If an interaction term is statistically significant, do not interpret the main effects without considering the interaction effects.",
+  "In these results, the Means table shows how the strength of insulation varies by material, injection pressure, injection temperature, and cooling temperature. All of the factors are statistically significant at the 0.05 level. However, because the interaction between injection temperature and cooling temperature is also statistically significant at the 0.05 level, do not interpret the main effects without considering the interaction effects.",
+  "For example, the table for the interaction term shows that with an injection temperature of 85, a change in cooling temperature from 25 to 45 is associated with a mean decrease in insulation strength of about 6 units. However, with an injection temperature of 100, a decrease in cooling temperature from 25 to 45 is associated with a mean change in insulation strength of only about 2 units.",
+  "Means",
+  "SE Mean",
+  "The standard error of the mean (SE Mean) estimates the variability between fitted means that you would obtain if you took samples from the same population again and again.",
+  "For example, you have a mean delivery time of 3.80 days, with a standard deviation of 1.43 days, from a random sample of 312 delivery times. These numbers yield a standard error of the mean of 0.08 days (1.43 divided by the square root of 312). If you took multiple random samples of the same size, from the same population, the standard deviation of those different sample means would be around 0.08 days.",
+  "Interpretation",
+  "Use the standard error of the mean to determine how precisely the fitted mean estimates the population mean.",
+  "A smaller value of the standard error of the mean indicates a more precise estimate of the population mean. Usually, a larger standard deviation results in a larger standard error of the mean and a less precise estimate of the population mean. A larger sample size results in a smaller standard error of the mean and a more precise estimate of the population mean.",
+  "Data Mean (covariate)",
+  "The mean of the covariate is the average of the covariate values, which is the sum of all the observations divided by the number of observations. The mean summarizes the sample values with a single value that represents the center of the covariate values.",
+  "Interpretation",
+  "This value is the mean of the covariate. Minitab holds the covariate at the mean value when calculating the fitted means for the factors.",
+  "Standard Deviation (StDev)",
+  "The standard deviation is the most common measure of dispersion, or how spread out the individual covariate values are around the mean.",
+  "Interpretation",
+  "Use the standard deviation to determine how much the covariate varies around the mean. Minitab holds the covariate at the mean value when calculating the fitted means for the factors."
+ ],
+ "tables": [
+  {
+   "heading": "Means",
+   "header": [
+    "Term",
+    "Fitted Mean",
+    "SE Mean"
+   ],
+   "rows": [
+    [
+     "Material",
+     "",
+     ""
+    ],
+    [
+     "Formula1",
+     "26.269",
+     "0.480"
+    ],
+    [
+     "Formula2",
+     "32.998",
+     "0.480"
+    ],
+    [
+     "InjPress",
+     "",
+     ""
+    ],
+    [
+     "75",
+     "26.980",
+     "0.480"
+    ],
+    [
+     "150",
+     "32.287",
+     "0.480"
+    ],
+    [
+     "InjTemp",
+     "",
+     ""
+    ],
+    [
+     "85",
+     "27.487",
+     "0.480"
+    ],
+    [
+     "100",
+     "31.780",
+     "0.480"
+    ],
+    [
+     "CoolTemp",
+     "",
+     ""
+    ],
+    [
+     "25",
+     "31.593",
+     "0.480"
+    ],
+    [
+     "45",
+     "27.674",
+     "0.480"
+    ],
+    [
+     "InjTemp*CoolTemp",
+     "",
+     ""
+    ],
+    [
+     "85 25",
+     "30.351",
+     "0.679"
+    ],
+    [
+     "100 25",
+     "32.834",
+     "0.679"
+    ],
+    [
+     "85 45",
+     "24.623",
+     "0.679"
+    ],
+    [
+     "100 45",
+     "30.726",
+     "0.679"
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

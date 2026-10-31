@@ -1,0 +1,207 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/factorial/create-factorial-design/create-2-level-factorial-default-generators/before-you-start/example-of-a-2-level-design-with-blocks/",
+ "title": "Example of creating a 2-level fractional factorial design with blocks - Minitab",
+ "steps": [
+  "Choose Stat > DOE > Factorial > Create Factorial Design.",
+  "From Number of factors, select 5.",
+  "Click Designs.",
+  "Select the 1/2 fraction design.",
+  "In Number of blocks, choose 4.",
+  "Click OK in each dialog box."
+ ],
+ "tables": [
+  {
+   "heading": "Design Summary",
+   "header": [
+    "Factors:",
+    "5",
+    "Base Design:",
+    "5, 16",
+    "Resolution with blocks:",
+    "III"
+   ],
+   "rows": [
+    [
+     "Runs:",
+     "16",
+     "Replicates:",
+     "1",
+     "Fraction:",
+     "1/2"
+    ],
+    [
+     "Blocks:",
+     "4",
+     "Center pts (total):",
+     "0",
+     "",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Alias Structure",
+   "header": [
+    "I + ABCDE"
+   ],
+   "rows": [
+    [
+     "Blk1 = AB + CDE"
+    ],
+    [
+     "Blk2 = AC + BDE"
+    ],
+    [
+     "Blk3 = BC + ADE"
+    ],
+    [
+     "A + BCDE"
+    ],
+    [
+     "B + ACDE"
+    ],
+    [
+     "C + ABDE"
+    ],
+    [
+     "D + ABCE"
+    ],
+    [
+     "E + ABCD"
+    ],
+    [
+     "AD + BCE"
+    ],
+    [
+     "AE + BCD"
+    ],
+    [
+     "BD + ACE"
+    ],
+    [
+     "BE + ACD"
+    ],
+    [
+     "CD + ABE"
+    ],
+    [
+     "CE + ABD"
+    ],
+    [
+     "DE + ABC"
+    ]
+   ]
+  },
+  {
+   "heading": "Alias Structure",
+   "header": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9"
+   ],
+   "rows": [
+    [
+     "StdOrder",
+     "RunOrder",
+     "CenterPt",
+     "Blocks",
+     "A",
+     "B",
+     "C",
+     "D",
+     "E"
+    ],
+    [
+     "4",
+     "1",
+     "1",
+     "1",
+     "1",
+     "1",
+     "1",
+     "−1",
+     "−1"
+    ],
+    [
+     "2",
+     "2",
+     "1",
+     "1",
+     "−1",
+     "−1",
+     "1",
+     "−1",
+     "−1"
+    ],
+    [
+     "8",
+     "3",
+     "1",
+     "1",
+     "1",
+     "1",
+     "−1",
+     "1",
+     "−1"
+    ],
+    [
+     "1",
+     "4",
+     "1",
+     "1",
+     "−1",
+     "−1",
+     "−1",
+     "−1",
+     "1"
+    ],
+    [
+     "7",
+     "5",
+     "1",
+     "2",
+     "1",
+     "1",
+     "1",
+     "1",
+     "1"
+    ],
+    [
+     "12",
+     "6",
+     "1",
+     "2",
+     "−1",
+     "−1",
+     "1",
+     "1",
+     "1"
+    ],
+    [
+     "...",
+     "...",
+     "...",
+     "...",
+     "...",
+     "...",
+     "...",
+     "...",
+     "..."
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "III design because the design aliases blocks with 2-way interactions.",
+  "The Minitab worksheet below shows the settings for each factor for only the first 6",
+  "of the 16 experimental runs. The design was created using the default settings of −1",
+  "for low and 1 for high, although it is recommended that you enter actual settings",
+  "batch (Block 1). In the first run of the experiment, Factor A is high, Factor B is"
+ ]
+}

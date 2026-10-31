@@ -1,0 +1,137 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/mixtures/analyze-mixture-design/interpret-the-results/all-statistics-and-graphs/coefficients-table/",
+ "title": "Coefficients table for Analyze Mixture Design - Minitab",
+ "steps": [
+  "In This Topic",
+  "Coef",
+  "SE Coef",
+  "T-value",
+  "P-Value – Coefficient",
+  "VIF",
+  "Coef",
+  "The coefficient describes the size and direction of the relationship between a term in the model and the response variable. For the process variables, the coefficients are calculated for the coded values.",
+  "Interpretation",
+  "Minitab does not display p-values for the linear terms of the components in mixtures experiments because of the dependence between the components. Specifically, because the components must sum to a fixed amount or to a total proportion of 1, changing a single component forces a change in the others. Additionally, the model for a mixtures experiment does not include a constant because it is incorporated into the linear terms.",
+  "If an interaction term is statistically significant, the interpretation depends on the types of terms included in the interaction. The interpretations are as follows:",
+  "Interaction terms that include only components indicate that the association between the blend of components and the response is statistically significant.",
+  "Positive coefficients for interaction terms indicate that the components in the term act synergistically. That is, the mean response value is greater than the value you would obtain by calculating the simple mean of the response variable for each pure mixture.",
+  "Negative coefficients for interaction terms indicate that the components in the mixture act antagonistically. That is, the mean response value is less than the value you would obtain by calculating the simple mean of the response variable for each pure mixture.",
+  "Interaction terms that include components and the process variables indicate that the effect of the components on the response variable depends on the process variables.",
+  "Tip",
+  "To further explore the relationships of the components and the process variables with the response, use Contour",
+  "Plot, Surface Plot and Response Trace",
+  "Plot.",
+  "SE Coef",
+  "The standard error of the coefficient estimates the variability between coefficient estimates that you would obtain if you took samples from the same population again and again. The calculation assumes that the sample size and the coefficients to estimate would remain the same if you sampled again and again.",
+  "Interpretation",
+  "Use the standard error of the coefficient to measure the precision of the estimate of the coefficient. The smaller the standard error, the more precise the estimate. Dividing the coefficient by its standard error calculates a t-value. If the p-value associated with this t-statistic is less than your significance level, you conclude that the coefficient is statistically significant.",
+  "For example, technicians estimate a model for insolation as part of a solar thermal energy test:",
+  "Regression Analysis: Insolation versus South, North, Time of Day",
+  "Coefficients",
+  "In this model, North and South measure the position of a focal point in inches. The coefficients for North and South are similar in magnitude. The standard error of the coefficient for South is smaller than the standard error of the coefficient for North. Therefore, the model is able to estimate the coefficient for South with greater precision.",
+  "The standard error of the North coefficient is nearly as large as the value of the coefficient itself. The resulting p-value is greater than common levels of the significance level, so you cannot conclude that the coefficient for North differs from 0.",
+  "While the coefficient for South is closer to 0 than the coefficient for North, the standard error of the coefficient for South is also smaller. The resulting p-value is smaller than common significance levels. Because the estimate of the coefficient for South is more precise, you can conclude that the coefficient for South differs from 0.",
+  "Statistical significance is one criterion you can use to reduce a model in multiple regression. For more information, go to Model reduction.",
+  "T-value",
+  "The t-value measures the ratio between the coefficient and its standard error.",
+  "Interpretation",
+  "Minitab uses the t-value to calculate the p-value, which you use to test whether the coefficient is significantly different from 0.",
+  "You can use the t-value to determine whether to reject the null hypothesis. However, the p-value is used more often because the threshold for the rejection of the null hypothesis does not depend on the degrees of freedom. For more information on using the t-value, go to Using the t-value to determine whether to reject the null hypothesis.",
+  "P-Value – Coefficient",
+  "The p-value is a probability that measures the evidence against the null hypothesis. Lower probabilities provide stronger evidence against the null hypothesis.",
+  "Minitab does not display p-values for main effects in models for mixtures experiments because of the dependence between the components. Specifically, because the component proportions must sum to a fixed amount or proportion, changing a single component forces a change in the others. Additionally, the model for a mixtures experiment does not have an intercept term because the individual component terms behave like intercept terms.",
+  "Interpretation",
+  "To determine whether the association between the response and each term in the model is statistically significant, compare the p-value for the term to your significance level to assess the null hypothesis. The null hypothesis is that there is no association between the term and the response. Usually, a significance level (denoted as α or alpha) of 0.05 works well. A significance level of 0.05 indicates a 5% risk of concluding that an association exists when there is no actual association.",
+  "P-value ≤ α: The association is statistically significant",
+  "If the p-value is less than or equal to the significance level, you can conclude that there is a statistically significant association between the response variable and the term.",
+  "P-value > α: The association is not statistically significant",
+  "If the p-value is greater than the significance level, you cannot conclude that there is a statistically significant association between the response variable and the term. You may want to refit the model without the term.",
+  "If there are multiple predictors without a statistically significant association with the response, you can reduce the model by removing terms one at a time. For more information on removing terms from the model, go to Model reduction.",
+  "If an interaction term is statistically significant, the interpretation depends on the interaction. The interpretations are as follows:",
+  "Interaction terms that include only components indicate that the association between the blend of components and the response is statistically significant.",
+  "Positive coefficients for interaction terms indicate that the components in the term act synergistically. That is, the mean response value is greater than the value you would obtain by calculating the simple mean of the response variable for each pure mixture.",
+  "Negative coefficients for interaction terms indicate that the components in the mixture act antagonistically. That is, the mean response value is less than the value you would obtain by calculating the simple mean of the response variable for each pure mixture.",
+  "Interaction terms that include components and the process variables indicate that the effect of the components on the response variable depends on the process variables.",
+  "Tip",
+  "To further explore the relationships of the components and the process variables with the response, use Contour",
+  "Plot, Surface Plot and Response Trace",
+  "Plot.",
+  "VIF",
+  "The variance inflation factor (VIF) indicates how much the variance of a coefficient is inflated due to the correlations among the predictors in the model.",
+  "Interpretation",
+  "Use the VIF to describe how much multicollinearity (which is correlation between predictors) exists in a regression analysis. Multicollinearity is problematic because it can increase the variance of the regression coefficients, making it difficult to evaluate the individual impact that each of the correlated predictors has on the response.",
+  "Use the following guidelines to interpret the VIF:",
+  "A VIF value greater than 5 suggests that the regression coefficient is poorly estimated due to severe multicollinearity.",
+  "High VIF values tend to occur in mixture designs that have constraints on the components.",
+  "For more information on multicollinearity and how to mitigate the effects of multicollinearity, see Multicollinearity in regression."
+ ],
+ "tables": [
+  {
+   "heading": "Coefficients",
+   "header": [
+    "Term",
+    "Coef",
+    "SE Coef",
+    "T-Value",
+    "P-Value",
+    "VIF"
+   ],
+   "rows": [
+    [
+     "Constant",
+     "809",
+     "377",
+     "2.14",
+     "0.042",
+     ""
+    ],
+    [
+     "South",
+     "20.81",
+     "8.65",
+     "2.41",
+     "0.024",
+     "2.24"
+    ],
+    [
+     "North",
+     "-23.7",
+     "17.4",
+     "-1.36",
+     "0.186",
+     "2.17"
+    ],
+    [
+     "Time of Day",
+     "-30.2",
+     "10.8",
+     "-2.79",
+     "0.010",
+     "3.86"
+    ]
+   ]
+  },
+  {
+   "heading": "Use the following guidelines to interpret the VIF:",
+   "header": [
+    "VIF",
+    "Status of predictor"
+   ],
+   "rows": [
+    [
+     "VIF = 1",
+     "Not correlated"
+    ],
+    [
+     "1 < VIF < 5",
+     "Moderately correlated"
+    ],
+    [
+     "VIF > 5",
+     "Highly correlated"
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

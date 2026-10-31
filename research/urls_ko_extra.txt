@@ -1,0 +1,13 @@
+doe/how-to/response-surface/create-response-surface-design/create-central-composite-design/before-you-start/example/
+doe/how-to/response-surface/create-response-surface-design/create-box-behnken-design/before-you-start/example/
+doe/how-to/mixtures/create-mixture-design/before-you-start/example-for-simplex-centroid/
+doe/how-to/mixtures/create-mixture-design/before-you-start/example-for-simplex-lattice/
+doe/how-to/mixtures/create-mixture-design/before-you-start/example-for-extreme-vertices/
+doe/how-to/screening/create-definitive-screening-design/before-you-start/example/
+using-fitted-models/how-to/cube-plot/before-you-start/example-with-a-factorial-design/
+doe/how-to/factorial/analyze-factorial-design/interpret-the-results/all-statistics-and-graphs/coefficients-table/
+doe/how-to/factorial/analyze-factorial-design/interpret-the-results/all-statistics-and-graphs/analysis-of-variance-table/
+doe/how-to/factorial/create-factorial-design/create-2-level-factorial-default-generators/create-the-design/specify-the-design/
+doe/how-to/factorial/create-factorial-design/create-2-level-factorial-default-generators/create-the-design/specify-the-factors/
+doe/how-to/factorial/create-factorial-design/create-2-level-factorial-default-generators/create-the-design/specify-the-design-options/
+using-fitted-models/how-to/response-optimizer/perform-the-analysis/specify-boundaries-weight-and-importance/

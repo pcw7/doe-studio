@@ -1,0 +1,391 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/mixtures/create-mixture-design/examine-the-design/all-statistics/",
+ "title": "All statistics for Create Mixture Design - Minitab",
+ "steps": [
+  "In This Topic",
+  "Components",
+  "Process variables",
+  "Design points",
+  "Design degree",
+  "Mixture total",
+  "Boundaries for each dimension",
+  "Number of design points",
+  "Bounds of mixture components",
+  "Linear constraints",
+  "Design table",
+  "Components",
+  "Components are the ingredients that make up the mixture.",
+  "Interpretation",
+  "By performing a design of experiment (DOE), you can determine the relative proportion of each component that will optimize the mixture (the response). Mixture experiments commonly occur in food-processing, refining, or the manufacturing of chemicals.",
+  "For example, you might be developing a pancake mixture that is made of flour, baking powder, milk, eggs, and oil. Or, you might be developing an insecticide that blends four chemical ingredients.",
+  "Process variables",
+  "Process variables are factors in an experiment that are not part of the mixture but may affect the response.",
+  "Interpretation",
+  "The response is assumed to depend on the relative proportions of the components and the process variables, which are factors in an experiment that are not part of the mixture, but might affect the response. For example, the flavor of a cake depends on the cooking time and cooking temperature, and the proportions of the cake ingredients.",
+  "Design points",
+  "Design points are the experimental conditions at which the response is measured.",
+  "Interpretation",
+  "Suppose you have a three component design which has seven design points. When you perform an experiment using this design, you create the seven blends of the mixture and measure the response for each blend.",
+  "Design degree",
+  "The degree of the design determines where design points are placed within the design space. To see a diagram that illustrates this concept, go to Choose a mixture design.",
+  "Interpretation",
+  "The design qualities indicated by the degree of a design depends on the design type:",
+  "In a simplex centroid design, the degree indicates up to what dimension centroids are included in the design.",
+  "In a simplex lattice design, the degree determines how points are generated on each boundary of the design space.",
+  "In an extreme vertices design, the degree indicates up to what dimension centroids are included in the design.",
+  "A degree 1 design specifies only vertices.",
+  "A degree 2 design specifies vertices and edge centroids.",
+  "A degree 3 design specifies vertices, edge centroids, and face centroids.",
+  "Mixture total",
+  "The mixture total describes the amount of the mixture that is used in the experiment. That is, the sum of the components must be equal to the mixture total.",
+  "Interpretation",
+  "Rather than expressing a design in proportions, you may want to express the design in terms of the actual measurements. For example, you may want to express a design used to study plant fertilizer in grams rather than component proportions. The function of the mixture total depends on whether you have just a single total or multiple totals.",
+  "If you have one total, the design is simply expressed in the actual measurement units rather than in the proportions of the components.",
+  "If you have multiple totals, you have a mixture-amounts experiment. In a mixture-amounts experiment, the response is assumed to depend on the proportions of the components and the amount of the mixture. For example, the amount applied and the proportions of the ingredients of a plant food may affect the growth of a house plant.",
+  "Boundaries for each dimension",
+  "The number of boundaries for each dimension indicates the complexity of the design space. That is, how many vertices, edges, planes, etc., confine the design space. Design points are often placed at a \"corner\" (vertex) or in the middle of a boundary (edge or plane).",
+  "Tip",
+  "To graphically display the design space and design points after you create a mixture design, create a Simplex Design",
+  "Plot.",
+  "Number of design points",
+  "Minitab displays the number of design points for each point type. The interpretation of the point type value depends on whether the design is constrained or unconstrained. In an unconstrained design, the proportions of all the components can range from 0 to 1. If the range of the proportions are limited by bounds, it is a constrained design.",
+  "For unconstrained designs, the point type value usually indicates how many components are in the blend. However, there are two exceptions:",
+  "Type 0 is the center point. The center point corresponds to the blend in which all components are included in equal proportions.",
+  "Type - 1 is an axial point. An axial point is special complete blend that lies exactly halfway between the center point and a vertex.",
+  "For constrained designs, the values for the point types indicate the following:",
+  "Type 1 is a vertex. Vertices are at the \"corners\" of the design space.",
+  "Type 2 is a point is often at the middle of an edge of the design space. These points correspond to blends in which the component proportions are the average proportions of the two vertices defining the edge.",
+  "Type 0 is the center point. The center point corresponds to the blend in which the component proportions are the averages of the corresponding vertex proportions.",
+  "Type - 1 is an axial point. An axial point corresponds to the blend in which the component proportions are the averages of the center point proportions and the proportions in a vertex.",
+  "Interpretation",
+  "For the fondue experiment, which is a constrained design with 18 design points, the",
+  "design has 8 vertices, 0 edge points, 2 center points, and 8 axial points. Because",
+  "the number of replicates for each point type is 1 (that is, each design point is",
+  "only included once), the total number of points is equal to the distinct number of",
+  "points.",
+  "Number of Design Points for Each Type",
+  "Bounds of mixture components",
+  "In some mixture experimentation, it is necessary to set a lower bound and/or an upper bound on some or all of the components.",
+  "Lower bounds are necessary when any of the components must be present in the mixture. For example, lemonade must contain lemon juice.",
+  "Upper bounds are necessary when the mixture cannot contain more than a given proportion of an ingredient. For example, a cake mix cannot contain more than 5% baking powder.",
+  "Minitab shows the bounds expressed in three units: amounts, proportions, and pseudocomponents. Whether or not these values differ depends on the value of mixture total and whether the design is constrained.",
+  "Interpretation",
+  "For the fondue experiment, the bounds expressed in amounts and proportions are the",
+  "same because the mixture total is one. Because the design has lower bounds that are",
+  "not zero, the bounds expressed in pseudocomponents differ from both amounts and",
+  "proportions. The bounds for the fondue data are as follows:",
+  "Emmenthaler: the proportion of Emmenthaler cheese (Comp A) in the fondue",
+  "cannot be less than 0.20000 (20%) or greater than 0.60000 (60%).",
+  "Gruyere: the proportion of Gruyere cheese (Comp B) in the fondue cannot be",
+  "greater than 0.30000 (30%). There is no minimum quantity of Gruyere required",
+  "(Lower = 0.00000).",
+  "Broth: the proportion of broth (Comp C) in the fondue cannot be less than",
+  "0.40000 (40%) or greater than 0.60000 (60%).",
+  "Bounds of Mixture Components",
+  "Linear constraints",
+  "For an extreme vertices design, you can have up to ten linear constraints on the set of components in addition to the individual bounds on the components. For more information, go to How are linear constraints different than component bounds in a mixtures design?.",
+  "For example, you would need a linear constraint in the following situation. Suppose you need to constrain the wet ingredients (eggs, milk, and oil) of a cake mix so that together they are not less than 40% or greater than 60% of the total mixture. If you are willing to allow equal amounts of these three ingredients, you would use the following values for the linear constraint: lower value is 0.4, the upper value is 0.6, and the component coefficients are all 1.",
+  "Interpretation",
+  "For the fondue data, the linear constraint is defined as follows",
+  "The lower value of the linear",
+  "constraint is 0.00000.",
+  "The coefficient for Emmenthaler",
+  "cheese (A) is 1.00000.",
+  "The coefficient for Gruyere",
+  "cheese (B) is - 1.00000.",
+  "This linear constraint requires that amount of Gruyere does not exceed the amount of",
+  "Emmenthaler.",
+  "Linear Constraints of Mixture Components",
+  "Design table",
+  "The design table shows the experimental conditions or settings for each of the design variables at each design point. Because the design table takes up less space than the worksheet, it can be useful for reports with limited space.",
+  "Tip",
+  "To graphically display the design space and design points after you create a mixture design, create a Simplex Design",
+  "Plot.",
+  "Minitab displays the run number and the point type. For information about the point types, go to the section about \"Number of design points\" in this topic.",
+  "The letters at the top of the columns represent the components and process variables and follow the order that you used when you created the design. For components, the table displays the proportions or amounts for each component. Minitab labels the components alphabetically, skipping the letter T.",
+  "If the amount total for each row equals one, the components are expressed in terms of proportions.",
+  "If the amount total for each row does not equal one, the components are expressed in terms of amounts.",
+  "Minitab labels the process variables as X1,... ,Xn, where n is the number of process variables. Minitab represents the settings of the process variables in coded units as follows:",
+  "−1 indicates the low level.",
+  "1 indicates the high level.",
+  "If you have more than one amount total, the Amount column displays the total mixture amount for each run.",
+  "When you perform the experiment, use the order that is shown to determine the conditions for each run.",
+  "Interpretation",
+  "The design for the fondue experiment contains three components (Emmenthaler cheese,",
+  "Gruyere cheese, and broth) and one process variable (serving temperature). For this",
+  "experiment, in the first run, you would do the following:",
+  "Create a mixture with the following proportions:",
+  "Emmenthaler cheese (A): 0.20000.",
+  "Gruyere cheese (B): 0.20000.",
+  "Broth (C): 0.60000.",
+  "Heat the fondue to its low level (-1) of serving temperature (X1), which is",
+  "80 degrees.",
+  "Measure the flavor response.",
+  "Design Table (randomized)"
+ ],
+ "tables": [
+  {
+   "heading": "Number of Design Points for Each Type",
+   "header": [
+    "Point Type",
+    "1",
+    "2",
+    "3",
+    "0",
+    "-1"
+   ],
+   "rows": [
+    [
+     "Distinct",
+     "8",
+     "0",
+     "0",
+     "2",
+     "8"
+    ],
+    [
+     "Replicates",
+     "1",
+     "0",
+     "0",
+     "1",
+     "1"
+    ],
+    [
+     "Total number",
+     "8",
+     "0",
+     "0",
+     "2",
+     "8"
+    ]
+   ]
+  },
+  {
+   "heading": "Bounds of Mixture Components",
+   "header": [
+    "",
+    "Amount",
+    "Proportion",
+    "Pseudocomponent"
+   ],
+   "rows": [
+    [
+     "Comp",
+     "Lower",
+     "Upper",
+     "Lower",
+     "Upper",
+     "Lower",
+     "Upper"
+    ],
+    [
+     "A",
+     "0.20000",
+     "0.60000",
+     "0.20000",
+     "0.60000",
+     "0.00000",
+     "1.00000"
+    ],
+    [
+     "B",
+     "0.00000",
+     "0.30000",
+     "0.00000",
+     "0.30000",
+     "0.00000",
+     "0.75000"
+    ],
+    [
+     "C",
+     "0.40000",
+     "0.60000",
+     "0.40000",
+     "0.60000",
+     "0.00000",
+     "0.50000"
+    ]
+   ]
+  },
+  {
+   "heading": "Linear Constraints of Mixture Components",
+   "header": [
+    "Constraint",
+    "Lower",
+    "A",
+    "B",
+    "C",
+    "Upper"
+   ],
+   "rows": [
+    [
+     "1",
+     "0.00000",
+     "1.00000",
+     "-1.00000",
+     "0.00000",
+     ""
+    ]
+   ]
+  },
+  {
+   "heading": "Design Table (randomized)",
+   "header": [
+    "Run",
+    "Type",
+    "A",
+    "B",
+    "C",
+    "X1"
+   ],
+   "rows": [
+    [
+     "1",
+     "1",
+     "0.20000",
+     "0.20000",
+     "0.60000",
+     "-1"
+    ],
+    [
+     "2",
+     "1",
+     "0.20000",
+     "0.20000",
+     "0.60000",
+     "1"
+    ],
+    [
+     "3",
+     "0",
+     "0.37500",
+     "0.12500",
+     "0.50000",
+     "1"
+    ],
+    [
+     "4",
+     "1",
+     "0.30000",
+     "0.30000",
+     "0.40000",
+     "1"
+    ],
+    [
+     "5",
+     "1",
+     "0.40000",
+     "0.00000",
+     "0.60000",
+     "-1"
+    ],
+    [
+     "6",
+     "-1",
+     "0.33750",
+     "0.21250",
+     "0.45000",
+     "-1"
+    ],
+    [
+     "7",
+     "-1",
+     "0.28750",
+     "0.16250",
+     "0.55000",
+     "1"
+    ],
+    [
+     "8",
+     "-1",
+     "0.38750",
+     "0.06250",
+     "0.55000",
+     "1"
+    ],
+    [
+     "9",
+     "-1",
+     "0.48750",
+     "0.06250",
+     "0.45000",
+     "1"
+    ],
+    [
+     "10",
+     "1",
+     "0.30000",
+     "0.30000",
+     "0.40000",
+     "-1"
+    ],
+    [
+     "11",
+     "-1",
+     "0.33750",
+     "0.21250",
+     "0.45000",
+     "1"
+    ],
+    [
+     "12",
+     "-1",
+     "0.28750",
+     "0.16250",
+     "0.55000",
+     "-1"
+    ],
+    [
+     "13",
+     "-1",
+     "0.48750",
+     "0.06250",
+     "0.45000",
+     "-1"
+    ],
+    [
+     "14",
+     "1",
+     "0.40000",
+     "0.00000",
+     "0.60000",
+     "1"
+    ],
+    [
+     "15",
+     "0",
+     "0.37500",
+     "0.12500",
+     "0.50000",
+     "-1"
+    ],
+    [
+     "16",
+     "1",
+     "0.60000",
+     "0.00000",
+     "0.40000",
+     "1"
+    ],
+    [
+     "17",
+     "-1",
+     "0.38750",
+     "0.06250",
+     "0.55000",
+     "-1"
+    ],
+    [
+     "18",
+     "1",
+     "0.60000",
+     "0.00000",
+     "0.40000",
+     "-1"
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

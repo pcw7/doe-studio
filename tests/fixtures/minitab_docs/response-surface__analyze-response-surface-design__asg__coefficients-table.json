@@ -1,0 +1,89 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/response-surface/analyze-response-surface-design/interpret-the-results/all-statistics-and-graphs/coefficients-table/",
+ "title": "Coefficients table for Analyze Response Surface Design - Minitab",
+ "steps": [
+  "In This Topic",
+  "Coef",
+  "SE Coef",
+  "Confidence Interval for coefficient (95% CI)",
+  "T-value",
+  "P-Value – Coefficient",
+  "VIF",
+  "Coef",
+  "The coefficient describes the size and direction of the relationship between a term in the model and the response variable. To minimize multicollinearity among the terms, the coefficients are all in coded units.",
+  "Interpretation",
+  "The coefficient for a term represents the change in the mean response associated with an increase of one coded unit in that term, while the other terms are held constant. The sign of the coefficient indicates the direction of the relationship between the term and the response.",
+  "SE Coef",
+  "The standard error of the coefficient estimates the variability between coefficient estimates that you would obtain if you took samples from the same population again and again. The calculation assumes that the experimental design and the coefficients to estimate would remain the same if you sampled again and again.",
+  "Interpretation",
+  "Use the standard error of the coefficient to measure the precision of the estimate of the coefficient. The smaller the standard error, the more precise the estimate. Dividing the coefficient by its standard error calculates a t-value. If the p-value associated with this t-statistic is less than your significance level, you conclude that the coefficient is statistically significant.",
+  "Confidence Interval for coefficient (95% CI)",
+  "These confidence intervals (CI) are ranges of values that are likely to contain the true value of the coefficient for each term in the model.",
+  "Because samples are random, two samples from a population are unlikely to yield identical confidence intervals. However, if you take many random samples, a certain percentage of the resulting confidence intervals contain the unknown population parameter. The percentage of these confidence intervals that contain the parameter is the confidence level of the interval.",
+  "The confidence interval is composed of the following two parts:",
+  "Point estimate",
+  "This single value estimates a population parameter by using your sample data. The confidence interval is centered around the point estimate.",
+  "Margin of error",
+  "The margin of error defines the width of the confidence interval and is determined by the observed variability in the sample, the sample size, and the confidence level. To calculate the upper limit of the confidence interval, the margin of error is added to the point estimate. To calculate the lower limit of the confidence interval, the margin of error is subtracted from the point estimate.",
+  "Interpretation",
+  "Use the confidence interval to assess the estimate of the population coefficient for each term in the model.",
+  "For example, with a 95% confidence level, you can be 95% confident that the confidence interval contains the value of the coefficient for the population. The confidence interval helps you assess the practical significance of your results. Use your specialized knowledge to determine whether the confidence interval includes values that have practical significance for your situation. If the interval is too wide to be useful, consider increasing your sample size.",
+  "T-value",
+  "The t-value measures the ratio between the coefficient and its standard error.",
+  "Interpretation",
+  "Minitab uses the t-value to calculate the p-value, which you use to test whether the coefficient is significantly different from 0.",
+  "You can use the t-value to determine whether to reject the null hypothesis. However, the p-value is used more often because the threshold for the rejection of the null hypothesis does not depend on the degrees of freedom. For more information on using the t-value, go to Using the t-value to determine whether to reject the null hypothesis.",
+  "P-Value – Coefficient",
+  "The p-value is a probability that measures evidence against the null hypothesis. Lower probabilities provide stronger evidence against the null hypothesis.",
+  "Interpretation",
+  "To determine whether a coefficient is different from 0, compare the p-value for the term to your significance level to assess the null hypothesis. The null hypothesis is that the coefficient equals 0, which implies that there is no association between the term and the response.",
+  "Usually, a significance level (denoted as α or alpha) of 0.05 works well. A significance level of 0.05 indicates a 5% risk of concluding that the coefficient is not 0 when it is.",
+  "P-value ≤ α: The association is statistically significant",
+  "If the p-value is less than or equal to the significance level, you can conclude that there is a statistically significant association between the response variable and the term.",
+  "P-value > α: The association is not statistically significant",
+  "If the p-value is greater than the significance level, you cannot conclude that there is a statistically significant association between the response variable and the term. You may want to refit the model without the term.",
+  "If there are multiple predictors without a statistically significant association with the response, you can reduce the model by removing terms one at a time. For more information on removing terms from the model, go to Model reduction.",
+  "If a coefficient is statistically significant, the interpretation depends on the type of term. The interpretations are as follows:",
+  "Linear terms",
+  "If the coefficient for a linear term is statistically significant, you can conclude that the coefficient does not equal 0.",
+  "Interactions among factors",
+  "If the coefficient for an interaction is statistically significant, you can conclude that the relationship between a factor and the response depends on the other factors in the term.",
+  "Quadratic terms",
+  "If the coefficient for a quadratic term is statistically significant, you can conclude that the response surface contains curvature.",
+  "Blocks",
+  "If the coefficient for a block is statistically significant, you can conclude that the mean of the response values in that block is different from the overall mean of the response.",
+  "VIF",
+  "The variance inflation factor (VIF) indicates how much the variance of a coefficient is inflated due to correlations among the predictors in the model.",
+  "Interpretation",
+  "Use the VIF to describe how much multicollinearity (which is correlation between predictors) exists in a model. The absence of multicollinearity simplifies the determination of statistical significance. The occurrence of botched runs during data collection is a common way that VIF values increase, which complicates the interpretation of statistical significance. Use the following guidelines to interpret the VIF:",
+  "Highly correlated predictors are problematic because the multicollinearity can increase the variance of the regression coefficients. The following are some of the consequences of unstable coefficients:",
+  "Coefficients can seem to be not statistically significant even when an important relationship exists between the predictor and the response.",
+  "Coefficients for highly correlated predictors will vary widely from sample to sample.",
+  "Removing any highly correlated terms from the model will greatly affect the estimated coefficients of the other highly correlated terms. Coefficients of the highly correlated terms can even have the incorrect sign.",
+  "Be cautious when you use statistical significance to choose terms to remove from a model in the presence of multicollinearity. Add and remove only one term at a time from the model. Monitor changes in the model summary statistics, as well as the tests of statistical significance, as you change the model."
+ ],
+ "tables": [
+  {
+   "heading": "Interpretation",
+   "header": [
+    "VIF",
+    "Status of predictor"
+   ],
+   "rows": [
+    [
+     "VIF = 1",
+     "Not correlated"
+    ],
+    [
+     "1 < VIF < 5",
+     "Moderately correlated"
+    ],
+    [
+     "VIF > 5",
+     "Highly correlated"
+    ]
+   ]
+  }
+ ],
+ "notes": []
+}

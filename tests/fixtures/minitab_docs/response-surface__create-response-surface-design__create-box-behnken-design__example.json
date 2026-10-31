@@ -1,0 +1,159 @@
+{
+ "url": "https://support.minitab.com/en-us/minitab/help-and-how-to/statistical-modeling/doe/how-to/response-surface/create-response-surface-design/create-box-behnken-design/before-you-start/example/",
+ "title": "Example of Create Response Surface Design (Box-Behnken) - Minitab",
+ "steps": [
+  "Choose Stat > DOE > Response Surface > Create Response Surface Design.",
+  "Under Type",
+  "of Design, select Box-Behnken.",
+  "From Number of continuous factors, select 3.",
+  "Click Designs, and then click OK.",
+  "Click Results. Select Summary table and design table.",
+  "Click OK in each dialog box."
+ ],
+ "tables": [
+  {
+   "heading": "Design Summary",
+   "header": [
+    "Factors:",
+    "3",
+    "Replicates:",
+    "1"
+   ],
+   "rows": [
+    [
+     "Base runs:",
+     "15",
+     "Total runs:",
+     "15"
+    ],
+    [
+     "Base blocks:",
+     "1",
+     "Total blocks:",
+     "1"
+    ]
+   ]
+  },
+  {
+   "heading": "Design Table (randomized)",
+   "header": [
+    "Run",
+    "Blk",
+    "A",
+    "B",
+    "C"
+   ],
+   "rows": [
+    [
+     "1",
+     "1",
+     "-1",
+     "0",
+     "-1"
+    ],
+    [
+     "2",
+     "1",
+     "-1",
+     "0",
+     "1"
+    ],
+    [
+     "3",
+     "1",
+     "-1",
+     "-1",
+     "0"
+    ],
+    [
+     "4",
+     "1",
+     "1",
+     "-1",
+     "0"
+    ],
+    [
+     "5",
+     "1",
+     "1",
+     "0",
+     "-1"
+    ],
+    [
+     "6",
+     "1",
+     "0",
+     "-1",
+     "-1"
+    ],
+    [
+     "7",
+     "1",
+     "1",
+     "0",
+     "1"
+    ],
+    [
+     "8",
+     "1",
+     "-1",
+     "1",
+     "0"
+    ],
+    [
+     "9",
+     "1",
+     "0",
+     "1",
+     "1"
+    ],
+    [
+     "10",
+     "1",
+     "1",
+     "1",
+     "0"
+    ],
+    [
+     "11",
+     "1",
+     "0",
+     "-1",
+     "1"
+    ],
+    [
+     "12",
+     "1",
+     "0",
+     "0",
+     "0"
+    ],
+    [
+     "13",
+     "1",
+     "0",
+     "0",
+     "0"
+    ],
+    [
+     "14",
+     "1",
+     "0",
+     "0",
+     "0"
+    ],
+    [
+     "15",
+     "1",
+     "0",
+     "1",
+     "-1"
+    ]
+   ]
+  }
+ ],
+ "notes": [
+  "The design table displays the factor settings for each experimental run using coded factor names and levels. For example, in the first run, Factor A and C are at level −1 and Factors B is at level 0. With 3 factors, the design has 15 runs. In the worksheet, Minitab displays the names of the factors and the levels.",
+  "Center points: 3"
+ ]
+}
