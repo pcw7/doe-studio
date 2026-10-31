@@ -464,14 +464,15 @@ def analyze_factorial(
     terms: list[str] | None = None,
     include_blocks: bool | None = None,
     include_center: bool | None = None,
+    model: str = "full quadratic",
 ) -> FactorialAnalysis:
     """design.coded 행 순서로 정렬된 반응 y 로 요인설계를 분석한다. 반응·공변량이 빈 행은 뺀다.
 
-    반응표면 설계가 들어오면 analyze_response_surface 로 넘긴다(order 는 무시하고 완전 2차 모형).
+    반응표면 설계가 들어오면 analyze_response_surface 로 넘긴다(order 대신 model 사용, 기본 완전 2차).
     """
     if isinstance(design, ResponseSurfaceDesign):
-        return analyze_response_surface(design, y, response=response, covariates=covariates, terms=terms,
-                                        include_blocks=include_blocks)
+        return analyze_response_surface(design, y, response=response, covariates=covariates, model=model,
+                                        terms=terms, include_blocks=include_blocks)
     coded, yv, used, cov = _prepare(design, y, covariates)
     pt = design.point_col
     tl = factorial_terms(

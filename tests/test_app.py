@@ -81,3 +81,46 @@ def test_analyze_page_without_response_shows_hint():
     at = run("analyze.py", Worksheet(create_two_level_design(3, seed=0)))
     assert not at.exception
     assert any("반응 열이 없습니다" in i.value for i in at.info)
+
+
+def test_create_response_surface_designs():
+    at = run("create.py")
+    at.segmented_control[0].set_value("반응표면 설계").run()
+    assert not at.exception
+    at.button[0].click().run()
+    assert not at.exception
+    d = at.session_state["worksheet"].design
+    assert type(d).__name__ == "ResponseSurfaceDesign" and d.kind == "ccd" and d.n_runs == 20
+    at.segmented_control[1].set_value("Box-Behnken").run()
+    at.button[0].click().run()
+    assert not at.exception and at.session_state["worksheet"].design.kind == "bbd"
+
+
+def test_analyze_and_optimize_seal_strength():
+    p = SAMPLES / "SealStrength.MWX"
+    if not p.exists():
+        pytest.skip("SealStrength.MWX 없음")
+    from doe_core.io.worksheet import load_mwx_worksheet
+    ws = load_mwx_worksheet(p, ["HotBarT", "DwelTime", "HotBarP", "MatTemp"])
+    at = run("analyze.py", ws)
+    assert not at.exception and any("반응표면 설계 분석" in t.value for t in at.title)
+    at.button[0].click().run()
+    assert not at.exception
+    assert any("-289.3 + 2.287 HotBarT" in c.value for c in at.code)
+    at = run("optimize.py", ws)
+    assert not at.exception
+    at.button[0].click().run()
+    assert not at.exception
+    res = at.session_state["opt"][1]
+    assert 0 < res.D <= 1 and set(res.settings) == {"HotBarT", "DwelTime", "HotBarP", "MatTemp"}
+
+
+def test_worksheet_add_axial_points():
+    from doe_core.designs.common import Factor
+    ws = Worksheet(create_two_level_design(2, factors=[Factor("T", 10, 20), Factor("P", 1, 2)], center_points=2, seed=0))
+    at = run("worksheet.py", ws)
+    assert not at.exception
+    btn = [b for b in at.button if b.label == "축점 추가"][0]
+    btn.click().run()
+    assert not at.exception
+    assert at.session_state["worksheet"].design.kind == "ccd"

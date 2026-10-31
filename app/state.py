@@ -41,9 +41,25 @@ def show_plot(fig) -> None:
     st.plotly_chart(fig, theme=None, width="stretch", config={"displaylogo": False})
 
 
+def _numeric_like(col: pd.Series) -> bool:
+    """숫자 열이거나, 글자 열이라도 값이 모두 숫자·구간·백분율 꼴(예: '(29.45, 35.22)', '98.02%', '*')이면 참."""
+    if pd.api.types.is_numeric_dtype(col):
+        return True
+    vals = [str(v).strip() for v in col if str(v).strip() not in ("", "nan", "None")]
+    if not vals:
+        return True
+    for v in vals:
+        s = v.replace("(", "").replace(")", "").replace("%", "").replace(",", " ").replace("*", "")
+        try:
+            [float(x) for x in s.split()] or [0.0]
+        except ValueError:
+            return False
+    return True
+
+
 def show_table(df: pd.DataFrame, *, max_rows: int = 40, **kw) -> None:
-    """표를 행 수만큼 펼쳐(최대 max_rows 행) 보여 준다. 첫 열 외에는 숫자처럼 오른쪽 정렬."""
-    cfg = {c: st.column_config.Column(alignment="right") for c in list(df.columns)[1:]}
+    """표를 행 수만큼 펼쳐(최대 max_rows 행) 보여 준다. 숫자로 읽히는 열은 오른쪽 정렬."""
+    cfg = {c: st.column_config.Column(alignment="right") for c in df.columns if _numeric_like(df[c])}
     cfg.update(kw.pop("column_config", {}) or {})
     height = 35 * (min(len(df), max_rows) + 1) + 3
     st.dataframe(df, hide_index=True, width="stretch", height=height, column_config=cfg, **kw)
