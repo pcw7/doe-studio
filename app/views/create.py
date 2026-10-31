@@ -1,4 +1,4 @@
-"""설계 생성 화면 — Minitab 'Stat > DOE > Factorial > Create Factorial Design'."""
+"""설계 생성 화면 — Minitab 'Create Factorial Design' · 'Create Response Surface Design'."""
 import pandas as pd
 import streamlit as st
 
@@ -8,14 +8,15 @@ from doe_core.designs.common import Factor, factor_letters
 from doe_core.designs.factorial import create_two_level_design
 from doe_core.designs.general_full import GeneralFactor, create_general_full_factorial
 from doe_core.designs.plackett_burman import PB_RUNS, create_plackett_burman_design
+from doe_core.designs.response_surface import BBD_CATALOG, available_ccd, create_box_behnken, create_ccd
 from doe_core.io.worksheet import Worksheet
 
 st.title("설계 생성")
-st.caption("요인설계 생성 (Create Factorial Design)")
+st.caption("요인설계 생성 (Create Factorial Design) · 반응표면 설계 생성 (Create Response Surface Design)")
 
 kind = st.segmented_control(
     "설계 유형 (Type of Design)",
-    ["2수준 요인설계", "Plackett-Burman", "일반 완전요인설계"],
+    ["2수준 요인설계", "Plackett-Burman", "일반 완전요인설계", "반응표면 설계"],
     default="2수준 요인설계", required=True,
 )
 
@@ -94,6 +95,63 @@ elif kind == "Plackett-Burman":
                                                    randomize=randomize, seed=int(seed) or None)
         except Exception as e:  # noqa: BLE001
             error = e
+
+elif kind == "반응표면 설계":
+    rs_kind = st.segmented_control("반응표면 설계 종류", ["중심합성설계 (CCD)", "Box-Behnken"],
+                                   default="중심합성설계 (CCD)", required=True)
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        if rs_kind.startswith("중심합성"):
+            k = st.number_input("연속 요인 수 (Number of continuous factors)", 2, 10, 3)
+            entries = available_ccd(int(k))
+            labels = {i: f"{e.runs}런 · {e.fraction} · 블록 {e.blocks} · α {e.alpha_text}" for i, e in enumerate(entries)}
+            pick = st.selectbox("설계 (Designs)", list(labels), format_func=labels.get)
+            e = entries[pick]
+            cp_mode = st.radio("중앙점 수 (Number of center points)", ["기본 (Default)", "직접 지정 (Custom)"], horizontal=True)
+            cp = None
+            if cp_mode.startswith("직접"):
+                if e.blocks == 1:
+                    cp = int(st.number_input("중앙점 수", 0, 50, e.center))
+                else:
+                    cc = st.number_input("큐브 블록당 중앙점 (Cube block)", 0, 50, e.cube_center // max(e.cube_blocks, 1))
+                    ca = st.number_input("축 블록 중앙점 (Axial block)", 0, 50, e.axial_center)
+                    cp = (int(cc), int(ca))
+            a_mode = st.radio("α 값 (Value of Alpha)", ["기본 (Default)", "면 중심 (Face Centered)", "직접 지정 (Custom)"])
+            alpha = "default" if a_mode.startswith("기본") else ("face" if a_mode.startswith("면") else
+                                                                 st.number_input("α", 0.1, 10.0, float(e.default_alpha)))
+            levels_define = st.radio("요인 수준 정의 (Levels Define)", ["큐브점 (Cube points)", "축점 (Axial points)"],
+                                     horizontal=True)
+        else:
+            k = st.number_input("연속 요인 수 (Number of continuous factors)", 3, 7, 3)
+            runs, block_opts, default_cp = BBD_CATALOG[int(k)]
+            st.caption(f"{runs}런 · 기본 중앙점 {default_cp}개")
+            blocks_bb = st.selectbox("블록 수 (Number of blocks)", list(block_opts))
+            cp_bb = st.number_input("블록당 중앙점 수 (0 이면 기본)", 0, 50, 0)
+        reps = st.number_input("반복 수 (Replicates)", 1, 10, 1, key="rs_reps")
+        block_reps = st.checkbox("반복별 블록 (Block on replicates)", False, disabled=reps == 1, key="rs_brep")
+        randomize = st.checkbox("런 랜덤화 (Randomize runs)", True, key="rs_rand")
+        seed = st.number_input("난수 기준값", 0, 10_000_000, 0, key="rs_seed")
+    with c2:
+        st.write("**연속 요인 (Continuous Factors)** — 낮음·높음은 " +
+                 ("축점 값" if kind == "반응표면 설계" and rs_kind.startswith("중심합성") and levels_define.startswith("축점")
+                  else "큐브점(±1) 값") + "입니다.")
+        letters = factor_letters(int(k))
+        base = pd.DataFrame({"요인": letters, "이름": letters, "낮음": [-1.0] * int(k), "높음": [1.0] * int(k)})
+        rdf = st.data_editor(base, key=f"rs_{rs_kind}_{k}", hide_index=True, width="stretch", disabled=["요인"])
+    if st.button("설계 생성", type="primary"):
+        try:
+            facs = [Factor(str(r[1]).strip() or str(r[0]), float(r[2]), float(r[3])) for r in rdf.itertuples(index=False)]
+            if rs_kind.startswith("중심합성"):
+                design = create_ccd(int(k), fraction=e.fraction, blocks=e.blocks, factors=facs, alpha=alpha,
+                                    center_points=cp, replicates=int(reps), block_on_replicates=block_reps,
+                                    levels_define="axial" if levels_define.startswith("축점") else "cube",
+                                    randomize=randomize, seed=int(seed) or None)
+            else:
+                design = create_box_behnken(int(k), blocks=int(blocks_bb), factors=facs,
+                                            center_points=int(cp_bb) or None, replicates=int(reps),
+                                            block_on_replicates=block_reps, randomize=randomize, seed=int(seed) or None)
+        except Exception as ex:  # noqa: BLE001
+            error = ex
 
 else:
     c1, c2 = st.columns([1, 2])

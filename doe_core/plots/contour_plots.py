@@ -180,12 +180,14 @@ def overlaid_contour_plot(analyses: list, bounds: dict, x: str, y: str, *, hold:
     for k, (resp, Z) in enumerate(zs.items()):
         color = t["series"][k % len(t["series"])]
         lo, hi = bounds[resp]
-        for i, val in enumerate((lo, hi)):
-            # 선 등고선은 line.color 가 아니라 색 척도로 칠해지므로 단색 척도를 준다
+        finite = [v for v in (lo, hi) if np.isfinite(v)]
+        label = f"{resp}: {lo:g} ~ {hi:g}" if len(finite) == 2 else (f"{resp} ≥ {lo:g}" if np.isfinite(lo) else f"{resp} ≤ {hi:g}")
+        for i, val in enumerate(finite):
+            # 선 등고선은 line.color 가 아니라 색 척도로 칠해지므로 단색 척도를 준다(무한대 경계는 선 없음)
             fig.add_trace(go.Contour(x=xs, y=ys, z=Z, showscale=False, colorscale=[[0, color], [1, color]],
                                      contours=dict(coloring="lines", start=val, end=val, size=1, showlabels=True,
                                                    labelfont=dict(color=t["text"], size=11)),
-                                     line=dict(width=LINE_W), name=f"{resp}: {lo:g} ~ {hi:g}",
+                                     line=dict(width=LINE_W), name=label,
                                      showlegend=i == 0, legendgroup=resp, hoverinfo="skip"))
     style(fig, mode, title=f"중첩 등고선도: {', '.join(zs)}",
           en="Overlaid Contour Plot · 흰 영역 = 모든 반응이 범위 안 · " + _hold_text(a0, x, y, hold, covariates),

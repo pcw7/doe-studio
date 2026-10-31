@@ -9,6 +9,7 @@ from doe_core.designs.modify import (
     display_design, fold_design, randomize_design, renumber_design, replicate_design,
 )
 from doe_core.designs.plackett_burman import PlackettBurmanDesign
+from doe_core.designs.response_surface import add_axial_points
 
 st.title("워크시트")
 ws = require_ws()
@@ -57,7 +58,8 @@ st.divider()
 st.subheader("설계 수정 (Modify Design)")
 d = ws.design
 foldable = isinstance(d, (TwoLevelDesign, PlackettBurmanDesign)) and not d.folded_on
-t1, t2, t3, t4 = st.tabs(["접기 (Fold)", "반복 추가 (Replicate)", "랜덤화 (Randomize)", "코드화 단위 보기"])
+t1, t2, t3, t5, t4 = st.tabs(["접기 (Fold)", "반복 추가 (Replicate)", "랜덤화 (Randomize)", "축점 추가 (Add axial points)",
+                              "코드화 단위 보기"])
 with t1:
     if not foldable:
         st.write("2수준 요인설계·Plackett-Burman 설계만, 한 번만 접을 수 있습니다.")
@@ -90,5 +92,19 @@ with t3:
     if c2.button("런 번호 다시 매기기 (Renumber)"):
         set_ws(ws.with_design(renumber_design(d)))
         st.rerun()
+with t5:
+    can_axial = isinstance(d, (TwoLevelDesign, PlackettBurmanDesign)) and all(f.is_numeric for f in d.factors)
+    if not can_axial:
+        st.write("모든 요인이 숫자인 2수준 요인설계·Plackett-Burman 설계에만 축점을 추가할 수 있습니다. "
+                 "추가하면 중심합성 반응표면 설계로 바뀝니다.")
+    else:
+        st.write("축점(±α)을 새 블록으로 붙여 곡면(2차 효과)을 추정할 수 있는 중심합성설계로 바꿉니다.")
+        a_mode = st.radio("α 값", ["기본 (회전 가능)", "면 중심 (α = 1)", "직접 지정"], horizontal=True)
+        alpha = "default" if a_mode.startswith("기본") else ("face" if a_mode.startswith("면") else
+                                                             st.number_input("α", 0.1, 10.0, 1.414))
+        n_c = st.number_input("축 블록에 추가할 중앙점 수", 0, 20, 0)
+        if st.button("축점 추가"):
+            set_ws(ws.with_design(add_axial_points(d, alpha=alpha, center_points=int(n_c))))
+            st.rerun()
 with t4:
     show_table(display_design(d, units="coded"))

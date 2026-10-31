@@ -6,7 +6,7 @@ import streamlit as st
 
 from app.state import SAMPLES, get_ws, set_ws, worksheet_from_json, ws_caption
 from doe_core.io.mwx import read_mwx
-from doe_core.io.worksheet import define_custom_two_level
+from doe_core.io.worksheet import define_custom_two_level, load_mwx_worksheet
 
 st.title("DOE Studio")
 st.caption("화학 연구원을 위한 실험계획법 도구 · Minitab 의 DOE 메뉴와 같은 순서와 같은 통계 결과를 목표로 합니다.")
@@ -60,10 +60,15 @@ with c2:
             except Exception as e:  # noqa: BLE001
                 st.error(f"설계로 정의하지 못했습니다: {e}")
 
-    sample = SAMPLES / "InsulationProperties.MWX"
-    if sample.exists():
+    examples = [
+        ("InsulationProperties.MWX", "단열재 강도 — 4요인 2수준 완전요인 16런", ["Material", "InjPress", "InjTemp", "CoolTemp"]),
+        ("SealStrength.MWX", "포장 밀봉 강도 — 4요인 중심합성설계 31런", ["HotBarT", "DwelTime", "HotBarP", "MatTemp"]),
+    ]
+    available = [e for e in examples if (SAMPLES / e[0]).exists()]
+    if available:
         st.divider()
-        st.write("**예제 데이터** — Minitab 문서 예제(단열재 강도, 4요인 완전요인 16런)")
-        if st.button("InsulationProperties 예제 불러오기"):
-            set_ws(define_custom_two_level(read_mwx(sample), ["Material", "InjPress", "InjTemp", "CoolTemp"]))
-            st.rerun()
+        st.write("**예제 데이터** — Minitab 문서 예제")
+        for fname, desc, facs in available:
+            if st.button(f"{fname.removesuffix('.MWX')} 예제 불러오기", help=desc):
+                set_ws(load_mwx_worksheet(SAMPLES / fname, facs))
+                st.rerun()
