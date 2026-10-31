@@ -47,9 +47,10 @@ def _frame_from_sheet(sheet: dict) -> pd.DataFrame:
     return out
 
 
-def read_mwx_sheets(path: str | Path) -> dict[str, pd.DataFrame]:
-    """파일 안의 모든 워크시트를 {이름: DataFrame} 으로 돌려준다."""
-    path = Path(path)
+def read_mwx_sheets(path) -> dict[str, pd.DataFrame]:
+    """파일 안의 모든 워크시트를 {이름: DataFrame} 으로 돌려준다. path 는 경로 또는 바이너리 파일 객체."""
+    if isinstance(path, str):
+        path = Path(path)
     out: dict[str, pd.DataFrame] = {}
     with zipfile.ZipFile(path) as z:
         for i, member in enumerate(_sheet_members(z)):
