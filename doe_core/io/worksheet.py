@@ -379,13 +379,121 @@ def define_custom_response_surface(
     return Worksheet(design, extra)
 
 
+def _constant_sum(df: pd.DataFrame, cols: list[str]) -> float | None:
+    """열들의 행 합이 모든 런에서 같으면(음수 없음) 그 합, 아니면 None."""
+    if len(cols) < 2:
+        return None
+    try:
+        v = df[cols].astype(float).values
+    except (TypeError, ValueError, KeyError):
+        return None
+    if np.isnan(v).any() or (v < -1e-12).any():
+        return None
+    s = v.sum(axis=1)
+    tot = float(np.median(s))
+    if tot <= 0 or np.abs(s - tot).max() > 1e-6 * max(1.0, tot):
+        return None
+    return tot
+
+
+def define_custom_mixture(
+    df: pd.DataFrame,
+    components: list[str],
+    *,
+    process: list[str] | tuple[str, ...] = (),
+    lower: dict[str, float] | None = None,
+    upper: dict[str, float] | None = None,
+    total: float | None = None,
+    process_levels: dict[str, tuple] | None = None,
+    point_type: str | None = "PtType",
+    std_order: str | None = "StdOrder",
+    run_order: str | None = "RunOrder",
+    blocks: str | None = "Blocks",
+) -> Worksheet:
+    """기존 데이터에서 혼합물 설계를 정의한다(Minitab 'Define Custom Mixture Design').
+
+    - 성분 열의 행 합이 모든 런에서 같아야 한다(그 값이 혼합 총량, total 로 직접 줄 수도 있음).
+    - 성분 하한·상한(lower/upper)은 데이터와 같은 양 단위로 준다. 기본 하한 0, 상한 = 총량.
+    - 공정 변수는 2수준 열(숫자면 최솟값·최댓값, 텍스트면 정렬 순서 첫/둘째 값, process_levels 로 지정 가능).
+    - 점 유형 열이 없으면 하한 위에 있는 성분 수 k 로 만든다(k = 1 꼭지점, …, 모든 성분이면 0).
+    """
+    from ..designs.mixture import mix_letters
+
+    missing = [c for c in [*components, *process] if c not in df.columns]
+    if missing:
+        raise ValueError(f"열이 없습니다: {missing}")
+    df = df.reset_index(drop=True)
+    n = len(df)
+    tot = _constant_sum(df, list(components))
+    if tot is None:
+        raise ValueError("성분 열의 합이 런마다 같아야 합니다(혼합물 설계).")
+    if total is not None:
+        if abs(float(total) - tot) > 1e-6 * max(1.0, tot):
+            raise ValueError(f"성분 합({tot:g})이 지정한 총량({total:g})과 다릅니다.")
+        tot = float(total)
+    lower, upper = lower or {}, upper or {}
+    letters = mix_letters(len(components))
+    comps, coded = [], pd.DataFrame(index=range(n))
+    for L, col in zip(letters, components):
+        x = df[col].astype(float).values / tot
+        lo, hi = float(lower.get(col, 0.0)) / tot, float(upper.get(col, tot)) / tot
+        if x.min() < lo - 1e-9 or x.max() > hi + 1e-9:
+            raise ValueError(f"성분 {col!r} 의 값이 하한·상한 밖에 있습니다.")
+        comps.append(Component(col, lo, hi))
+        coded[L] = x.round(12)
+    if sum(c.lower for c in comps) >= 1:
+        raise ValueError("성분 하한의 합이 총량 이상입니다.")
+    if len(process) > 7:
+        raise ValueError("공정 변수는 최대 7개입니다.")
+    procs = []
+    for i, col in enumerate(process, 1):
+        v = df[col]
+        if process_levels and col in process_levels:
+            lo, hi = process_levels[col]
+        else:
+            u = sorted(v.dropna().unique().tolist())
+            if len(u) != 2:
+                raise ValueError(f"공정 변수 {col!r} 는 서로 다른 값이 2개여야 합니다.")
+            lo, hi = u
+        numeric = pd.api.types.is_numeric_dtype(v)
+        if not set(v.unique()) <= {lo, hi}:
+            raise ValueError(f"공정 변수 {col!r} 에 저/고 수준이 아닌 값이 있습니다.")
+        procs.append(Factor(col, float(lo) if numeric else lo, float(hi) if numeric else hi, numeric))
+        coded[f"X{i}"] = np.where(v.values == lo, -1, 1)
+    if point_type and point_type in df.columns:
+        pt = df[point_type].astype(int).values
+    else:
+        lo = np.array([c.lower for c in comps])
+        k = (coded[letters].values > lo + 1e-9).sum(axis=1)
+        pt = np.where(k >= len(comps), 0, k)
+    coded.insert(0, "Blocks", df[blocks].astype(int).values if blocks and blocks in df.columns else 1)
+    coded.insert(0, "PtType", pt)
+    coded.insert(0, "RunOrder", df[run_order].astype(int).values if run_order and run_order in df.columns else np.arange(1, n + 1))
+    coded.insert(0, "StdOrder", df[std_order].astype(int).values if std_order and std_order in df.columns else np.arange(1, n + 1))
+    if coded["StdOrder"].duplicated().any():
+        raise ValueError("StdOrder 값이 중복됩니다.")
+    xs = [f"X{i}" for i in range(1, len(procs) + 1)]
+    coded = coded[["StdOrder", "RunOrder", "PtType", "Blocks", *letters, *xs]]
+    constrained = any(c.lower > 0 or c.upper < 1 for c in comps)
+    design = MixtureDesign("custom", comps, letters, procs, pd.DataFrame(), coded, None, tot, [], constrained, 1, [],
+                           int(coded["Blocks"].nunique()))
+    design.runs = design.rebuild_runs(coded)
+    used = {*components, *process, *(c for c in (point_type, std_order, run_order, blocks) if c)}
+    extra = df[[c for c in df.columns if c not in used]].copy()
+    extra.index = pd.Index(coded["StdOrder"].values, name="StdOrder")
+    return Worksheet(design, extra)
+
+
 def load_mwx_worksheet(path: str | Path, factors: list[str], **kwargs) -> Worksheet:
     """Minitab .MWX 를 읽어 사용자 설계로 정의한 워크시트를 만든다.
 
-    점 유형 열(PtType)에 축점(−1)이나 모서리 중점(2)이 있으면 반응표면 설계, 아니면 2수준 요인설계로 정의한다.
+    요인 열의 행 합이 일정하거나 process 를 주면 혼합물 설계, 점 유형 열(PtType)에 축점(−1)이나
+    모서리 중점(2)이 있으면 반응표면 설계, 아니면 2수준 요인설계로 정의한다.
     """
     from .mwx import read_mwx
     df = read_mwx(path)
+    if "process" in kwargs or _constant_sum(df, list(factors)) is not None:
+        return define_custom_mixture(df, factors, **kwargs)
     if "PtType" in df.columns and df["PtType"].isin([-1, 2]).any():
         return define_custom_response_surface(df, factors, **kwargs)
     return define_custom_two_level(df, factors, **kwargs)
