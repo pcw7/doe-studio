@@ -230,3 +230,14 @@ def test_home_examples_and_mixture_optimize_notice():
     ws = _sample_ws("FondueRecipe.MWX", ["Emmenthaler", "Gruyere", "Broth"], process=["Temperature"])
     at = run("optimize.py", ws)
     assert not at.exception and any("혼합물 설계의 반응 최적화" in i.value for i in at.info)
+
+
+def test_mixture_panel_plots_and_predict():
+    ws = _sample_ws("FondueRecipe.MWX", ["Emmenthaler", "Gruyere", "Broth"], process=["Temperature"])
+    at = run("analyze.py", ws)
+    at.selectbox[0].set_value("Quantity").run()
+    at.button[0].click().run()
+    assert not at.exception
+    assert len(at.tabs) >= 5
+    assert any("Fit" in df.value.columns for df in at.dataframe)               # 예측 탭의 예측표
+    assert any("Centroid of vertices" in c.value for c in at.caption)

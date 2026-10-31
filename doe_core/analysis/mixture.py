@@ -612,3 +612,101 @@ def analyze_mixture(
 def analyze_mixture_worksheet(ws, response: str, **kwargs) -> MixtureAnalysis:
     y = ws.column(response).astype(float).values
     return analyze_mixture(ws.design, y, response=response, **kwargs)
+
+
+# ---------------------------------------------------------------- 예측·기준 혼합물(그래프·최적화용)
+
+
+def _blend_vector(design: MixtureDesign, blend: dict, amounts: bool = False) -> np.ndarray:
+    """{성분 이름 또는 문자: 값} → 비율 벡터. amounts=True 면 값이 혼합 총량 기준의 양."""
+    names = {c.name: L for L, c in zip(design.letters, design.components)}
+    v = np.full(design.q, np.nan)
+    for k, val in blend.items():
+        L = names.get(k, k)
+        if L not in design.letters:
+            raise ValueError(f"성분이 아닙니다: {k!r}")
+        v[design.letters.index(L)] = float(val) / (design.total if amounts else 1.0)
+    if np.isnan(v).any():
+        missing = [c.name for c, x in zip(design.components, v) if np.isnan(x)]
+        raise ValueError(f"성분 값이 없습니다: {missing}")
+    if abs(v.sum() - 1) > 1e-6:
+        raise ValueError(f"성분 비율의 합이 1 이 아닙니다({v.sum():.6g}).")
+    return v
+
+
+def process_coded(design: MixtureDesign, process: dict | None) -> dict:
+    """공정 변수 실제 값 → 코드값(−1~+1). 주지 않은 변수는 낮은 수준(−1)."""
+    out = {}
+    by_name = {f.name: (X, f) for X, f in zip(design.process_letters, design.process)}
+    by_name.update({X: (X, f) for X, f in zip(design.process_letters, design.process)})
+    for X in design.process_letters:
+        out[X] = -1.0
+    for k, val in (process or {}).items():
+        if k not in by_name:
+            raise ValueError(f"공정 변수가 아닙니다: {k!r}")
+        X, f = by_name[k]
+        if f.is_numeric:
+            lo, hi = float(f.low), float(f.high)
+            out[X] = (float(val) - (lo + hi) / 2) / ((hi - lo) / 2)
+        else:
+            if str(val) not in (str(f.low), str(f.high)):
+                raise ValueError(f"{f.name} 의 수준이 아닙니다: {val!r}")
+            out[X] = -1.0 if str(val) == str(f.low) else 1.0
+    return out
+
+
+def mixture_rows(a: "MixtureAnalysis", P: np.ndarray, process: dict | None = None) -> np.ndarray:
+    """비율 행렬 P(n × q)와 공정 변수 설정에서 설계행렬 행들(블록 항은 0 = 블록 평균)."""
+    d = a.design
+    P = np.atleast_2d(np.asarray(P, dtype=float))
+    coded = pd.DataFrame(P, columns=d.letters)
+    for X, v in process_coded(d, process).items():
+        coded[X] = v
+    coded["Blocks"] = 1
+    U = component_values(d, coded, a.units)
+    cols = []
+    for t in a.terms:
+        if t.kind == "blocks":
+            cols.append(np.zeros((len(P), len([j for j, ti in enumerate(a.col_term) if a.terms[ti] is t]))))
+        else:
+            M, _ = term_matrix(t, d, coded, U)
+            cols.append(M)
+    return np.hstack(cols)
+
+
+def predict_mixture(a: "MixtureAnalysis", blend: dict, process: dict | None = None, *, amounts: bool = False,
+                    confidence: float = 0.95):
+    """혼합물 설정의 예측값·SE Fit·신뢰구간·예측구간(Minitab 'Predict' 와 같은 정의)."""
+    from ..optimize.predict import Prediction
+    p = _blend_vector(a.design, blend, amounts)
+    x0 = mixture_rows(a, p[None, :], process)[0]
+    fit = float(x0 @ a.beta)
+    settings = {**{c.name: float(v) for c, v in zip(a.design.components, p)}, **(process or {})}
+    if a.mse is None:
+        nan = float("nan")
+        return Prediction(fit, nan, (nan, nan), (nan, nan), settings, confidence)
+    se = float(np.sqrt(max(0.0, x0 @ a.cov_unscaled @ x0 * a.mse)))
+    t = float(stats.t.ppf(1 - (1 - confidence) / 2, a.df_error))
+    spi = float(np.sqrt(se ** 2 + a.mse))
+    return Prediction(fit, se, (fit - t * se, fit + t * se), (fit - t * spi, fit + t * spi), settings, confidence)
+
+
+def reference_blend(design: MixtureDesign) -> np.ndarray:
+    """'Centroid of vertices': 꼭지점(점 유형 1) 혼합물의 평균. 없으면 제약 영역 꼭지점의 평균."""
+    pt = design.coded[design.point_col].values
+    P = design.coded[design.letters].values.astype(float)
+    if (pt == 1).any():
+        V = np.unique(P[pt == 1].round(12), axis=0)
+        return V.mean(axis=0)
+    from ..designs.mixture import _inequalities, _vertices
+    G, h = _inequalities(design.components, design.letters, design.constraints)
+    V, _ = _vertices(G, h, design.q)
+    return V.mean(axis=0)
+
+
+def feasible(design: MixtureDesign, P: np.ndarray, tol: float = 1e-9) -> np.ndarray:
+    """비율 행들이 성분 하한·상한과 선형 제약을 모두 만족하는지."""
+    from ..designs.mixture import _inequalities
+    G, h = _inequalities(design.components, design.letters, design.constraints)
+    P = np.atleast_2d(P)
+    return np.all(P @ G.T <= h + tol, axis=1) & (np.abs(P.sum(axis=1) - 1) < 1e-6)

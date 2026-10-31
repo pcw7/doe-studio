@@ -190,7 +190,7 @@ def overlaid_contour_plot(analyses: list, bounds: dict, x: str, y: str, *, hold:
                                      line=dict(width=LINE_W), name=label,
                                      showlegend=i == 0, legendgroup=resp, hoverinfo="skip"))
     style(fig, mode, title=f"중첩 등고선도: {', '.join(zs)}",
-          en="Overlaid Contour Plot · 흰 영역 = 모든 반응이 범위 안 · " + _hold_text(a0, x, y, hold, covariates),
+          en="Overlaid Contour Plot · 회색이 아닌 영역 = 모든 반응이 범위 안 · " + _hold_text(a0, x, y, hold, covariates),
           height=540)
     fig.update_xaxes(title_text=names[Lx], showgrid=False)
     fig.update_yaxes(title_text=names[Ly], showgrid=False)
