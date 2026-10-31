@@ -31,6 +31,7 @@ from ..designs.factorial import TwoLevelDesign, alias_structure
 from ..designs.general_full import GeneralFactor, GeneralFullFactorialDesign
 from ..designs.plackett_burman import PlackettBurmanDesign
 from ..designs.response_surface import ResponseSurfaceDesign
+from ..designs.mixture import Component, LinearConstraint, MixtureDesign
 from ..designs.words import LETTERS, word_from_str, word_to_str
 
 FORMAT = "doe-studio-worksheet"
@@ -43,7 +44,7 @@ DESIGN_COLS = ("StdOrder", "RunOrder", "CenterPt", "PtType", "Blocks")
 
 @dataclass
 class Worksheet:
-    design: TwoLevelDesign | PlackettBurmanDesign | GeneralFullFactorialDesign | ResponseSurfaceDesign
+    design: TwoLevelDesign | PlackettBurmanDesign | GeneralFullFactorialDesign | ResponseSurfaceDesign | MixtureDesign
     columns: pd.DataFrame = field(default_factory=pd.DataFrame)   # index = StdOrder
     nonregular: bool = False                                       # 사용자 정의 설계가 정규 부분요인이 아님
 
@@ -110,6 +111,13 @@ def _factor_to_dict(f) -> dict:
 
 
 def design_to_dict(d) -> dict:
+    if isinstance(d, MixtureDesign):
+        return {"type": "mixture", "kind": d.kind, "letters": d.letters, "replicates": d.replicates,
+                "n_blocks": d.n_blocks, "seed": d.seed, "degree": d.degree, "total": d.total,
+                "constrained": d.constrained, "boundaries": d.boundaries,
+                "components": [{"name": c.name, "lower": c.lower, "upper": c.upper} for c in d.components],
+                "process": [_factor_to_dict(f) for f in d.process],
+                "constraints": [{"coefs": lc.coefs, "lower": lc.lower, "upper": lc.upper} for lc in d.constraints]}
     base = {"factors": [_factor_to_dict(f) for f in d.factors], "replicates": d.replicates,
             "n_blocks": d.n_blocks, "seed": d.seed}
     if isinstance(d, TwoLevelDesign):
@@ -131,6 +139,14 @@ def design_to_dict(d) -> dict:
 
 def design_from_dict(meta: dict, coded: pd.DataFrame):
     kind = meta["type"]
+    if kind == "mixture":
+        d = MixtureDesign(meta["kind"], [Component(**c) for c in meta["components"]], meta["letters"],
+                          [Factor(f["name"], f["low"], f["high"], f["numeric"]) for f in meta["process"]],
+                          pd.DataFrame(), coded, meta["degree"], meta["total"],
+                          [LinearConstraint(**lc) for lc in meta["constraints"]], meta["constrained"],
+                          meta["replicates"], meta["boundaries"], meta["n_blocks"], meta["seed"])
+        d.runs = d.rebuild_runs(coded)
+        return d
     if kind == "general_full":
         factors = [GeneralFactor(f["name"], f["levels"], numeric=f["numeric"]) for f in meta["factors"]]
         d = GeneralFullFactorialDesign(factors, meta["letters"], pd.DataFrame(), coded, meta["replicates"],
