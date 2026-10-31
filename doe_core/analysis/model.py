@@ -34,6 +34,19 @@ class Term:
     def word(self) -> str:
         return "".join(self.letters)
 
+    @property
+    def is_square(self) -> bool:
+        return len(self.letters) == 2 and self.letters[0] == self.letters[1]
+
+    @property
+    def group_rank(self) -> int:
+        """정렬·분산분석 그룹 순서: 선형 0, 제곱 1, r차 교호작용 1 + r."""
+        if self.order == 1:
+            return 0
+        if self.is_square:
+            return 1
+        return 1 + self.order
+
 
 def names_by_letter(design) -> dict[str, str]:
     return dict(zip(design.letters, [f.name for f in design.factors]))
@@ -60,14 +73,22 @@ def parse_term(spec: str, design) -> Term:
         letters = list(s)
     else:
         raise ValueError(f"항을 해석할 수 없습니다: {spec!r}")
-    if any(L not in names for L in letters) or len(set(letters)) != len(letters):
+    square = len(letters) == 2 and letters[0] == letters[1]
+    if any(L not in names for L in letters) or (len(set(letters)) != len(letters) and not square):
         raise ValueError(f"항을 해석할 수 없습니다: {spec!r}")
+    if square and not _allows_squares(design):
+        raise ValueError(f"제곱 항은 반응표면 설계에서만 쓸 수 있습니다: {spec!r}")
     return factor_term(design, letters)
+
+
+def _allows_squares(design) -> bool:
+    from ..designs.response_surface import ResponseSurfaceDesign
+    return isinstance(design, ResponseSurfaceDesign)
 
 
 def sort_terms(terms: list[Term], design) -> list[Term]:
     pos = {L: i for i, L in enumerate(design.letters)}
-    return sorted(terms, key=lambda t: (KIND_ORDER[t.kind], t.order, [pos[L] for L in t.letters]))
+    return sorted(terms, key=lambda t: (KIND_ORDER[t.kind], t.group_rank, [pos[L] for L in t.letters]))
 
 
 def factorial_terms(
@@ -98,6 +119,38 @@ def factorial_terms(
         include_center = center_present
     if include_center and center_present:
         out.append(Term("center", (), "Ct Pt"))
+    return sort_terms(out, design)
+
+
+RS_MODELS = ("linear", "linear+squares", "linear+interactions", "full quadratic")
+
+
+def rs_terms(
+    design,
+    *,
+    model: str = "full quadratic",
+    terms: list[str] | None = None,
+    covariates: tuple[str, ...] | list[str] = (),
+    include_blocks: bool | None = None,
+    blocks_present: bool = False,
+) -> list[Term]:
+    """반응표면 모형 항. model: linear / linear+squares / linear+interactions / full quadratic(기본)."""
+    out = [Term("covariate", (), c) for c in covariates]
+    if include_blocks is None:
+        include_blocks = blocks_present
+    if include_blocks and blocks_present:
+        out.append(Term("blocks", (), "Blocks"))
+    if terms is not None:
+        out += [parse_term(t, design) for t in terms]
+    else:
+        if model not in RS_MODELS:
+            raise ValueError(f"모형은 {RS_MODELS} 중 하나여야 합니다.")
+        L = list(design.letters)
+        out += [factor_term(design, (a,)) for a in L]
+        if model in ("linear+squares", "full quadratic"):
+            out += [factor_term(design, (a, a)) for a in L]
+        if model in ("linear+interactions", "full quadratic"):
+            out += [factor_term(design, c) for c in combinations(L, 2)]
     return sort_terms(out, design)
 
 

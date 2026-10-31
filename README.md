@@ -44,4 +44,5 @@ streamlit run app/main.py          # 화면: http://localhost:8501
   - [x] 화면: 시작(파일 불러오기·예제), 설계 생성, 워크시트·설계 수정, 분석·그래프
 - [ ] 2단계: 반응표면(CCD·Box-Behnken), 등고선·표면도, 반응 최적화기
   - [x] CCD·Box-Behnken 생성, 축점 추가
+  - [x] 반응표면 분석(완전 2차 모형 등) — SealStrength 예제와 글자 단위 일치
 - [ ] 3단계: 혼합물, 확정적 선별설계, 최적설계, 분할구
