@@ -77,13 +77,16 @@ def parse_term(spec: str, design) -> Term:
     if any(L not in names for L in letters) or (len(set(letters)) != len(letters) and not square):
         raise ValueError(f"항을 해석할 수 없습니다: {spec!r}")
     if square and not _allows_squares(design):
-        raise ValueError(f"제곱 항은 반응표면 설계에서만 쓸 수 있습니다: {spec!r}")
+        raise ValueError(f"제곱 항은 반응표면 설계·확정적 선별설계에서만 쓸 수 있습니다: {spec!r}")
+    if square and not getattr(design.factors[list(design.letters).index(letters[0])], "is_numeric", True):
+        raise ValueError(f"텍스트 요인의 제곱 항은 쓸 수 없습니다: {spec!r}")
     return factor_term(design, letters)
 
 
 def _allows_squares(design) -> bool:
+    from ..designs.definitive_screening import DefinitiveScreeningDesign
     from ..designs.response_surface import ResponseSurfaceDesign
-    return isinstance(design, ResponseSurfaceDesign)
+    return isinstance(design, (ResponseSurfaceDesign, DefinitiveScreeningDesign))
 
 
 def sort_terms(terms: list[Term], design) -> list[Term]:
@@ -148,7 +151,9 @@ def rs_terms(
         L = list(design.letters)
         out += [factor_term(design, (a,)) for a in L]
         if model in ("linear+squares", "full quadratic"):
-            out += [factor_term(design, (a, a)) for a in L]
+            # 텍스트(2수준) 요인의 제곱은 상수와 같아 넣지 않는다
+            num = {a for a, f in zip(L, design.factors) if getattr(f, "is_numeric", True)}
+            out += [factor_term(design, (a, a)) for a in L if a in num]
         if model in ("linear+interactions", "full quadratic"):
             out += [factor_term(design, c) for c in combinations(L, 2)]
     return sort_terms(out, design)

@@ -32,6 +32,7 @@ from ..designs.general_full import GeneralFactor, GeneralFullFactorialDesign
 from ..designs.plackett_burman import PlackettBurmanDesign
 from ..designs.response_surface import ResponseSurfaceDesign
 from ..designs.mixture import Component, LinearConstraint, MixtureDesign
+from ..designs.definitive_screening import DefinitiveScreeningDesign
 from ..designs.words import LETTERS, word_from_str, word_to_str
 
 FORMAT = "doe-studio-worksheet"
@@ -44,7 +45,8 @@ DESIGN_COLS = ("StdOrder", "RunOrder", "CenterPt", "PtType", "Blocks")
 
 @dataclass
 class Worksheet:
-    design: TwoLevelDesign | PlackettBurmanDesign | GeneralFullFactorialDesign | ResponseSurfaceDesign | MixtureDesign
+    design: (TwoLevelDesign | PlackettBurmanDesign | GeneralFullFactorialDesign | ResponseSurfaceDesign | MixtureDesign
+             | DefinitiveScreeningDesign)
     columns: pd.DataFrame = field(default_factory=pd.DataFrame)   # index = StdOrder
     nonregular: bool = False                                       # 사용자 정의 설계가 정규 부분요인이 아님
 
@@ -130,6 +132,8 @@ def design_to_dict(d) -> dict:
                 "center_points_per_replicate": d.center_points_per_replicate, "folded_on": d.folded_on}
     if isinstance(d, GeneralFullFactorialDesign):
         return {"type": "general_full", **base, "letters": d.letters}
+    if isinstance(d, DefinitiveScreeningDesign):
+        return {"type": "definitive_screening", **base, "letters": d.letters, "order": d.order}
     if isinstance(d, ResponseSurfaceDesign):
         return {"type": "response_surface", **base, "kind": d.kind, "letters": d.letters, "alpha": d.alpha,
                 "base_runs": d.base_runs, "base_blocks": d.base_blocks, "fraction": d.fraction,
@@ -164,6 +168,9 @@ def design_from_dict(meta: dict, coded: pd.DataFrame):
             d = ResponseSurfaceDesign(meta["kind"], factors, meta["letters"], pd.DataFrame(), coded, meta["alpha"],
                                       meta["base_runs"], meta["base_blocks"], meta["replicates"], meta["n_blocks"],
                                       meta["fraction"], dict(meta["generators"]), meta["seed"], meta["point_col"])
+        elif kind == "definitive_screening":
+            d = DefinitiveScreeningDesign(factors, meta["letters"], pd.DataFrame(), coded, meta["order"],
+                                          meta["replicates"], meta["n_blocks"], meta["seed"])
         elif kind == "plackett_burman":
             d = PlackettBurmanDesign(factors, meta["letters"], pd.DataFrame(), coded, meta["corner_runs"],
                                      meta["center_points_per_replicate"], meta["replicates"], meta["n_blocks"],
@@ -484,16 +491,118 @@ def define_custom_mixture(
     return Worksheet(design, extra)
 
 
+def _dsd_order(coded: np.ndarray, pt_center: np.ndarray, numeric: list[bool]) -> int | None:
+    """코드 행렬이 확정적 선별설계 구조면 콘퍼런스 행렬 차수, 아니면 None.
+
+    중앙점이 아닌 서로 다른 런: 숫자 요인의 0 이 런마다 최대 1개, 0 이 하나인 런이 (숫자 요인 수 × 2)개,
+    모든 런의 부호 반전이 함께 있고, 전체가 2 × (요인 수에 맞는 차수)개.
+    """
+    from ..designs.definitive_screening import conference_order
+    k = coded.shape[1]
+    if k < 2 or k > 48:
+        return None
+    rows = {tuple(r) for r in coded[~pt_center].astype(int).tolist()}
+    num = np.array(numeric, dtype=bool)
+    zeros = [sum(1 for j, v in enumerate(r) if v == 0 and num[j]) for r in rows]
+    n = conference_order(k)
+    if max(zeros, default=2) > 1 or sum(zeros) != 2 * int(num.sum()) or len(rows) != 2 * n:
+        return None
+    if any(tuple(-v for v in r) not in rows for r in rows):
+        return None
+    return n
+
+
+def define_custom_dsd(
+    df: pd.DataFrame,
+    factors: list[str],
+    *,
+    levels: dict[str, tuple] | None = None,
+    point_type: str | None = "PtType",
+    std_order: str | None = "StdOrder",
+    run_order: str | None = "RunOrder",
+    blocks: str | None = "Blocks",
+) -> Worksheet:
+    """기존 데이터에서 확정적 선별설계를 정의한다(숫자 요인은 최솟값·최댓값, 텍스트 요인은 정렬 순서 두 값)."""
+    missing = [c for c in factors if c not in df.columns]
+    if missing:
+        raise ValueError(f"요인 열이 없습니다: {missing}")
+    df = df.reset_index(drop=True)
+    n = len(df)
+    levels = levels or {}
+    letters = factor_letters(len(factors))
+    facs, coded = [], pd.DataFrame(index=range(n))
+    for L, col in zip(letters, factors):
+        v = df[col]
+        numeric = pd.api.types.is_numeric_dtype(v)
+        if col in levels:
+            lo, hi = levels[col]
+        elif numeric:
+            lo, hi = float(v.min()), float(v.max())
+        else:
+            u = sorted(v.dropna().unique().tolist())
+            if len(u) != 2:
+                raise ValueError(f"텍스트 요인 {col!r} 는 수준이 2개여야 합니다.")
+            lo, hi = u
+        if lo == hi:
+            raise ValueError(f"요인 {col!r} 의 저/고 수준이 같습니다.")
+        if numeric:
+            lo, hi = float(lo), float(hi)
+            c = ((v.astype(float) - (lo + hi) / 2) / ((hi - lo) / 2)).round(10)
+            if not c.isin([-1.0, 0.0, 1.0]).all():
+                raise ValueError(f"요인 {col!r} 의 값이 저·중·고 세 수준이 아닙니다.")
+        else:
+            c = pd.Series(np.where(v.values == lo, -1, 1))
+        facs.append(Factor(col, lo, hi, numeric))
+        coded[L] = c.astype(int).values
+    M = coded[letters].values
+    num = [f.is_numeric for f in facs]
+    center = (M[:, np.array(num)] == 0).all(axis=1) if any(num) else np.zeros(n, dtype=bool)
+    order = _dsd_order(M, center, num)
+    if order is None:
+        raise ValueError("확정적 선별설계 구조(접힘 쌍 + 중앙점)가 아닙니다.")
+    if point_type and point_type in df.columns:
+        pt = df[point_type].astype(int).values
+    else:
+        pt = np.where(center, 0, np.where((M[:, np.array(num)] == 0).any(axis=1), 2, 1))
+    coded.insert(0, "Blocks", df[blocks].astype(int).values if blocks and blocks in df.columns else 1)
+    coded.insert(0, "PtType", pt)
+    coded.insert(0, "RunOrder", df[run_order].astype(int).values if run_order and run_order in df.columns else np.arange(1, n + 1))
+    coded.insert(0, "StdOrder", df[std_order].astype(int).values if std_order and std_order in df.columns else np.arange(1, n + 1))
+    if coded["StdOrder"].duplicated().any():
+        raise ValueError("StdOrder 값이 중복됩니다.")
+    coded = coded[["StdOrder", "RunOrder", "PtType", "Blocks", *letters]]
+    base = 2 * order + (2 if not all(num) else 1)
+    reps = max(1, n // base)
+    design = DefinitiveScreeningDesign(facs, letters, pd.DataFrame(), coded, order, reps,
+                                       int(coded["Blocks"].nunique()))
+    design.runs = design.rebuild_runs(coded)
+    used = set(factors) | {c for c in (point_type, std_order, run_order, blocks) if c}
+    extra = df[[c for c in df.columns if c not in used]].copy()
+    extra.index = pd.Index(coded["StdOrder"].values, name="StdOrder")
+    return Worksheet(design, extra)
+
+
+def _looks_dsd(df: pd.DataFrame, factors: list[str]) -> bool:
+    try:
+        define_custom_dsd(df, factors)
+        return True
+    except (ValueError, KeyError, TypeError):
+        return False
+
+
 def load_mwx_worksheet(path: str | Path, factors: list[str], **kwargs) -> Worksheet:
     """Minitab .MWX 를 읽어 사용자 설계로 정의한 워크시트를 만든다.
 
-    요인 열의 행 합이 일정하거나 process 를 주면 혼합물 설계, 점 유형 열(PtType)에 축점(−1)이나
-    모서리 중점(2)이 있으면 반응표면 설계, 아니면 2수준 요인설계로 정의한다.
+    요인 열의 행 합이 일정하거나 process 를 주면 혼합물 설계, 확정적 선별설계 구조(접힘 쌍마다 0 이 하나,
+    중앙점)면 확정적 선별설계, 점 유형 열(PtType)에 축점(−1)이나 모서리 중점(2)이 있으면 반응표면 설계,
+    아니면 2수준 요인설계로 정의한다.
     """
     from .mwx import read_mwx
     df = read_mwx(path)
     if "process" in kwargs or _constant_sum(df, list(factors)) is not None:
         return define_custom_mixture(df, factors, **kwargs)
+    if _looks_dsd(df, list(factors)):
+        return define_custom_dsd(df, factors, **kwargs)
     if "PtType" in df.columns and df["PtType"].isin([-1, 2]).any():
         return define_custom_response_surface(df, factors, **kwargs)
     return define_custom_two_level(df, factors, **kwargs)
