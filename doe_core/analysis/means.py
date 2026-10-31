@@ -40,8 +40,9 @@ def fitted_at(a, setting: dict[str, int], *, center: bool = False) -> tuple[floa
     return float(x0 @ a.beta), float(np.sqrt(x0 @ cov @ x0))
 
 
-def _x0(a, setting: dict[str, int], *, center: bool = False) -> np.ndarray:
-    """설정(요인 문자 → 코드 상태)에서의 설계행렬 행."""
+def _x0(a, setting: dict[str, int], *, center: bool = False, covariates: dict | None = None) -> np.ndarray:
+    """설정(요인 문자 → 코드 상태)에서의 설계행렬 행. 공변량은 주어진 값, 없으면 데이터 평균."""
+    covariates = covariates or {}
     x = np.zeros(a.p)
     x[0] = 1.0
     for j, ti in enumerate(a.col_term):
@@ -49,7 +50,7 @@ def _x0(a, setting: dict[str, int], *, center: bool = False) -> np.ndarray:
             continue
         t = a.terms[ti]
         if t.kind == "covariate":
-            x[j] = float(np.mean(a.covariates[t.name]))
+            x[j] = float(covariates.get(t.name, np.mean(a.covariates[t.name])))
         elif t.kind == "center":
             x[j] = 1.0 if center else 0.0
         elif t.kind == "factor":
