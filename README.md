@@ -46,4 +46,5 @@ streamlit run app/main.py          # 화면: http://localhost:8501
   - [x] CCD·Box-Behnken 생성, 축점 추가
   - [x] 반응표면 분석(완전 2차 모형 등) — SealStrength 예제와 글자 단위 일치
   - [x] 예측(Predict), 등고선·표면도·중첩 등고선
+  - [x] 반응 최적화기(만족도 함수, 다중 반응)
 - [ ] 3단계: 혼합물, 확정적 선별설계, 최적설계, 분할구
