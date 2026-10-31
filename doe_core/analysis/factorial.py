@@ -24,6 +24,8 @@ import pandas as pd
 from scipy import stats
 
 from ..designs.general_full import GeneralFullFactorialDesign
+from ..designs.definitive_screening import DefinitiveScreeningDesign
+from ..designs.definitive_screening import DefinitiveScreeningDesign
 from ..designs.response_surface import ResponseSurfaceDesign
 from . import fmt
 from .model import Term, factorial_terms, is_hierarchical, names_by_letter, rs_terms, term_matrix
@@ -110,11 +112,17 @@ class FactorialAnalysis:
     @property
     def two_level(self) -> bool:
         """2수준 요인설계·PB(효과·별칭·요인 그림 대상)."""
-        return not isinstance(self.design, (GeneralFullFactorialDesign, ResponseSurfaceDesign))
+        return not isinstance(self.design, (GeneralFullFactorialDesign, ResponseSurfaceDesign,
+                                            DefinitiveScreeningDesign))
 
     @property
     def is_rs(self) -> bool:
-        return isinstance(self.design, ResponseSurfaceDesign)
+        """제곱 항을 쓸 수 있는 3수준 이상 설계(반응표면·확정적 선별설계): Effect 열 없음, 곡면성 행 없음."""
+        return isinstance(self.design, (ResponseSurfaceDesign, DefinitiveScreeningDesign))
+
+    @property
+    def is_dsd(self) -> bool:
+        return isinstance(self.design, DefinitiveScreeningDesign)
 
     def se_coef(self) -> np.ndarray:
         if self.mse is None:
@@ -464,13 +472,16 @@ def analyze_factorial(
     terms: list[str] | None = None,
     include_blocks: bool | None = None,
     include_center: bool | None = None,
-    model: str = "full quadratic",
+    model: str | None = None,
 ) -> FactorialAnalysis:
     """design.coded 행 순서로 정렬된 반응 y 로 요인설계를 분석한다. 반응·공변량이 빈 행은 뺀다.
 
-    반응표면 설계가 들어오면 analyze_response_surface 로 넘긴다(order 대신 model 사용, 기본 완전 2차).
+    반응표면 설계·확정적 선별설계가 들어오면 analyze_response_surface 로 넘긴다(order 대신 model 사용,
+    기본은 반응표면 완전 2차, 확정적 선별설계 선형 — Minitab 'Analyze Screening Design' 예제의 Linear).
     """
-    if isinstance(design, ResponseSurfaceDesign):
+    if isinstance(design, (ResponseSurfaceDesign, DefinitiveScreeningDesign)):
+        if model is None:
+            model = "linear" if isinstance(design, DefinitiveScreeningDesign) else "full quadratic"
         return analyze_response_surface(design, y, response=response, covariates=covariates, model=model,
                                         terms=terms, include_blocks=include_blocks)
     coded, yv, used, cov = _prepare(design, y, covariates)

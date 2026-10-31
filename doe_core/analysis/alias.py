@@ -9,6 +9,8 @@ A = (X₁'X₁)⁻¹ X₁'X₂ 를 계산한다. 정규 부분요인이면 계�
 - 각 행: 항 다음에 X₂ 단어를 차수·알파벳 순으로, 계수는 소수 2자리. 0.00 으로 반올림되면 생략,
   절댓값이 1.00 이면 숫자 없이 부호만(`C + AB`).
 - X₂ 범위: 요인 ≤ 7 이면 모든 교호작용, 8~10 은 3차까지, 11~15 는 2차까지(별칭표 기본값과 같음).
+- 확정적 선별설계: X₂ = 모형 밖 2차 항(숫자 요인 제곱 AA … + 2요인 교호작용), 제목 'Alias Structure (up to order 2)'.
+  예제(7요인 선형): I + 0.82 AA + … + 0.82 GG, 주효과는 별칭 없음. 같은 차수 안에서는 알파벳 순(AA, AB, …, BB).
 """
 from __future__ import annotations
 
@@ -25,11 +27,16 @@ def alias_matrix(a, max_order: int | None | str = "default"):
     d = a.design
     letters = list(d.letters)
     k = len(letters)
-    if max_order == "default":
-        max_order = default_alias_order(k)
-    top = k if max_order is None else min(max_order, k)
     in_model = {t.letters for t in a.terms if t.kind == "factor"}
-    outside = [c for r in range(1, top + 1) for c in combinations(letters, r) if c not in in_model]
+    if getattr(a, "is_dsd", False):
+        num = [L for L, f in zip(letters, d.factors) if f.is_numeric]
+        cand = [(L,) for L in letters] + sorted([(L, L) for L in num] + list(combinations(letters, 2)))
+        outside = [c for c in cand if c not in in_model]
+    else:
+        if max_order == "default":
+            max_order = default_alias_order(k)
+        top = k if max_order is None else min(max_order, k)
+        outside = [c for r in range(1, top + 1) for c in combinations(letters, r) if c not in in_model]
     coded = d.coded.iloc[a.used_rows]
     if outside:
         X2 = np.column_stack([np.prod([coded[L].values.astype(float) for L in w], axis=0) for w in outside])
@@ -68,6 +75,24 @@ def alias_lines(a, max_order: int | None | str = "default") -> list[str]:
             parts.append(f"{sign} {w}" if abs(mag - 1) < 1e-9 else f"{sign} {mag:.2f} {w}")
         out.append(" ".join(parts))
     return out
+
+
+def alias_title(a, max_order: int | None | str = "default") -> str:
+    if getattr(a, "is_dsd", False):
+        return "Alias Structure (up to order 2)"
+    k = len(a.design.letters)
+    if max_order == "default":
+        max_order = default_alias_order(k)
+    return "Alias Structure" if max_order is None or max_order >= k else f"Alias Structure (up to order {max_order})"
+
+
+def alias_title(a, max_order: int | None | str = "default") -> str:
+    if getattr(a, "is_dsd", False):
+        return "Alias Structure (up to order 2)"
+    k = len(a.design.letters)
+    if max_order == "default":
+        max_order = default_alias_order(k)
+    return "Alias Structure" if max_order is None or max_order >= k else f"Alias Structure (up to order {max_order})"
 
 
 def has_aliasing(a, max_order: int | None | str = "default") -> bool:
