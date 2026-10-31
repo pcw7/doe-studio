@@ -33,7 +33,14 @@ def _levels(design, letter: str):
     return [(-1, _level_label(f.low)), (1, _level_label(f.high))]
 
 
-def _x0(a, setting: dict[str, int]) -> np.ndarray:
+def fitted_at(a, setting: dict[str, int], *, center: bool = False) -> tuple[float, float]:
+    """설정에서의 (적합 평균, SE). center=True 면 중앙점 항을 1 로(모든 요인은 0) 둔다."""
+    x0 = _x0(a, setting, center=center)
+    cov = a.cov_unscaled * (a.mse if a.mse is not None else np.nan)
+    return float(x0 @ a.beta), float(np.sqrt(x0 @ cov @ x0))
+
+
+def _x0(a, setting: dict[str, int], *, center: bool = False) -> np.ndarray:
     """설정(요인 문자 → 코드 상태)에서의 설계행렬 행."""
     x = np.zeros(a.p)
     x[0] = 1.0
@@ -43,6 +50,8 @@ def _x0(a, setting: dict[str, int]) -> np.ndarray:
         t = a.terms[ti]
         if t.kind == "covariate":
             x[j] = float(np.mean(a.covariates[t.name]))
+        elif t.kind == "center":
+            x[j] = 1.0 if center else 0.0
         elif t.kind == "factor":
             # 이 열이 나타내는 수준 조합(일반 완전요인은 열마다 다름)을 계산
             x[j] = _factor_col_value(a, j, t, setting)
