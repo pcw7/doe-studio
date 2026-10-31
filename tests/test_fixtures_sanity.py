@@ -1,5 +1,5 @@
 """픽스처가 제대로 추출되었는지 확인하는 기본 테스트."""
-from conftest import FIXTURE_DIR, load_fixture, table
+from tests.helpers import FIXTURE_DIR, load_fixture, table
 
 
 def test_fixture_dir_has_files():

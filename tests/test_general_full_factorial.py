@@ -7,7 +7,7 @@ from collections import Counter
 
 import pytest
 
-from conftest import load_fixture, table
+from tests.helpers import load_fixture, table
 from doe_core.designs.general_full import GeneralFactor, create_general_full_factorial
 
 EXAMPLE_FACTORS = [

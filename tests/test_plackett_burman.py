@@ -10,7 +10,7 @@ from collections import Counter
 import numpy as np
 import pytest
 
-from conftest import load_fixture, table
+from tests.helpers import load_fixture, table
 from doe_core.designs.common import Factor, factor_letters
 from doe_core.designs.plackett_burman import PB_RUNS, create_plackett_burman_design, default_runs, pb_matrix
 

@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 
 from .common import Factor
-from .factorial import TwoLevelDesign, alias_structure
+from .factorial import TwoLevelDesign, alias_structure, block_numbers
 from .general_full import GeneralFullFactorialDesign
 from .plackett_burman import PlackettBurmanDesign
 from .words import word_from_str, word_len
@@ -52,9 +52,7 @@ def _block_numbers(d: TwoLevelDesign, rows: pd.DataFrame, source_blocks: np.ndar
     gens = d.block_generators
     if not gens:
         return source_blocks
-    signs = np.stack([np.prod([rows[ch].values for ch in w], axis=0) for w in gens], axis=1)
-    bits = (signs == -1).astype(int)
-    in_rep = 1 + sum(bits[:, i] << (len(gens) - 1 - i) for i in range(len(gens)))
+    in_rep = block_numbers(rows, gens)
     per_rep = 1 << len(gens)
     rep_offset = (source_blocks - 1) // per_rep * per_rep
     return in_rep + rep_offset
