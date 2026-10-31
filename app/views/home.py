@@ -6,7 +6,7 @@ import streamlit as st
 
 from app.state import SAMPLES, get_ws, set_ws, worksheet_from_json, ws_caption
 from doe_core.io.mwx import read_mwx
-from doe_core.io.worksheet import define_custom_two_level, load_mwx_worksheet
+from doe_core.io.worksheet import define_custom_design, design_kind_of, load_mwx_worksheet
 
 st.title("DOE Studio")
 st.caption("화학 연구원을 위한 실험계획법 도구 · Minitab 의 DOE 메뉴와 같은 순서와 같은 통계 결과를 목표로 합니다.")
@@ -46,14 +46,23 @@ with c2:
 
     df = st.session_state.get("import_df")
     if df is not None:
-        st.write("**사용자 2수준 설계 정의** — 요인 열을 고르면 설계로 인식합니다(Define Custom Factorial Design).")
+        st.write("**사용자 설계 정의** — 요인(혼합물이면 성분) 열을 고르면 2수준 요인·반응표면·확정적 선별·혼합물 "
+                 "설계 가운데 무엇인지 알아봅니다(Define Custom … Design).")
         st.dataframe(df.head(8), hide_index=True)
         reserved = {"StdOrder", "RunOrder", "CenterPt", "PtType", "Blocks"}
         candidates = [c for c in df.columns if c not in reserved]
-        factors = st.multiselect("요인 열(순서대로 A, B, C …)", candidates)
+        factors = st.multiselect("요인·성분 열(순서대로 A, B, C …)", candidates)
+        process = st.multiselect("공정 변수 열(혼합물 설계일 때)", [c for c in candidates if c not in factors])
+        kind_ko = {"mixture": "혼합물 설계", "dsd": "확정적 선별설계", "response_surface": "반응표면 설계",
+                   "two_level": "2수준 요인설계"}
+        if len(factors) >= 2:
+            try:
+                st.caption("인식한 설계 종류: " + kind_ko[design_kind_of(df, factors, process)])
+            except Exception:  # noqa: BLE001
+                pass
         if st.button("설계로 정의", type="primary", disabled=len(factors) < 2):
             try:
-                set_ws(define_custom_two_level(df, factors))
+                set_ws(define_custom_design(df, factors, **({"process": process} if process else {})))
                 st.session_state.pop("import_df", None)
                 st.success("설계를 정의했습니다. 분석 화면으로 이동하세요.")
                 st.rerun()
@@ -63,12 +72,17 @@ with c2:
     examples = [
         ("InsulationProperties.MWX", "단열재 강도 — 4요인 2수준 완전요인 16런", ["Material", "InjPress", "InjTemp", "CoolTemp"]),
         ("SealStrength.MWX", "포장 밀봉 강도 — 4요인 중심합성설계 31런", ["HotBarT", "DwelTime", "HotBarP", "MatTemp"]),
+        ("FondueRecipe.MWX", "퐁듀 맛 — 3성분 극꼭지점 혼합물 + 공정 변수 Temperature 18런",
+         ["Emmenthaler", "Gruyere", "Broth"], {"process": ["Temperature"]}),
+        ("ultrasonic_cleaner.MWX", "초음파 세척기 출력 — 7요인 확정적 선별설계 17런",
+         ["Train", "Degas", "Burst", "Quiet", "Center", "Bandwidth", "Sweep"]),
+        ("CrystalGrowth.MWX", "결정 성장 — 4요인 2블록 중심합성설계 30런(최적 설계 후보점)", ["A", "B", "C", "D"]),
     ]
     available = [e for e in examples if (SAMPLES / e[0]).exists()]
     if available:
         st.divider()
         st.write("**예제 데이터** — Minitab 문서 예제")
-        for fname, desc, facs in available:
+        for fname, desc, facs, *extra in available:
             if st.button(f"{fname.removesuffix('.MWX')} 예제 불러오기", help=desc):
-                set_ws(load_mwx_worksheet(SAMPLES / fname, facs))
+                set_ws(load_mwx_worksheet(SAMPLES / fname, facs, **(extra[0] if extra else {})))
                 st.rerun()

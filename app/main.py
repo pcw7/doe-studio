@@ -20,6 +20,7 @@ pages = {
         st.Page(VIEWS / "worksheet.py", title="워크시트·설계 수정", icon=":material/table:", url_path="worksheet"),
         st.Page(VIEWS / "analyze.py", title="분석·그래프", icon=":material/monitoring:", url_path="analyze"),
         st.Page(VIEWS / "optimize.py", title="반응 최적화·예측", icon=":material/tune:", url_path="optimize"),
+        st.Page(VIEWS / "optimal.py", title="최적 설계", icon=":material/filter_alt:", url_path="optimal"),
     ],
 }
 st.navigation(pages).run()
