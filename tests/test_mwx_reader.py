@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from conftest import load_fixture, table
+from tests.helpers import load_fixture, table
 from doe_core.io.mwx import mwx_doe_flags, read_mwx, read_mwx_sheets
 
 SAMPLES = Path(__file__).resolve().parents[1] / "data" / "minitab_samples"

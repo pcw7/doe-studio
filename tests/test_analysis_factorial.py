@@ -6,14 +6,13 @@
 - 같은 데이터의 공변량 없는 모형 2개(ANOVA 해석 페이지).
 - 곡면성 제곱합 SS = nF·nC·(ȳF − ȳC)² / (nF + nC), 순수 오차 DF = c − 1 (Montgomery).
 """
-import re
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from conftest import load_fixture, table
+from tests.helpers import load_fixture, table
 from doe_core.analysis.factorial import analyze_factorial, analyze_worksheet
 from doe_core.designs.factorial import create_two_level_design
 from doe_core.designs.general_full import GeneralFactor, create_general_full_factorial

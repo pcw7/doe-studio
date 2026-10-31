@@ -221,6 +221,22 @@ class TwoLevelDesign:
         return self.alias.text(max_order)
 
 
+def block_numbers(coded: pd.DataFrame, block_generators) -> np.ndarray:
+    """블록 생성자로 런의 블록 번호(1부터)를 정한다.
+
+    모든 요인이 낮은 수준인 런(표준 순서 첫 런)이 들어 있는 블록이 블록 1 이다. 그 런의 생성자 값은 (−1)^(단어 길이).
+    각 생성자에서 첫 런과 부호가 다르면 1 인 비트를 만들고, 첫 생성자를 최상위 비트로 읽는다.
+    (문서: 짝수 생성자 AB 는 AB = +1 이 블록 1, 블록 설계 별칭 예제는 Block 1 − ABC.)
+    """
+    gens = list(block_generators)
+    if not gens:
+        return np.ones(len(coded), dtype=int)
+    signs = np.stack([np.prod([coded[ch].values for ch in w], axis=0) for w in gens], axis=1)
+    first = np.array([(-1) ** len(w) for w in gens])
+    bits = (signs != first).astype(int)
+    return 1 + sum(bits[:, i] << (len(gens) - 1 - i) for i in range(len(gens)))
+
+
 def _yates_matrix(k: int) -> np.ndarray:
     """k 개 기본 요인의 2^k 완전 요인설계, 표준(Yates) 순서. A 가 가장 빨리 바뀐다. 값은 -1/+1."""
     n = 1 << k
@@ -304,9 +320,7 @@ def create_two_level_design(
     corner = pd.DataFrame({L: cols[L] for L in letters})
 
     if block_generators:
-        signs = np.stack([np.prod([corner[ch].values for ch in w], axis=0) for w in block_generators], axis=1)
-        bits = (signs == -1).astype(int)
-        block_in_rep = 1 + sum(bits[:, i] << (len(block_generators) - 1 - i) for i in range(len(block_generators)))
+        block_in_rep = block_numbers(corner, block_generators)
     else:
         block_in_rep = np.ones(len(corner), dtype=int)
     corner["Blocks"] = block_in_rep
