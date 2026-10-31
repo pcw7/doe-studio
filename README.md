@@ -9,7 +9,7 @@
 
 | 경로 | 내용 |
 |---|---|
-| `docs/` | 사양서(`spec-minitab-doe.md`), 조사 결과 |
+| `docs/` | 사양서와 조사 결과. 로컬 전용(git 제외) |
 | `doe_core/` | 순수 Python 엔진. UI 와 분리되어 단독 테스트 가능 |
 | `doe_core/designs/` | 설계 생성(요인·반응표면·혼합물·선별·최적설계) |
 | `doe_core/analysis/` | 모형 적합, 분산분석, 효과도 통계(Lenth PSE 등) |
