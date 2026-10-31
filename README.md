@@ -16,7 +16,7 @@
 | `doe_core/optimize/` | 반응 최적화기(만족도 함수), 예측 |
 | `doe_core/plots/` | Pareto·정규확률도·주효과·교호작용·등고선·표면도 |
 | `doe_core/io/` | 워크시트(설계 정보 포함) 저장·불러오기, CSV/Excel |
-| `app/` | Streamlit 화면 |
+| `app/` | Streamlit 화면. 진입점 `app/main.py`, 화면은 `app/views/` |
 | `tests/` | pytest. `tests/fixtures/minitab_docs/` 에 Minitab 문서 예제의 출력표를 JSON 으로 보관(정답지) |
 | `research/` | 문서 수집 도구와 URL 목록. 문서 원문 사본은 `research/minitab_docs/` (git 제외) |
 
@@ -24,14 +24,15 @@
 
 ```powershell
 python -m pip install -e .[dev]
+python research/fetch_samples.py   # Minitab 문서 예제 데이터(.MWX) 내려받기(테스트·예제용, 선택)
 python -m pytest
-streamlit run app/Home.py   # 화면이 생긴 뒤
+streamlit run app/main.py          # 화면: http://localhost:8501
 ```
 
 ## 진행 상태
 
 - [x] 0단계: Minitab DOE 문서 조사(226편), 메뉴 트리(en/ko), 예제 출력표 픽스처 48개, 기능 요약 A/B/C, 사양서
-- [ ] 1단계: 2수준 요인설계 생성·분석(분산분석표, 효과도, 잔차)
+- [x] 1단계: 2수준 요인설계 생성·분석(분산분석표, 효과도, 잔차)
   - [x] 2수준 완전·부분요인 생성 엔진(카탈로그 49행 검증, 생성자·정의관계·별칭·블록·중앙점·랜덤화) — 테스트 15개 통과
   - [x] Plackett-Burman(12~48런, 생성열 직교성 검증, 문서 예제 설계표 일치)
   - [x] 일반 완전요인(요인별 임의 수준, 텍스트·숫자 수준 값, 반복 블록)
@@ -40,6 +41,6 @@ streamlit run app/Home.py   # 화면이 생긴 뒤
   - [x] 요인설계 분석: 계수표·모형 요약·분산분석(곡면성·적합성 결여)·비코드화 회귀식 — Minitab 예제와 글자 단위 일치
   - [x] 진단(이상 관측치·영향력 측도), 효과도 통계(Lenth PSE), 분석 시 별칭 구조, 평균 표
   - [x] 그래프: 효과도(Pareto·정규·반정규), 잔차 4종, 주효과·교호작용·입방체도(라이트/다크)
-  - [ ] 화면
+  - [x] 화면: 시작(파일 불러오기·예제), 설계 생성, 워크시트·설계 수정, 분석·그래프
 - [ ] 2단계: 반응표면(CCD·Box-Behnken), 등고선·표면도, 반응 최적화기
 - [ ] 3단계: 혼합물, 확정적 선별설계, 최적설계, 분할구
