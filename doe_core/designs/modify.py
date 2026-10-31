@@ -103,6 +103,9 @@ def replicate_design(d, n_add: int = 1):
     """워크시트의 모든 런(중앙점 포함)을 n_add 번 복제해 새 블록으로 붙인다."""
     if not 1 <= n_add <= MAX_ADDED_REPLICATES:
         raise ValueError(f"추가할 반복 수는 1~{MAX_ADDED_REPLICATES} 이어야 합니다.")
+    from .split_plot import SplitPlotDesign
+    if isinstance(d, SplitPlotDesign):
+        raise ValueError("분할구 설계의 반복은 설계를 만들 때 전구 반복·하위구 반복으로 지정합니다.")
     base = d.coded
     n = len(base)
     max_block = int(base["Blocks"].max())
@@ -127,6 +130,11 @@ def randomize_design(d, *, block: int | None = None, seed: int | None = None, di
     block=b   : 블록 b 의 런만 섞고, 그 블록이 차지하던 RunOrder 자리는 유지한다(Randomize just block).
     display_in_run_order=False 면 RunOrder 열만 바꾸고 행 순서는 그대로 둔다.
     """
+    from .split_plot import SplitPlotDesign, randomize_split_plot
+    if isinstance(d, SplitPlotDesign):
+        if block is not None:
+            raise ValueError("분할구 설계는 설계 전체만 다시 랜덤화합니다(전구 순서·전구 안 런 순서).")
+        return randomize_split_plot(d, seed)
     rng = np.random.default_rng(seed)
     coded = d.coded.copy()
     run_order = coded["RunOrder"].values.copy()

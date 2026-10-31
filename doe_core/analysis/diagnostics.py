@@ -20,7 +20,7 @@ from . import fmt
 
 def diagnostics(a) -> pd.DataFrame:
     """관측치별 적합치·잔차·진단 측도(숫자)."""
-    n, p = a.n, a.p
+    n, p = a.n, getattr(a, "p_resid", a.p)       # 분할구: 고정효과 + 전구 항의 계수(순위)
     h = a.hat
     e = a.resid
     out = pd.DataFrame({"Obs": a.used_rows + 1, a.response: a.y, "Fit": a.fitted, "Resid": e, "HI": h})
