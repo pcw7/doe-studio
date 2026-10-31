@@ -16,12 +16,12 @@ Minitab 규칙(문서 근거는 docs/spec/A_factorial_create.md)
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import product
 
 import numpy as np
 import pandas as pd
 
 from .catalog import CATALOG, CatalogEntry
+from .common import Factor, assign_orders, center_point_rows, to_levels
 from .words import (
     LETTERS, ROMAN, generator_words, resolution_of, resolution_with_blocks_of, span,
     word_from_str, word_key as _word_key, word_len, word_to_str,
@@ -115,18 +115,6 @@ def alias_structure(n_factors: int, generator_words_: list[int], block_generator
 
 
 # ---------------------------------------------------------------- 설계 생성
-
-
-@dataclass
-class Factor:
-    name: str
-    low: float | str = -1
-    high: float | str = 1
-    numeric: bool = True
-
-    @property
-    def is_numeric(self) -> bool:
-        return self.numeric and isinstance(self.low, (int, float)) and isinstance(self.high, (int, float))
 
 
 @dataclass
@@ -315,17 +303,10 @@ def create_two_level_design(
     coded = pd.concat(reps, ignore_index=True)
 
     # --- 중앙점: 최종 블록마다 center_points 개, 텍스트 요인 수준 조합(2^Q)마다. 반복 수와 무관.
-    numeric = [f.is_numeric for f in factors]
-    if center_points and not any(numeric):
-        raise ValueError("모든 요인이 텍스트이면 중앙점을 추가할 수 없습니다.")
     if center_points:
-        text_letters = [L for L, isnum in zip(letters, numeric) if not isnum]
         cps = []
         for b in sorted(coded["Blocks"].unique()):
-            for combo in product((-1, 1), repeat=len(text_letters)):
-                cp = pd.DataFrame({L: [0] * center_points for L in letters})
-                for L, v in zip(text_letters, combo):
-                    cp[L] = v
+            for cp in center_point_rows(list(letters), factors, center_points):
                 cp["Blocks"] = b
                 cp["CenterPt"] = 0
                 cp["_yates"] = np.arange(len(corner), len(corner) + center_points)
@@ -333,32 +314,10 @@ def create_two_level_design(
                 cps.append(cp)
         coded = pd.concat([coded, *cps], ignore_index=True)
 
-    # --- 표준 순서: 블록 → 반복 → Yates 순(중앙점은 모서리점 뒤)
-    coded = coded.sort_values(["Blocks", "_rep", "_yates"], kind="stable").reset_index(drop=True)
-    coded.insert(0, "StdOrder", np.arange(1, len(coded) + 1))
-
-    # --- 런 순서: 블록 안에서 랜덤화, 블록은 순서대로
-    rng = np.random.default_rng(seed)
-    run_order = np.empty(len(coded), dtype=int)
-    pos = 0
-    for b in sorted(coded["Blocks"].unique()):
-        idx = np.where(coded["Blocks"].values == b)[0]
-        perm = rng.permutation(idx) if randomize else idx
-        run_order[perm] = np.arange(pos + 1, pos + len(idx) + 1)
-        pos += len(idx)
-    coded.insert(1, "RunOrder", run_order)
-    coded = coded.sort_values("RunOrder").reset_index(drop=True)
+    # --- 표준 순서: 블록 → 반복 → Yates 순(중앙점은 모서리점 뒤). 런 순서는 블록 안에서만 랜덤.
+    coded = assign_orders(coded, ["Blocks", "_rep", "_yates"], randomize=randomize, seed=seed)
     coded = coded[["StdOrder", "RunOrder", "CenterPt", "Blocks", *letters]]
-
-    # --- 실제 수준값 워크시트
-    runs = coded[["StdOrder", "RunOrder", "CenterPt", "Blocks"]].copy()
-    for L, f in zip(letters, factors):
-        c = coded[L].values
-        if f.is_numeric:
-            mid = (float(f.low) + float(f.high)) / 2
-            runs[f.name] = np.where(c == -1, float(f.low), np.where(c == 1, float(f.high), mid))
-        else:
-            runs[f.name] = np.where(c == -1, f.low, f.high)
+    runs = to_levels(coded, list(letters), factors, "CenterPt")
 
     alias = alias_structure(n_factors, generator_words(generators), [word_from_str(w) for w in block_generators])
     return TwoLevelDesign(
