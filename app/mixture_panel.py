@@ -10,8 +10,11 @@ from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.mixture import (
     MIX_MODELS, UNITS, component_terms, mixture_terms, predict_mixture, process_words, reference_blend,
 )
+from doe_core.optimize.mixture_optimizer import optimize_mixture, search_bounds
 from doe_core.optimize.predict import prediction_table
-from doe_core.plots.mixture_plots import mixture_contour_plot, mixture_surface_plot, response_trace_plot
+from doe_core.plots.mixture_plots import (
+    mixture_contour_plot, mixture_overlaid_contour_plot, mixture_surface_plot, response_trace_plot,
+)
 from doe_core.plots.residual_plots import four_in_one
 
 MIX_KO = {"linear": "선형 (Linear)", "quadratic": "2차 (Quadratic)", "special cubic": "특수 3차 (Special cubic)",
@@ -168,3 +171,72 @@ def render(ws) -> None:
             show_table(prediction_table(predict_mixture(a, blend, proc, confidence=conf / 100)))
         except ValueError as err:
             st.info(str(err))
+
+
+def render_optimizer(ws) -> None:
+    """혼합물 반응 최적화(Response Optimizer) 화면."""
+    from app.goals import goals_editor, nonzero_bounds, show_results
+
+    d = ws.design
+    st.title("혼합물 반응 최적화")
+    st.caption("Mixture Response Optimizer — 성분 비율 합 1, 성분 범위·선형 제약 안에서 종합 만족도를 최대화합니다.")
+    st.caption(ws_caption(ws))
+    numeric_cols = [c for c in ws.columns.columns
+                    if pd.api.types.is_numeric_dtype(ws.columns[c]) and ws.columns[c].notna().sum() > 1]
+    if not numeric_cols:
+        st.info("반응 열이 없습니다. **워크시트** 화면에서 결과를 입력하세요.")
+        st.stop()
+    with st.container(border=True):
+        c1, c2, c3 = st.columns(3)
+        responses = c1.multiselect("반응 (Responses)", numeric_cols, default=numeric_cols[:1])
+        model = c2.selectbox("모든 반응에 쓸 성분 모형", list(MIX_MODELS), index=1, format_func=MIX_KO.get)
+        order = c3.slider("공정 변수 항의 차수", 0, len(d.process), min(1, len(d.process))) if d.process else 0
+        lo, hi = search_bounds(d)
+        st.caption("탐색 범위(비율): " + ", ".join(f"{c.name} {a:.4g}~{b:.4g}" for c, a, b in zip(d.components, lo, hi))
+                   + (" · 사용자 정의 설계라 설계점 비율의 범위를 씁니다." if d.kind == "custom" else ""))
+    if not responses:
+        st.stop()
+    models = {}
+    for r in responses:
+        try:
+            models[r] = analyze_worksheet(ws, r, model=model, process_order=order)
+        except Exception as e:  # noqa: BLE001
+            st.error(f"{r} 모형을 적합하지 못했습니다: {e}")
+            st.stop()
+    goals = goals_editor(models, key=f"mixgoals_{'_'.join(responses)}_{model}_{order}")
+    hold = {}
+    with st.expander("고정 (Constraints: Hold at value)"):
+        for f in [*d.components, *d.process]:
+            if st.checkbox(f"{f.name} 고정", key=f"mhold_on_{f.name}"):
+                if hasattr(f, "lower"):
+                    hold[f.name] = st.number_input(f"{f.name} 비율", 0.0, 1.0, float(reference_blend(d)[
+                        [c.name for c in d.components].index(f.name)]), format="%.4f", key=f"mhold_v_{f.name}")
+                elif f.is_numeric:
+                    hold[f.name] = st.number_input(f"{f.name} 값", float(f.low), float(f.high), float(f.low),
+                                                   key=f"mhold_v_{f.name}")
+                else:
+                    hold[f.name] = st.selectbox(f"{f.name} 값", [f.low, f.high], key=f"mhold_v_{f.name}")
+    if st.button("최적화", type="primary"):
+        try:
+            st.session_state["mix_opt"] = (responses, model, order, optimize_mixture(list(models.values()), goals,
+                                                                                     hold=hold))
+        except Exception as e:  # noqa: BLE001
+            st.error(f"최적화하지 못했습니다: {e}")
+    opt = st.session_state.get("mix_opt")
+    if not opt or opt[:3] != (responses, model, order):
+        st.stop()
+    res = opt[3]
+    show_results(res, models, goals)
+    if d.q >= 3 and len(responses) >= 2:
+        st.subheader("혼합물 중첩 등고선도 (Overlaid Contour Plot)")
+        names = [c.name for c in d.components]
+        trip = names[:3]
+        hold_c = {n: res.settings[n] for n in names if n not in trip}
+        proc = {f.name: res.settings[f.name] for f in d.process}
+        try:
+            show_plot(mixture_overlaid_contour_plot(list(models.values()), nonzero_bounds(goals), trip, hold=hold_c,
+                                                    process=proc, mode=plot_mode()))
+            st.caption("회색이 아닌 영역: 모든 반응이 만족도 0 이 아닌 범위. 공정 변수와 나머지 성분은 최적 해에 고정.")
+        except ValueError as err:
+            st.info(str(err))
+

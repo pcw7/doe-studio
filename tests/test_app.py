@@ -229,7 +229,12 @@ def test_home_examples_and_mixture_optimize_notice():
     assert not at.exception
     ws = _sample_ws("FondueRecipe.MWX", ["Emmenthaler", "Gruyere", "Broth"], process=["Temperature"])
     at = run("optimize.py", ws)
-    assert not at.exception and any("혼합물 설계의 반응 최적화" in i.value for i in at.info)
+    assert not at.exception and any("혼합물 반응 최적화" in t.value for t in at.title)
+    at.multiselect[0].set_value(["Flavor", "Quantity"]).run()
+    [b for b in at.button if b.label == "최적화"][0].click().run()
+    assert not at.exception
+    _, _, _, res = at.session_state["mix_opt"]
+    assert 0 < res.D <= 1 and abs(sum(res.settings[n] for n in ["Emmenthaler", "Gruyere", "Broth"]) - 1) < 1e-9
 
 
 def test_mixture_panel_plots_and_predict():
