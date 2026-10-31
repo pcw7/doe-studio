@@ -500,8 +500,14 @@ def analyze_response_surface(
     return _build(design, response, coded, yv, used, tl, cov)
 
 
-def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, ...] = (), **kwargs) -> FactorialAnalysis:
-    """워크시트의 반응 열과 공변량 열로 분석한다."""
+def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, ...] = (), **kwargs):
+    """워크시트의 반응 열과 공변량 열로 분석한다(혼합물 설계면 analyze_mixture)."""
     y = ws.column(response).astype(float).values
+    from ..designs.mixture import MixtureDesign
+    if isinstance(ws.design, MixtureDesign):
+        from .mixture import analyze_mixture
+        if covariates:
+            raise ValueError("혼합물 분석에는 공변량을 쓸 수 없습니다.")
+        return analyze_mixture(ws.design, y, response=response, **kwargs)
     cov = {c: ws.column(c).astype(float).values for c in covariates}
     return analyze_factorial(ws.design, y, response=response, covariates=cov, **kwargs)

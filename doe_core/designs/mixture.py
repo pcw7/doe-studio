@@ -58,13 +58,13 @@ class LinearConstraint:
 
 @dataclass
 class MixtureDesign:
-    kind: str                        # "simplex_centroid" | "simplex_lattice" | "extreme_vertices"
+    kind: str                        # "simplex_centroid" | "simplex_lattice" | "extreme_vertices" | "custom"
     components: list[Component]
     letters: list[str]
     process: list[Factor]
     runs: pd.DataFrame
     coded: pd.DataFrame              # StdOrder, RunOrder, PtType, Blocks, 성분 비율, X1… (−1/+1)
-    degree: int
+    degree: int | None               # 사용자 정의 설계는 None
     total: float
     constraints: list[LinearConstraint]
     constrained: bool
@@ -114,22 +114,26 @@ class MixtureDesign:
 
     def summary(self) -> dict:
         d = {"Components": self.q, "Design points": self.n_runs, "Process variables": len(self.process)}
-        d["Lattice degree" if self.kind == "simplex_lattice" else "Design degree"] = self.degree
+        if self.degree is not None:
+            d["Lattice degree" if self.kind == "simplex_lattice" else "Design degree"] = self.degree
         d["Mixture total"] = self.total
         return d
 
     def summary_text(self) -> str:
         s = self.summary()
         deg_key = "Lattice degree" if self.kind == "simplex_lattice" else "Design degree"
+        deg = f"  {deg_key}: {s[deg_key]}" if deg_key in s else ""
         return "\n".join([
             "Design Summary",
             f"Components: {s['Components']}  Design points: {s['Design points']}",
-            f"Process variables: {s['Process variables']}  {deg_key}: {s[deg_key]}",
+            f"Process variables: {s['Process variables']}{deg}",
             f"Mixture total: {self.total:.5f}",
         ])
 
     def boundaries_table(self) -> pd.DataFrame:
         q = self.q
+        if not self.boundaries:
+            return pd.DataFrame(columns=["Point Type"])
         types = [str(d + 1) if d < q - 1 else "0" for d in range(q)]
         return pd.DataFrame([["Dimension", *[str(d) for d in range(q)]], ["Number", *[str(n) for n in self.boundaries]]],
                             columns=["Point Type", *types])
