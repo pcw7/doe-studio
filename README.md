@@ -52,3 +52,4 @@ streamlit run app/main.py          # 화면: http://localhost:8501
   - [x] 혼합물 설계 생성(단순 중심·단순 격자·극꼭지점, 공정 변수)
   - [x] 혼합물 분석(Scheffé 모형 6종·역항·공정 변수, 비율·유사성분·양 단위) — FondueRecipe 예제와 글자 단위 일치
   - [x] 확정적 선별설계 생성·분석 — 8요인 예제 설계표, ultrasonic_cleaner 분석 예제와 글자 단위 일치
+  - [x] 최적 설계(D-최적 선택·증강·평가, 거리 기반) — CrystalGrowth 예제 3개와 선택 순서·통계량 일치
