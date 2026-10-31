@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 from ..designs.catalog import CATALOG
-from ..designs.common import Factor
+from ..designs.common import Factor, factor_letters
 from ..designs.factorial import TwoLevelDesign, alias_structure
 from ..designs.general_full import GeneralFactor, GeneralFullFactorialDesign
 from ..designs.plackett_burman import PlackettBurmanDesign
@@ -297,7 +297,79 @@ def define_custom_two_level(
     return Worksheet(design, extra, nonregular=not regular)
 
 
+def define_custom_response_surface(
+    df: pd.DataFrame,
+    factors: list[str],
+    *,
+    levels: dict[str, tuple] | None = None,
+    point_type: str | None = "PtType",
+    std_order: str | None = "StdOrder",
+    run_order: str | None = "RunOrder",
+    blocks: str | None = "Blocks",
+) -> Worksheet:
+    """기존 데이터에서 반응표면 설계를 정의한다(Minitab 'Define Custom Response Surface Design').
+
+    저/고 수준(코드 ±1): levels 로 주거나, 점 유형 열이 있으면 큐브점(1)의 최소·최대, 없으면 각 요인의
+    서로 다른 값 가운데 둘째로 작은 값과 둘째로 큰 값(5수준 CCD) 또는 최소·최대(3수준)를 쓴다.
+    점 유형 열이 없으면 코드값으로 만든다(모서리 1, 축 −1, 중앙 0, 그 밖의 3수준 점 2).
+    """
+    from ..designs.response_surface import ResponseSurfaceDesign
+
+    missing = [c for c in factors if c not in df.columns]
+    if missing:
+        raise ValueError(f"요인 열이 없습니다: {missing}")
+    levels = levels or {}
+    df = df.reset_index(drop=True)
+    n = len(df)
+    letters = factor_letters(len(factors))
+    has_pt = bool(point_type and point_type in df.columns)
+    facs, coded = [], pd.DataFrame(index=range(n))
+    for L, col in zip(letters, factors):
+        x = df[col].astype(float)
+        if col in levels:
+            lo, hi = map(float, levels[col])
+        elif has_pt and (df[point_type] == 1).any():
+            cube = x[df[point_type] == 1]
+            lo, hi = float(cube.min()), float(cube.max())
+        else:
+            u = np.sort(x.unique())
+            lo, hi = (float(u[1]), float(u[-2])) if len(u) >= 5 else (float(u[0]), float(u[-1]))
+        if lo == hi:
+            raise ValueError(f"요인 {col!r} 의 저/고 수준이 같습니다.")
+        coded[L] = ((x - (lo + hi) / 2) / ((hi - lo) / 2)).round(10)
+        facs.append(Factor(col, lo, hi))
+    if has_pt:
+        pt = df[point_type].astype(int).values
+    else:
+        a = np.abs(coded[letters].values)
+        pt = np.where((a == 0).all(axis=1), 0, np.where(((a == 1) | (a == 0)).all(axis=1) & (a == 1).all(axis=1), 1,
+                                                         np.where((a > 1).any(axis=1), -1, 2)))
+    coded.insert(0, "PtType", pt)
+    coded.insert(1, "Blocks", df[blocks].astype(int).values if blocks and blocks in df.columns else 1)
+    coded.insert(0, "RunOrder", df[run_order].astype(int).values if run_order and run_order in df.columns else np.arange(1, n + 1))
+    coded.insert(0, "StdOrder", df[std_order].astype(int).values if std_order and std_order in df.columns else np.arange(1, n + 1))
+    if coded["StdOrder"].duplicated().any():
+        raise ValueError("StdOrder 값이 중복됩니다.")
+    coded = coded[["StdOrder", "RunOrder", "PtType", "Blocks", *letters]]
+    axial = np.abs(coded.loc[coded["PtType"] == -1, letters].values)
+    alpha = float(axial.max()) if axial.size else None
+    kind = "bbd" if (coded["PtType"] == 2).any() else "ccd"
+    nb = int(coded["Blocks"].nunique())
+    design = ResponseSurfaceDesign(kind, facs, letters, pd.DataFrame(), coded, alpha, n, nb, 1, nb)
+    design.runs = design.rebuild_runs(coded)
+    used = set(factors) | {c for c in (point_type, std_order, run_order, blocks) if c}
+    extra = df[[c for c in df.columns if c not in used]].copy()
+    extra.index = pd.Index(coded["StdOrder"].values, name="StdOrder")
+    return Worksheet(design, extra)
+
+
 def load_mwx_worksheet(path: str | Path, factors: list[str], **kwargs) -> Worksheet:
-    """Minitab .MWX 를 읽어 2수준 사용자 설계로 정의한 워크시트를 만든다."""
+    """Minitab .MWX 를 읽어 사용자 설계로 정의한 워크시트를 만든다.
+
+    점 유형 열(PtType)에 축점(−1)이나 모서리 중점(2)이 있으면 반응표면 설계, 아니면 2수준 요인설계로 정의한다.
+    """
     from .mwx import read_mwx
-    return define_custom_two_level(read_mwx(path), factors, **kwargs)
+    df = read_mwx(path)
+    if "PtType" in df.columns and df["PtType"].isin([-1, 2]).any():
+        return define_custom_response_surface(df, factors, **kwargs)
+    return define_custom_two_level(df, factors, **kwargs)

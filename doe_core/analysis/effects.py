@@ -60,8 +60,10 @@ class EffectsResult:
 
 def effects(a, alpha: float = 0.05) -> EffectsResult:
     """분석 결과에서 효과도 데이터를 만든다."""
-    if not a.two_level:
-        raise ValueError("효과도는 2수준 설계에서만 그립니다.")
+    if not (a.two_level or a.is_rs):
+        raise ValueError("효과도는 2수준 설계와 반응표면 설계에서 그립니다.")
+    if a.is_rs and a.df_error < 1:
+        raise ValueError("반응표면 설계의 효과도는 오차 자유도가 1 이상일 때만 그립니다.")
     coefs = a.coefficients()
     rows = []
     for j, ti in enumerate(a.col_term):

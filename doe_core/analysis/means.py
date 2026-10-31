@@ -96,6 +96,7 @@ def means(a, which: str | list[str] = "model") -> pd.DataFrame:
         terms = [t for t in a.terms if t.kind == "factor" and t.order <= 2]
     else:
         terms = [parse_term(s, d) for s in which]
+    terms = [t for t in terms if not t.is_square]          # 제곱 항은 수준 조합으로 표시하지 않는다
     cov = a.cov_unscaled * (a.mse if a.mse is not None else np.nan)
     rows = []
     for t in terms:

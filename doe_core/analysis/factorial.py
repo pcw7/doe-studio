@@ -24,8 +24,9 @@ import pandas as pd
 from scipy import stats
 
 from ..designs.general_full import GeneralFullFactorialDesign
+from ..designs.response_surface import ResponseSurfaceDesign
 from . import fmt
-from .model import Term, factorial_terms, is_hierarchical, names_by_letter, term_matrix
+from .model import Term, factorial_terms, is_hierarchical, names_by_letter, rs_terms, term_matrix
 
 _EPS = 1e-10
 
@@ -108,7 +109,12 @@ class FactorialAnalysis:
 
     @property
     def two_level(self) -> bool:
-        return not isinstance(self.design, GeneralFullFactorialDesign)
+        """2수준 요인설계·PB(효과·별칭·요인 그림 대상)."""
+        return not isinstance(self.design, (GeneralFullFactorialDesign, ResponseSurfaceDesign))
+
+    @property
+    def is_rs(self) -> bool:
+        return isinstance(self.design, ResponseSurfaceDesign)
 
     def se_coef(self) -> np.ndarray:
         if self.mse is None:
@@ -254,9 +260,12 @@ class FactorialAnalysis:
         add_group("Covariates", [i for i, t in kinds if t.kind == "covariate"])
         add_group("Blocks", [i for i, t in kinds if t.kind == "blocks"], show_members=False)
         add_group("Linear", [i for i, t in kinds if t.kind == "factor" and t.order == 1])
+        add_group("Square", [i for i, t in kinds if t.kind == "factor" and t.is_square])
         top = max((t.order for t in self.terms if t.kind == "factor"), default=0)
         for r in range(2, top + 1):
-            add_group(f"{r}-Way Interactions", [i for i, t in kinds if t.kind == "factor" and t.order == r])
+            # 반응표면 분석 예제는 '2-Way Interaction'(단수), 요인설계 예제는 '2-Way Interactions'(복수)
+            label = f"{r}-Way Interaction" if self.is_rs else f"{r}-Way Interactions"
+            add_group(label, [i for i, t in kinds if t.kind == "factor" and t.order == r and not t.is_square])
         add_group("Curvature", [i for i, t in kinds if t.kind == "center"], show_members=False)
 
         # --- 오차와 그 분할
@@ -337,16 +346,18 @@ class FactorialAnalysis:
             elif t.kind == "center":
                 add(("ct",), j, 1.0)
             elif t.kind == "factor":
-                numeric = [L for L in t.letters if fac[L].is_numeric]
-                text = [L for L in t.letters if not fac[L].is_numeric]
-                for r in range(len(numeric) + 1):
-                    for S in combinations(numeric, r):
+                # 각 위치의 z = (x - m)/h 를 곱해 전개한다(제곱 항처럼 같은 요인이 반복돼도 위치별로 처리)
+                letters = list(t.letters)
+                num_pos = [i for i, L in enumerate(letters) if fac[L].is_numeric]
+                text = [L for L in letters if not fac[L].is_numeric]
+                for r in range(len(num_pos) + 1):
+                    for S in combinations(num_pos, r):
                         w = 1.0
-                        for L in numeric:
-                            lo, hi = float(fac[L].low), float(fac[L].high)
+                        for i in num_pos:
+                            lo, hi = float(fac[letters[i]].low), float(fac[letters[i]].high)
                             m, h = (lo + hi) / 2, (hi - lo) / 2
-                            w *= (1 / h) if L in S else (-m / h)
-                        mono = tuple(sorted(set(S) | set(text), key=pos.__getitem__))
+                            w *= (1 / h) if i in S else (-m / h)
+                        mono = tuple(sorted([letters[i] for i in S] + text, key=pos.__getitem__))
                         add(("const",) if not mono else ("fac", mono), j, w)
             # 블록은 평균화되어 식에서 빠진다
 
@@ -357,7 +368,9 @@ class FactorialAnalysis:
             if kind == "cov":
                 return (1, 0, [])
             if kind == "fac":
-                return (2, len(k[1]), [pos[L] for L in k[1]])
+                m = k[1]
+                rank = 0 if len(m) == 1 else (1 if len(m) == 2 and m[0] == m[1] else 1 + len(m))
+                return (2, rank, [pos[L] for L in m])
             return (3, 0, [])
 
         cov_order = {t.name: i for i, t in enumerate(self.terms) if t.kind == "covariate"}
@@ -380,7 +393,7 @@ class FactorialAnalysis:
 
     def equation(self) -> tuple[str, str] | None:
         """(제목, 식) — 일반 완전요인설계(범주형 다수준)는 None."""
-        if not self.two_level:
+        if isinstance(self.design, GeneralFullFactorialDesign):
             return None
         se = self.se_coef()
         if is_hierarchical(self.terms):
@@ -409,18 +422,7 @@ class FactorialAnalysis:
 # ---------------------------------------------------------------- 진입점
 
 
-def analyze_factorial(
-    design,
-    y,
-    *,
-    response: str = "Y",
-    covariates: dict[str, np.ndarray] | None = None,
-    order: int | None = 2,
-    terms: list[str] | None = None,
-    include_blocks: bool | None = None,
-    include_center: bool | None = None,
-) -> FactorialAnalysis:
-    """design.coded 행 순서로 정렬된 반응 y 로 요인설계를 분석한다. 반응·공변량이 빈 행은 뺀다."""
+def _prepare(design, y, covariates):
     covariates = {k: np.asarray(v, dtype=float) for k, v in (covariates or {}).items()}
     y = np.asarray(y, dtype=float)
     coded_all = design.coded.reset_index(drop=True)
@@ -431,15 +433,10 @@ def analyze_factorial(
         ok &= np.isfinite(v)
     used = np.where(ok)[0]
     coded = coded_all.iloc[used].reset_index(drop=True)
-    yv = y[used]
-    cov = {k: v[used] for k, v in covariates.items()}
+    return coded, y[used], used, {k: v[used] for k, v in covariates.items()}
 
-    pt = design.point_col
-    tl = factorial_terms(
-        design, order=order, terms=terms, covariates=list(cov), include_blocks=include_blocks,
-        include_center=include_center, blocks_present=coded["Blocks"].nunique() > 1,
-        center_present=(not isinstance(design, GeneralFullFactorialDesign)) and bool((coded[pt] == 0).any()),
-    )
+
+def _build(design, response, coded, yv, used, tl, cov) -> FactorialAnalysis:
     X = np.ones((len(yv), 1))
     labels, col_term, kept, removed = ["Constant"], [-1], [], []
     for t in tl:
@@ -455,6 +452,51 @@ def analyze_factorial(
     if X.shape[1] > len(yv):
         raise ValueError("추정할 계수가 관측치보다 많습니다.")
     return FactorialAnalysis(design, response, yv, used, kept, removed, X, labels, col_term, cov)
+
+
+def analyze_factorial(
+    design,
+    y,
+    *,
+    response: str = "Y",
+    covariates: dict[str, np.ndarray] | None = None,
+    order: int | None = 2,
+    terms: list[str] | None = None,
+    include_blocks: bool | None = None,
+    include_center: bool | None = None,
+) -> FactorialAnalysis:
+    """design.coded 행 순서로 정렬된 반응 y 로 요인설계를 분석한다. 반응·공변량이 빈 행은 뺀다.
+
+    반응표면 설계가 들어오면 analyze_response_surface 로 넘긴다(order 는 무시하고 완전 2차 모형).
+    """
+    if isinstance(design, ResponseSurfaceDesign):
+        return analyze_response_surface(design, y, response=response, covariates=covariates, terms=terms,
+                                        include_blocks=include_blocks)
+    coded, yv, used, cov = _prepare(design, y, covariates)
+    pt = design.point_col
+    tl = factorial_terms(
+        design, order=order, terms=terms, covariates=list(cov), include_blocks=include_blocks,
+        include_center=include_center, blocks_present=coded["Blocks"].nunique() > 1,
+        center_present=(not isinstance(design, GeneralFullFactorialDesign)) and bool((coded[pt] == 0).any()),
+    )
+    return _build(design, response, coded, yv, used, tl, cov)
+
+
+def analyze_response_surface(
+    design,
+    y,
+    *,
+    response: str = "Y",
+    covariates: dict[str, np.ndarray] | None = None,
+    model: str = "full quadratic",
+    terms: list[str] | None = None,
+    include_blocks: bool | None = None,
+) -> FactorialAnalysis:
+    """반응표면 설계 분석(Minitab 'Analyze Response Surface Design'). 기본 완전 2차 모형."""
+    coded, yv, used, cov = _prepare(design, y, covariates)
+    tl = rs_terms(design, model=model, terms=terms, covariates=list(cov), include_blocks=include_blocks,
+                  blocks_present=coded["Blocks"].nunique() > 1)
+    return _build(design, response, coded, yv, used, tl, cov)
 
 
 def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, ...] = (), **kwargs) -> FactorialAnalysis:
