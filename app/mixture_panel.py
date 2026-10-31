@@ -7,7 +7,11 @@ import streamlit as st
 from app.state import plot_mode, show_plot, show_table, ws_caption
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
 from doe_core.analysis.factorial import analyze_worksheet
-from doe_core.analysis.mixture import MIX_MODELS, UNITS, component_terms, mixture_terms, process_words
+from doe_core.analysis.mixture import (
+    MIX_MODELS, UNITS, component_terms, mixture_terms, predict_mixture, process_words, reference_blend,
+)
+from doe_core.optimize.predict import prediction_table
+from doe_core.plots.mixture_plots import mixture_contour_plot, mixture_surface_plot, response_trace_plot
 from doe_core.plots.residual_plots import four_in_one
 
 MIX_KO = {"linear": "선형 (Linear)", "quadratic": "2차 (Quadratic)", "special cubic": "특수 3차 (Special cubic)",
@@ -24,6 +28,21 @@ def _candidates(d, inverse_ok: bool) -> list:
         out += [type(t)(t.kind, t.comps, w, "") for t in comp]
     # 이름은 mixture_terms 가 다시 만든다(짧은 표기로 지정)
     return [t.short for t in out]
+
+
+def process_inputs(d, key: str) -> dict:
+    """공정 변수 고정값 입력(기본: 낮은 수준)."""
+    out = {}
+    if not d.process:
+        return out
+    cols = st.columns(min(4, len(d.process)))
+    for i, f in enumerate(d.process):
+        with cols[i % len(cols)]:
+            if f.is_numeric:
+                out[f.name] = st.number_input(f.name, value=float(f.low), key=f"{key}_{f.name}")
+            else:
+                out[f.name] = st.selectbox(f.name, [f.low, f.high], key=f"{key}_{f.name}")
+    return out
 
 
 def render(ws) -> None:
@@ -78,7 +97,11 @@ def render(ws) -> None:
     st.subheader(f"{a.response} 분석 결과")
     if a.removed_terms:
         st.warning("다음 항은 앞의 항과 선형 종속이라 모형에서 뺐습니다: " + ", ".join(t.name for t in a.removed_terms))
-    tab_tbl, tab_res = st.tabs(["결과표", "잔차 그림"])
+    tab_tbl, tab_res, tab_trace, tab_con, tab_pred = st.tabs(["결과표", "잔차 그림", "반응 추적 그림",
+                                                              "삼각 등고선·표면도", "예측"])
+    mode_plot = plot_mode()
+    names = [c.name for c in d.components]
+    ref = reference_blend(d)
     with tab_tbl:
         st.markdown(f"**{a.coefficients_title()}**")
         show_table(a.coefficients_table())
@@ -102,5 +125,46 @@ def render(ws) -> None:
         if a.df_error == 0 and kind != "regular":
             st.info("오차 자유도가 0 이라 표준화·삭제 잔차를 계산할 수 없습니다.")
         else:
-            show_plot(four_in_one(a, kind, plot_mode()))
-    st.caption("혼합물 등고선도·반응 추적 그림·최적화는 다음 단계에서 지원합니다.")
+            show_plot(four_in_one(a, kind, mode_plot))
+    with tab_trace:
+        direction = st.radio("추적 방향 (Trace Direction)", ["cox", "piepel"], horizontal=True,
+                             format_func={"cox": "Cox (비율)", "piepel": "Piepel (유사성분)"}.get)
+        st.caption("기준 혼합물 = 꼭지점 혼합물의 평균(Centroid of vertices): "
+                   + ", ".join(f"{n} {v:.4g}" for n, v in zip(names, ref)))
+        proc = process_inputs(d, "trace")
+        try:
+            show_plot(response_trace_plot(a, direction=direction, process=proc, mode=mode_plot))
+        except ValueError as err:
+            st.info(str(err))
+    with tab_con:
+        if d.q < 3:
+            st.info("삼각 등고선도는 성분이 3개 이상일 때 그립니다.")
+        else:
+            trip = st.multiselect("축 성분 3개 (X·Y·Z)", names, default=names[:3], max_selections=3)
+            hold = {}
+            others = [n for n in names if n not in trip]
+            if others:
+                st.markdown("**나머지 성분 고정값 (비율)**")
+                cols = st.columns(min(4, len(others)))
+                for i, n in enumerate(others):
+                    hold[n] = cols[i % len(cols)].number_input(n, 0.0, 1.0, float(ref[names.index(n)]),
+                                                               step=0.01, format="%.4f", key=f"hold_{n}")
+            proc = process_inputs(d, "contour")
+            n_lv = st.slider("등고선 수", 2, 11, 7, key="mix_levels")
+            if len(trip) == 3:
+                try:
+                    show_plot(mixture_contour_plot(a, trip, hold=hold, process=proc, levels=n_lv, mode=mode_plot))
+                    show_plot(mixture_surface_plot(a, trip, hold=hold, process=proc, mode=mode_plot))
+                except ValueError as err:
+                    st.info(str(err))
+    with tab_pred:
+        st.write("성분 비율(합 1)과 공정 변수 값을 넣으면 적합치와 신뢰구간·예측구간을 계산합니다(Predict).")
+        cols = st.columns(min(4, d.q))
+        blend = {n: cols[i % len(cols)].number_input(n, 0.0, 1.0, float(ref[i]), step=0.01, format="%.4f",
+                                                     key=f"pred_{n}") for i, n in enumerate(names)}
+        proc = process_inputs(d, "pred")
+        conf = st.number_input("신뢰 수준 (%)", 50.0, 99.9, 95.0, key="mix_conf")
+        try:
+            show_table(prediction_table(predict_mixture(a, blend, proc, confidence=conf / 100)))
+        except ValueError as err:
+            st.info(str(err))

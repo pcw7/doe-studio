@@ -330,6 +330,10 @@ if ws is not None and st.session_state.get("created_notice"):
             if d.constraints:
                 st.markdown("**선형 제약 (Linear Constraints of Mixture Components)**")
                 show_table(d.constraints_table())
+        if d.q >= 3:
+            from app.state import plot_mode, show_plot
+            from doe_core.plots.mixture_plots import simplex_design_plot
+            show_plot(simplex_design_plot(d, mode=plot_mode()))
     if hasattr(d, "design_table"):
         with st.expander("설계표 (Design Table)"):
             show_table(d.design_table())

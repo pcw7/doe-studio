@@ -137,7 +137,7 @@ if opt and opt[0] == responses:
         hold_other = {k: v for k, v in res.settings.items() if k not in (names[xL], names[yL])}
         try:
             show_plot(overlaid_contour_plot(list(models.values()), bounds, xL, yL, hold=hold_other, mode=plot_mode()))
-            st.caption("흰 영역: 모든 반응이 만족도 0 이 아닌 범위(최대화는 하한 이상, 최소화는 상한 이하, 목표값은 하한~상한). "
+            st.caption("회색이 아닌 영역: 모든 반응이 만족도 0 이 아닌 범위(최대화는 하한 이상, 최소화는 상한 이하, 목표값은 하한~상한). "
                        "나머지 요인은 최적 해에 고정.")
         except ValueError as err:
             st.info(str(err))
