@@ -363,6 +363,11 @@ class MixtureAnalysis:
     def has_process_terms(self) -> bool:
         return any(t.proc for t in self.terms)
 
+    def coef_cov(self) -> np.ndarray:
+        if self.mse is None:
+            return np.full((self.p, self.p), np.nan)
+        return self.cov_unscaled * self.mse
+
     def se_coef(self) -> np.ndarray:
         if self.mse is None:
             return np.full(self.p, np.nan)

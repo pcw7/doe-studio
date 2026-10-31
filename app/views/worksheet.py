@@ -78,8 +78,11 @@ with t2:
     n_add = st.number_input("추가할 반복 수", 1, 10, 1)
     st.write("중앙점을 포함한 모든 런을 복제해 새 블록으로 붙입니다. 이후 랜덤화하세요.")
     if st.button("반복 추가"):
-        set_ws(ws.with_design(replicate_design(d, int(n_add))))
-        st.rerun()
+        try:
+            set_ws(ws.with_design(replicate_design(d, int(n_add))))
+            st.rerun()
+        except ValueError as e:
+            st.error(str(e))
 with t3:
     blocks = sorted(int(b) for b in d.coded["Blocks"].unique())
     which = st.selectbox("대상", ["전체 설계", *[f"블록 {b}만" for b in blocks]])
@@ -87,8 +90,11 @@ with t3:
     c1, c2 = st.columns(2)
     if c1.button("랜덤화"):
         blk = None if which == "전체 설계" else int(which.split()[1].rstrip("만"))
-        set_ws(ws.with_design(randomize_design(d, block=blk, seed=int(seed) or None)))
-        st.rerun()
+        try:
+            set_ws(ws.with_design(randomize_design(d, block=blk, seed=int(seed) or None)))
+            st.rerun()
+        except ValueError as e:
+            st.error(str(e))
     if c2.button("런 번호 다시 매기기 (Renumber)"):
         set_ws(ws.with_design(renumber_design(d)))
         st.rerun()

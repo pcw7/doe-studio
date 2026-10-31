@@ -80,7 +80,7 @@ def predict(a, settings: dict, *, covariates: dict | None = None, confidence: fl
     if a.mse is None:
         nan = float("nan")
         return Prediction(fit, nan, (nan, nan), (nan, nan), dict(settings), confidence)
-    se = float(np.sqrt(x0 @ a.cov_unscaled @ x0 * a.mse))
+    se = float(np.sqrt(x0 @ a.coef_cov() @ x0))                     # 분할구는 전구 분산을 반영한 공분산
     t = float(stats.t.ppf(1 - (1 - confidence) / 2, a.df_error))
     spi = float(np.sqrt(se ** 2 + a.mse))
     return Prediction(fit, se, (fit - t * se, fit + t * se), (fit - t * spi, fit + t * spi), dict(settings), confidence)

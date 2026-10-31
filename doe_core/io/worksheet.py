@@ -601,19 +601,36 @@ def _looks_dsd(df: pd.DataFrame, factors: list[str]) -> bool:
         return False
 
 
-def load_mwx_worksheet(path: str | Path, factors: list[str], **kwargs) -> Worksheet:
-    """Minitab .MWX 를 읽어 사용자 설계로 정의한 워크시트를 만든다.
+def design_kind_of(df: pd.DataFrame, factors: list[str], process=None) -> str:
+    """데이터로 사용자 정의 설계 종류를 고른다: mixture / dsd / response_surface / two_level."""
+    if process or _constant_sum(df, list(factors)) is not None:
+        return "mixture"
+    if _looks_dsd(df, list(factors)):
+        return "dsd"
+    if "PtType" in df.columns and df["PtType"].isin([-1, 2]).any():
+        return "response_surface"
+    return "two_level"
+
+
+def define_custom_design(df: pd.DataFrame, factors: list[str], **kwargs) -> Worksheet:
+    """요인 열(혼합물이면 성분 열)로 설계 종류를 알아보고 사용자 설계로 정의한다.
 
     요인 열의 행 합이 일정하거나 process 를 주면 혼합물 설계, 확정적 선별설계 구조(접힘 쌍마다 0 이 하나,
     중앙점)면 확정적 선별설계, 점 유형 열(PtType)에 축점(−1)이나 모서리 중점(2)이 있으면 반응표면 설계,
     아니면 2수준 요인설계로 정의한다.
     """
-    from .mwx import read_mwx
-    df = read_mwx(path)
-    if "process" in kwargs or _constant_sum(df, list(factors)) is not None:
+    kind = design_kind_of(df, factors, kwargs.get("process"))
+    if kind == "mixture":
         return define_custom_mixture(df, factors, **kwargs)
-    if _looks_dsd(df, list(factors)):
+    kwargs.pop("process", None)
+    if kind == "dsd":
         return define_custom_dsd(df, factors, **kwargs)
-    if "PtType" in df.columns and df["PtType"].isin([-1, 2]).any():
+    if kind == "response_surface":
         return define_custom_response_surface(df, factors, **kwargs)
     return define_custom_two_level(df, factors, **kwargs)
+
+
+def load_mwx_worksheet(path: str | Path, factors: list[str], **kwargs) -> Worksheet:
+    """Minitab .MWX 를 읽어 사용자 설계로 정의한 워크시트를 만든다(종류는 define_custom_design 규칙)."""
+    from .mwx import read_mwx
+    return define_custom_design(read_mwx(path), factors, **kwargs)

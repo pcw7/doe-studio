@@ -6,7 +6,9 @@ import streamlit as st
 from app.state import plot_mode, require_ws, show_plot, show_table, ws_caption
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.model import RS_MODELS
+from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
 from doe_core.designs.general_full import GeneralFullFactorialDesign
+from doe_core.designs.mixture import MixtureDesign
 from doe_core.designs.response_surface import ResponseSurfaceDesign
 from doe_core.optimize.optimizer import (
     default_goal, multiple_response_prediction, optimize, parameters_table, setting_table, solution_table,
@@ -22,7 +24,11 @@ st.caption("Response Optimizer · Predict · Overlaid Contour Plot")
 ws = require_ws()
 st.caption(ws_caption(ws))
 d = ws.design
-is_rs = isinstance(d, ResponseSurfaceDesign)
+if isinstance(d, MixtureDesign):
+    st.info("혼합물 설계의 반응 최적화(성분 합 제약)는 다음 단계에서 지원합니다. 지금은 **분석** 화면에서 모형을 확인하세요.")
+    st.stop()
+is_dsd = isinstance(d, DefinitiveScreeningDesign)
+is_rs = isinstance(d, ResponseSurfaceDesign) or is_dsd
 numeric_cols = [c for c in ws.columns.columns if pd.api.types.is_numeric_dtype(ws.columns[c]) and ws.columns[c].notna().sum() > 1]
 if not numeric_cols:
     st.info("반응 열이 없습니다. **워크시트** 화면에서 결과를 입력하세요.")
@@ -35,7 +41,7 @@ with st.container(border=True):
     if is_rs:
         ko = {"linear": "선형", "linear+squares": "선형 + 제곱", "linear+interactions": "선형 + 교호작용",
               "full quadratic": "완전 2차"}
-        model = st.selectbox("모든 반응에 쓸 모형", list(RS_MODELS), index=3, format_func=ko.get)
+        model = st.selectbox("모든 반응에 쓸 모형", list(RS_MODELS), index=0 if is_dsd else 3, format_func=ko.get)
         order = None
     else:
         model = "full quadratic"

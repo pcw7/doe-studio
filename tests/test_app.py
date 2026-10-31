@@ -124,3 +124,109 @@ def test_worksheet_add_axial_points():
     btn.click().run()
     assert not at.exception
     assert at.session_state["worksheet"].design.kind == "ccd"
+
+
+# ---------------------------------------------------------------- 3단계 화면(혼합물·DSD·분할구·최적 설계)
+
+
+@pytest.mark.parametrize("kind, type_name, runs", [("분할구 설계", "SplitPlotDesign", 32),
+                                                   ("확정적 선별설계", "DefinitiveScreeningDesign", 13),
+                                                   ("혼합물 설계", "MixtureDesign", 10)])
+def test_create_stage3_designs(kind, type_name, runs):
+    at = run("create.py")
+    at.segmented_control[0].set_value(kind).run()
+    assert not at.exception
+    at.button[0].click().run()
+    assert not at.exception
+    d = at.session_state["worksheet"].design
+    assert type(d).__name__ == type_name and d.n_runs == runs
+    assert any("Design Summary" in c.value for c in at.code)
+
+
+def test_create_mixture_extreme_vertices_with_process():
+    at = run("create.py")
+    at.segmented_control[0].set_value("혼합물 설계").run()
+    at.segmented_control[1].set_value("극꼭지점 (Extreme vertices)").run()
+    assert not at.exception
+    next(n for n in at.number_input if "공정 변수" in n.label).set_value(1).run()   # 공정 변수 1개
+    assert not at.exception
+    at.button[0].click().run()
+    assert not at.exception
+    d = at.session_state["worksheet"].design
+    assert d.kind == "extreme_vertices" and len(d.process) == 1 and d.n_runs == 2 * 7
+
+
+def _sample_ws(name, factors, **kw):
+    p = SAMPLES / name
+    if not p.exists():
+        pytest.skip(f"{name} 없음")
+    from doe_core.io.worksheet import load_mwx_worksheet
+    return load_mwx_worksheet(p, factors, **kw)
+
+
+def test_analyze_mixture_fondue():
+    ws = _sample_ws("FondueRecipe.MWX", ["Emmenthaler", "Gruyere", "Broth"], process=["Temperature"])
+    at = run("analyze.py", ws)
+    assert not at.exception and any("혼합물 설계 분석" in t.value for t in at.title)
+    at.segmented_control[0].set_value("항 직접 선택").run()
+    assert not at.exception
+    at.multiselect[0].set_value(["A", "B", "C", "AB", "BC", "A*X1", "B*X1", "C*X1"]).run()
+    at.button[0].click().run()
+    assert not at.exception
+    a = at.session_state["analysis"]
+    assert a.coefficients_table()["Coef"].tolist()[:3] == ["104.874", "175.08", "-8.810"]
+    assert any("Estimated Regression Coefficients for Flavor" in m.value for m in at.markdown)
+
+
+def test_analyze_dsd_ultrasonic():
+    ws = _sample_ws("ultrasonic_cleaner.MWX", ["Train", "Degas", "Burst", "Quiet", "Center", "Bandwidth", "Sweep"])
+    at = run("analyze.py", ws)
+    assert not at.exception and any("선별 설계 분석" in t.value for t in at.title)
+    at.button[0].click().run()
+    assert not at.exception
+    assert any("I + 0.82 AA" in c.value for c in at.code)
+    assert any("626.5 + 116.5 Train" in c.value for c in at.code)
+
+
+def test_optimal_design_page_crystal():
+    ws = _sample_ws("CrystalGrowth.MWX", ["A", "B", "C", "D"])
+    at = run("optimal.py", ws)
+    assert not at.exception
+    at.number_input[0].set_value(20).run()
+    at.button[0].click().run()
+    assert not at.exception
+    res = at.session_state["optimal"]
+    assert [r + 1 for r in res.rows][:4] == [22, 23, 25, 27]
+    assert any("Row number of selected design points: 22, 23, 25, 27" in c.value for c in at.code)
+    [b for b in at.button if b.label == "지시자 열을 워크시트에 추가"][0].click().run()
+    assert not at.exception
+    assert at.session_state["worksheet"].column("OptPoint").sum() == 20
+    at.segmented_control[0].set_value("설계 평가 (Evaluate)").run()
+    at.selectbox[0].set_value("linear").run()
+    at.button[0].click().run()
+    assert not at.exception
+    assert at.session_state["optimal"].task == "evaluate"
+
+
+def test_analyze_split_plot_page():
+    import numpy as np
+    from doe_core.designs.split_plot import create_split_plot_design
+    d = create_split_plot_design(3, 1, seed=1)
+    ws = Worksheet(d)
+    rng = np.random.default_rng(0)
+    ws.add_column("Y", (5 + 2 * d.coded["A"] + d.coded["B"] + rng.normal(size=d.n_runs)).tolist(), order="worksheet")
+    at = run("analyze.py", ws)
+    assert not at.exception and any("분할구 설계 분석" in t.value for t in at.title)
+    at.button[0].click().run()
+    assert not at.exception
+    a = at.session_state["analysis"]
+    assert "WP Error" in [r.source for r in a.anova_rows()]
+    assert "S(WP)" in a.summary_table().columns
+
+
+def test_home_examples_and_mixture_optimize_notice():
+    at = run("home.py")
+    assert not at.exception
+    ws = _sample_ws("FondueRecipe.MWX", ["Emmenthaler", "Gruyere", "Broth"], process=["Temperature"])
+    at = run("optimize.py", ws)
+    assert not at.exception and any("혼합물 설계의 반응 최적화" in i.value for i in at.info)

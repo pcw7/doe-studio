@@ -5,14 +5,17 @@ import pandas as pd
 import streamlit as st
 
 from app.state import plot_mode, require_ws, show_plot, show_table, ws_caption
-from doe_core.analysis.alias import alias_lines, factor_name_table, has_aliasing
+from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
 from doe_core.analysis.effects import effects
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.means import means_table
 from doe_core.analysis.model import RS_MODELS, factor_term
+from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
 from doe_core.designs.general_full import GeneralFullFactorialDesign
+from doe_core.designs.mixture import MixtureDesign
 from doe_core.designs.response_surface import ResponseSurfaceDesign
+from doe_core.designs.split_plot import SplitPlotDesign
 from doe_core.plots.contour_plots import contour_plot, default_hold, surface_plot
 from doe_core.plots.effects_plots import half_normal_effects_chart, normal_effects_chart, pareto_chart
 from doe_core.plots.factorial_plots import cube_plot, interaction_pairs, interaction_plot, main_effects_plot
@@ -20,10 +23,26 @@ from doe_core.plots.residual_plots import four_in_one
 
 ws = require_ws()
 d = ws.design
-is_rs = isinstance(d, ResponseSurfaceDesign)
-st.title("반응표면 설계 분석" if is_rs else "요인설계 분석")
-st.caption("Analyze Response Surface Design" if is_rs else "Analyze Factorial Design")
+if isinstance(d, MixtureDesign):
+    from app.mixture_panel import render
+    render(ws)
+    st.stop()
+is_dsd = isinstance(d, DefinitiveScreeningDesign)
+is_sp = isinstance(d, SplitPlotDesign)
+is_rs = isinstance(d, ResponseSurfaceDesign) or is_dsd          # 제곱 항을 쓸 수 있는 설계
+if is_dsd:
+    st.title("선별 설계 분석")
+    st.caption("Analyze Screening Design (Definitive Screening)")
+elif is_rs:
+    st.title("반응표면 설계 분석")
+    st.caption("Analyze Response Surface Design")
+else:
+    st.title("분할구 설계 분석" if is_sp else "요인설계 분석")
+    st.caption("Analyze Factorial Design" + (" (split-plot)" if is_sp else ""))
 st.caption(ws_caption(ws))
+if is_sp:
+    st.caption("바꾸기 어려운 요인(" + ", ".join(d.htc_letters) + ")만으로 된 항은 전구 오차(WP Error)로, "
+               "나머지 항은 하위구 오차로 검정합니다.")
 names = dict(zip(d.letters, [f.name for f in d.factors]))
 
 numeric_cols = [c for c in ws.columns.columns if pd.api.types.is_numeric_dtype(ws.columns[c]) and ws.columns[c].notna().sum() > 1]
@@ -45,7 +64,8 @@ with st.container(border=True):
         if is_rs:
             ko = {"linear": "선형 (Linear)", "linear+squares": "선형 + 제곱 (Linear + squares)",
                   "linear+interactions": "선형 + 교호작용", "full quadratic": "완전 2차 (Full quadratic)"}
-            rs_model = st.selectbox("포함할 항 (Include the following terms)", list(RS_MODELS), index=3, format_func=ko.get)
+            rs_model = st.selectbox("포함할 항 (Include the following terms)", list(RS_MODELS), index=0 if is_dsd else 3,
+                                    format_func=ko.get)
             order = None
         else:
             order = st.slider("모형에 포함되는 항의 최대 차수 (Include terms up through order)", 1, k, min(2, k))
@@ -60,7 +80,8 @@ with st.container(border=True):
         order = None
     c3, c4, c5 = st.columns(3)
     has_blocks = d.coded["Blocks"].nunique() > 1
-    has_center = (not isinstance(d, (GeneralFullFactorialDesign, ResponseSurfaceDesign))) and bool((d.coded[d.point_col] == 0).any())
+    has_center = (not isinstance(d, (GeneralFullFactorialDesign, ResponseSurfaceDesign, DefinitiveScreeningDesign,
+                                     SplitPlotDesign))) and bool((d.coded[d.point_col] == 0).any())
     inc_blocks = c3.checkbox("모형에 블록 포함 (Include blocks)", value=has_blocks, disabled=not has_blocks)
     inc_center = c4.checkbox("모형에 중앙점 포함 (Include center points)", value=has_center, disabled=not has_center)
     alpha = c5.number_input("유의 수준 α", 0.001, 0.5, 0.05, step=0.01, format="%.3f")
@@ -108,8 +129,8 @@ with tab_tbl:
     if eq:
         st.markdown(f"**{'코드화되지 않은 단위의 회귀 방정식' if 'Uncoded' in eq[0] else '코드화된 단위의 회귀 방정식'} ({eq[0]})**")
         st.code(eq[1], language=None, wrap_lines=True)
-    if a.two_level and has_aliasing(a):
-        st.markdown("**별칭 구조 (Alias Structure)**")
+    if (a.two_level or getattr(a, "is_dsd", False)) and has_aliasing(a):
+        st.markdown(f"**별칭 구조 ({alias_title(a)})**")
         c1, c2 = st.columns([1, 3])
         with c1:
             show_table(factor_name_table(a))
@@ -121,7 +142,10 @@ with tab_tbl:
         show_table(un)
         st.caption(" · ".join(unusual_legend(a)))
     with st.expander("평균 표 (Means)"):
-        show_table(means_table(a))
+        try:
+            show_table(means_table(a))
+        except Exception as err:  # noqa: BLE001
+            st.info(f"평균 표를 만들 수 없습니다: {err}")
 
 with tab_eff:
     if not (a.two_level or a.is_rs):

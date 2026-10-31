@@ -1,22 +1,29 @@
-"""설계 생성 화면 — Minitab 'Create Factorial Design' · 'Create Response Surface Design'."""
+"""설계 생성 화면 — Minitab 'Create Factorial / Screening / Response Surface / Mixture Design'."""
 import pandas as pd
 import streamlit as st
 
 from app.state import set_ws, show_table, worksheet_csv, worksheet_json
 from doe_core.designs.catalog import ROMAN, available_designs
 from doe_core.designs.common import Factor, factor_letters
+from doe_core.designs.definitive_screening import MAX_FACTORS as DSD_MAX, base_runs_for, create_definitive_screening
 from doe_core.designs.factorial import create_two_level_design
 from doe_core.designs.general_full import GeneralFactor, create_general_full_factorial
+from doe_core.designs.mixture import (
+    LATTICE_MAX_Q, Component, LinearConstraint, MixtureDesign, create_extreme_vertices, create_simplex_centroid,
+    create_simplex_lattice, mix_letters,
+)
 from doe_core.designs.plackett_burman import PB_RUNS, create_plackett_burman_design
 from doe_core.designs.response_surface import BBD_CATALOG, available_ccd, create_box_behnken, create_ccd
+from doe_core.designs.split_plot import MAX_FACTORS as SP_MAX, available_split_plot, create_split_plot_design
 from doe_core.io.worksheet import Worksheet
 
 st.title("설계 생성")
-st.caption("요인설계 생성 (Create Factorial Design) · 반응표면 설계 생성 (Create Response Surface Design)")
+st.caption("요인설계 · 선별 설계 · 반응표면 설계 · 혼합물 설계 생성 (Create … Design)")
 
 kind = st.segmented_control(
     "설계 유형 (Type of Design)",
-    ["2수준 요인설계", "Plackett-Burman", "일반 완전요인설계", "반응표면 설계"],
+    ["2수준 요인설계", "분할구 설계", "Plackett-Burman", "확정적 선별설계", "일반 완전요인설계", "반응표면 설계",
+     "혼합물 설계"],
     default="2수준 요인설계", required=True,
 )
 
@@ -153,6 +160,119 @@ elif kind == "반응표면 설계":
         except Exception as ex:  # noqa: BLE001
             error = ex
 
+elif kind == "분할구 설계":
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        k = st.number_input("총 요인 수 (Total number of factors)", 2, SP_MAX, 4)
+        h = st.number_input("바꾸기 어려운 요인 수 (Number of hard-to-change factors)", 1, int(k) - 1, 1)
+        opts = available_split_plot(int(k), int(h))
+        if not opts:
+            st.warning("이 조합으로 만들 수 있는 설계가 없습니다.")
+            st.stop()
+        pick = st.selectbox("설계 (Designs)", range(len(opts)), index=len(opts) - 1,
+                            format_func=lambda i: opts[i].label
+                            + (f" · 해상도 {ROMAN[opts[i].resolution]}" if opts[i].resolution else ""))
+        wp_reps = st.number_input("전구 반복 수 (Number of whole-plot replicates)", 1, 10, 2,
+                                  help="1 이면 바꾸기 어려운 요인의 유의성을 검정할 수 없는 설계가 많아 기본값이 2 입니다.")
+        sp_reps = st.number_input("하위구 반복 수 (Number of subplot replicates)", 1, 10, 1)
+        block_reps = st.checkbox("반복별 블록 (Block on replicates)", False, disabled=wp_reps == 1, key="sp_brep")
+        randomize = st.checkbox("런 랜덤화 (Randomize runs)", True, key="sp_rand",
+                                help="전구 순서와 전구 안의 런 순서를 각각 섞습니다.")
+        seed = st.number_input("난수 기준값", 0, 10_000_000, 0, key="sp_seed")
+    with c2:
+        st.write(f"**요인 (Factors)** — 앞의 {int(h)}개(A…)가 바꾸기 어려운 요인입니다.")
+        fdf = factor_editor(int(k), "fsp")
+    if st.button("설계 생성", type="primary"):
+        try:
+            design = create_split_plot_design(int(k), int(h), opts[pick].n_runs, factors=to_factors(fdf),
+                                              wp_replicates=int(wp_reps), subplot_replicates=int(sp_reps),
+                                              block_on_replicates=block_reps, randomize=randomize,
+                                              seed=int(seed) or None)
+        except Exception as e:  # noqa: BLE001
+            error = e
+
+elif kind == "확정적 선별설계":
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        k = st.number_input("요인 수 (Number of factors)", 2, DSD_MAX, 6)
+        reps = st.number_input("반복 수 (Number of replicates)", 1, 10, 1, key="dsd_reps")
+        divisors = [b for b in range(1, int(reps) + 1) if int(reps) % b == 0]
+        blocks = st.selectbox("블록 수 (Number of blocks)", divisors, help="블록마다 같은 수의 반복이 들어갑니다.")
+        randomize = st.checkbox("런 랜덤화 (Randomize runs)", True, key="dsd_rand")
+        seed = st.number_input("난수 기준값", 0, 10_000_000, 0, key="dsd_seed")
+    with c2:
+        st.write("**요인 (Factors)** — 텍스트 요인은 2수준만 씁니다(반복당 중앙점이 2개가 됩니다).")
+        fdf = factor_editor(int(k), "fdsd")
+        n_text = int((fdf["유형"] == "텍스트").sum())
+        st.caption(f"기본 런 수 {base_runs_for(int(k), n_text)} (요인 {int(k)}개"
+                   + (f", 텍스트 요인 {n_text}개" if n_text else "") + ")")
+    if st.button("설계 생성", type="primary"):
+        try:
+            design = create_definitive_screening(int(k), factors=to_factors(fdf), replicates=int(reps),
+                                                 n_blocks=int(blocks), randomize=randomize, seed=int(seed) or None)
+        except Exception as e:  # noqa: BLE001
+            error = e
+
+elif kind == "혼합물 설계":
+    mix_kind = st.segmented_control("혼합물 설계 종류", ["단순 중심 (Simplex centroid)", "단순 격자 (Simplex lattice)",
+                                                   "극꼭지점 (Extreme vertices)"],
+                                    default="단순 중심 (Simplex centroid)", required=True)
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        q = int(st.number_input("성분 수 (Number of components)", 2, 20, 3))
+        degree = 1
+        if mix_kind.startswith("단순 격자"):
+            max_deg = max(m for m, mq in LATTICE_MAX_Q.items() if mq >= q)
+            degree = int(st.number_input("격자 차수 (Degree of lattice)", 1, max_deg, min(2, max_deg)))
+        elif mix_kind.startswith("극꼭지점"):
+            degree = int(st.number_input("설계 차수 (Degree of design)", 1, max(1, q - 1), 1))
+        center = st.checkbox("중앙점 추가 (Augment the design with a center point)", True,
+                             disabled=mix_kind.startswith("단순 중심"), help="단순 중심 설계에는 이미 중심점이 있습니다.")
+        axial = st.checkbox("축점 추가 (Augment the design with axial points)", True)
+        total = st.number_input("혼합 총량 (Total mixture amount)", 0.0001, 1_000_000.0, 1.0, format="%.4f")
+        n_proc = int(st.number_input("공정 변수 수 (Process variables, 2수준)", 0, 7, 0))
+        reps = st.number_input("반복 수 (Replicates)", 1, 10, 1, key="mix_reps")
+        randomize = st.checkbox("런 랜덤화 (Randomize runs)", True, key="mix_rand")
+        seed = st.number_input("난수 기준값", 0, 10_000_000, 0, key="mix_seed")
+    with c2:
+        st.write("**성분 (Components)** — 하한·상한은 혼합 총량 기준의 양으로 적습니다.")
+        letters = mix_letters(q)
+        cbase = pd.DataFrame({"성분": letters, "이름": letters, "하한": [0.0] * q, "상한": [float(total)] * q})
+        cdf = st.data_editor(cbase, key=f"mixc_{q}_{total}", hide_index=True, width="stretch", disabled=["성분"])
+        cons_df = None
+        if mix_kind.startswith("극꼭지점"):
+            st.write("**선형 제약 (Linear Constraints)** — 행마다 계수와 하한·상한(빈 칸은 제한 없음), 최대 10개.")
+            cons_df = st.data_editor(pd.DataFrame(columns=[*letters, "하한", "상한"], dtype=float), key=f"mixlc_{q}",
+                                     num_rows="dynamic", hide_index=True, width="stretch")
+        pdf = None
+        if n_proc:
+            st.write("**공정 변수 (Process Variables)**")
+            pbase = pd.DataFrame({"변수": [f"X{i + 1}" for i in range(n_proc)], "이름": [f"X{i + 1}" for i in range(n_proc)],
+                                  "낮음": [-1.0] * n_proc, "높음": [1.0] * n_proc})
+            pdf = st.data_editor(pbase, key=f"mixp_{n_proc}", hide_index=True, width="stretch", disabled=["변수"])
+    if st.button("설계 생성", type="primary"):
+        try:
+            comps = [Component(str(r[1]).strip() or str(r[0]), float(r[2]) / float(total), float(r[3]) / float(total))
+                     for r in cdf.itertuples(index=False)]
+            procs = [Factor(str(r[1]).strip() or str(r[0]), float(r[2]), float(r[3]))
+                     for r in pdf.itertuples(index=False)] if pdf is not None else None
+            common = dict(components=comps, process=procs, axial=axial, total=float(total), replicates=int(reps),
+                          randomize=randomize, seed=int(seed) or None)
+            if mix_kind.startswith("단순 중심"):
+                design = create_simplex_centroid(q, **common)
+            elif mix_kind.startswith("단순 격자"):
+                design = create_simplex_lattice(q, degree, center=center, **common)
+            else:
+                cons = []
+                for r in (cons_df.dropna(how="all").itertuples(index=False) if cons_df is not None else []):
+                    coefs = {L: float(v) if pd.notna(v) else 0.0 for L, v in zip(letters, r[:q])}
+                    lo, hi = r[q], r[q + 1]
+                    cons.append(LinearConstraint(coefs, None if pd.isna(lo) else float(lo) / float(total),
+                                                 None if pd.isna(hi) else float(hi) / float(total)))
+                design = create_extreme_vertices(q, constraints=cons, degree=degree, center=center, **common)
+        except Exception as e:  # noqa: BLE001
+            error = e
+
 else:
     c1, c2 = st.columns([1, 2])
     with c1:
@@ -196,6 +316,23 @@ if ws is not None and st.session_state.get("created_notice"):
     if hasattr(d, "alias_text"):
         st.subheader("별칭 구조 (Alias Structure)")
         st.code(d.alias_text(), language=None)
+    if isinstance(d, MixtureDesign):
+        c1, c2 = st.columns(2)
+        with c1:
+            if d.boundaries:
+                st.markdown("**경계 수 (Number of Boundaries for Each Dimension)**")
+                show_table(d.boundaries_table())
+            st.markdown("**점 유형별 설계점 수 (Number of Design Points for Each Type)**")
+            show_table(d.points_table())
+        with c2:
+            st.markdown("**성분 범위 (Bounds of Mixture Components)**")
+            show_table(d.bounds_table())
+            if d.constraints:
+                st.markdown("**선형 제약 (Linear Constraints of Mixture Components)**")
+                show_table(d.constraints_table())
+    if hasattr(d, "design_table"):
+        with st.expander("설계표 (Design Table)"):
+            show_table(d.design_table())
     st.subheader("실험 순서표 (Worksheet, 런 순서)")
     show_table(d.runs)
     c1, c2, _ = st.columns([1, 1, 3])

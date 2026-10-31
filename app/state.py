@@ -18,6 +18,10 @@ DESIGN_KIND_KO = {
     "TwoLevelDesign": "2수준 요인설계",
     "PlackettBurmanDesign": "Plackett-Burman 설계",
     "GeneralFullFactorialDesign": "일반 완전요인설계",
+    "ResponseSurfaceDesign": "반응표면 설계",
+    "MixtureDesign": "혼합물 설계",
+    "DefinitiveScreeningDesign": "확정적 선별설계",
+    "SplitPlotDesign": "2수준 분할구 설계",
 }
 
 
