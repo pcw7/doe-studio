@@ -30,6 +30,7 @@ from ..designs.common import Factor
 from ..designs.factorial import TwoLevelDesign, alias_structure
 from ..designs.general_full import GeneralFactor, GeneralFullFactorialDesign
 from ..designs.plackett_burman import PlackettBurmanDesign
+from ..designs.response_surface import ResponseSurfaceDesign
 from ..designs.words import LETTERS, word_from_str, word_to_str
 
 FORMAT = "doe-studio-worksheet"
@@ -42,7 +43,7 @@ DESIGN_COLS = ("StdOrder", "RunOrder", "CenterPt", "PtType", "Blocks")
 
 @dataclass
 class Worksheet:
-    design: TwoLevelDesign | PlackettBurmanDesign | GeneralFullFactorialDesign
+    design: TwoLevelDesign | PlackettBurmanDesign | GeneralFullFactorialDesign | ResponseSurfaceDesign
     columns: pd.DataFrame = field(default_factory=pd.DataFrame)   # index = StdOrder
     nonregular: bool = False                                       # 사용자 정의 설계가 정규 부분요인이 아님
 
@@ -121,6 +122,10 @@ def design_to_dict(d) -> dict:
                 "center_points_per_replicate": d.center_points_per_replicate, "folded_on": d.folded_on}
     if isinstance(d, GeneralFullFactorialDesign):
         return {"type": "general_full", **base, "letters": d.letters}
+    if isinstance(d, ResponseSurfaceDesign):
+        return {"type": "response_surface", **base, "kind": d.kind, "letters": d.letters, "alpha": d.alpha,
+                "base_runs": d.base_runs, "base_blocks": d.base_blocks, "fraction": d.fraction,
+                "generators": d.generators, "point_col": d.point_col}
     raise TypeError(f"저장할 수 없는 설계 종류: {type(d).__name__}")
 
 
@@ -139,6 +144,10 @@ def design_from_dict(meta: dict, coded: pd.DataFrame):
             d = TwoLevelDesign(factors, pd.DataFrame(), coded, CATALOG.get((n, meta["base_runs"])), meta["base_runs"],
                                dict(meta["generators"]), tuple(meta["block_generators"]), alias, meta["n_blocks"],
                                meta["center_points_per_block"], meta["replicates"], meta["seed"], meta["folded_on"])
+        elif kind == "response_surface":
+            d = ResponseSurfaceDesign(meta["kind"], factors, meta["letters"], pd.DataFrame(), coded, meta["alpha"],
+                                      meta["base_runs"], meta["base_blocks"], meta["replicates"], meta["n_blocks"],
+                                      meta["fraction"], dict(meta["generators"]), meta["seed"], meta["point_col"])
         elif kind == "plackett_burman":
             d = PlackettBurmanDesign(factors, meta["letters"], pd.DataFrame(), coded, meta["corner_runs"],
                                      meta["center_points_per_replicate"], meta["replicates"], meta["n_blocks"],

@@ -60,8 +60,8 @@ def _block_numbers(d: TwoLevelDesign, rows: pd.DataFrame, source_blocks: np.ndar
 
 def fold_design(d: TwoLevelDesign | PlackettBurmanDesign, on: str = "all") -> TwoLevelDesign | PlackettBurmanDesign:
     """설계를 접는다. on="all" 이면 모든 요인, 요인 문자(A, B, …)면 그 요인만 부호를 바꾼다."""
-    if isinstance(d, GeneralFullFactorialDesign):
-        raise ValueError("일반 완전요인설계는 접을 수 없습니다.")
+    if not isinstance(d, (TwoLevelDesign, PlackettBurmanDesign)):
+        raise ValueError("접기는 2수준 요인설계와 Plackett-Burman 설계에만 할 수 있습니다.")
     if d.folded_on:
         raise ValueError("이미 접은 설계입니다.")
     letters = _letters(d)
