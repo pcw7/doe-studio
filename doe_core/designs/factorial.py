@@ -131,6 +131,13 @@ class TwoLevelDesign:
     center_points_per_block: int
     replicates: int
     seed: int | None = None
+    folded_on: str | None = None             # None, "all", 또는 요인 문자(A, B, …)
+
+    point_col = "CenterPt"
+
+    @property
+    def letters(self) -> list[str]:
+        return list(LETTERS[: len(self.factors)])
 
     @property
     def n_factors(self) -> int:
@@ -139,6 +146,15 @@ class TwoLevelDesign:
     @property
     def n_runs(self) -> int:
         return len(self.runs)
+
+    def rebuild_runs(self, coded: pd.DataFrame) -> pd.DataFrame:
+        """코드값 워크시트에서 실제 수준값 워크시트를 만든다."""
+        return to_levels(coded, self.letters, self.factors, self.point_col)
+
+    def defining_relation_text(self) -> str:
+        if not self.alias.defining:
+            return "Defining Relation: (full factorial)"
+        return "Defining Relation: I = " + " = ".join(word_to_str(w) for w in self.alias.defining)
 
     @property
     def n_text_factors(self) -> int:
@@ -173,6 +189,8 @@ class TwoLevelDesign:
             d["Design Generators"] = ", ".join(f"{k} = {v}" for k, v in self.generators.items())
         if self.block_generators:
             d["Block Generators"] = ", ".join(self.block_generators)
+        if self.folded_on:
+            d["Folded on factors"] = "All" if self.folded_on == "all" else self.folded_on
         return d
 
     def notes(self) -> list[str]:
@@ -189,11 +207,14 @@ class TwoLevelDesign:
     def summary_text(self) -> str:
         s = self.summary()
         lines = ["Design Summary"]
-        lines += [f"{k}: {v}" for k, v in s.items() if k not in ("Design Generators", "Block Generators")]
+        tail = ("Design Generators", "Block Generators", "Folded on factors")
+        lines += [f"{k}: {v}" for k, v in s.items() if k not in tail]
         lines += self.notes()
-        for k in ("Design Generators", "Block Generators"):
+        for k in tail:
             if k in s:
                 lines.append(f"{k}: {s[k]}")
+        if self.folded_on:
+            lines.append(self.defining_relation_text())
         return "\n".join(lines)
 
     def alias_text(self, max_order: int | None = "default") -> str:

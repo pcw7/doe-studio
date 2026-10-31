@@ -95,6 +95,12 @@ class PlackettBurmanDesign:
     replicates: int
     n_blocks: int
     seed: int | None = None
+    folded_on: str | None = None      # None, "all", 또는 요인 문자
+
+    point_col = "PtType"
+
+    def rebuild_runs(self, coded: pd.DataFrame) -> pd.DataFrame:
+        return to_levels(coded, self.letters, self.factors, self.point_col)
 
     @property
     def n_factors(self) -> int:
@@ -114,7 +120,9 @@ class PlackettBurmanDesign:
 
     @property
     def base_runs(self) -> int:
-        return self.n_runs // self.replicates
+        """반복 하나의 런 수: 모서리점(접었으면 2배) + 반복당 중앙점."""
+        corners = self.corner_runs * (2 if self.folded_on else 1)
+        return corners + self.total_center_points // self.replicates
 
     def summary(self) -> dict:
         """Minitab 'Design Summary' 항목(순서 포함)."""
@@ -126,6 +134,7 @@ class PlackettBurmanDesign:
             "Base blocks": 1,
             "Total blocks": self.n_blocks,
             "Center points": self.total_center_points,
+            **({"Folded on factors": "All" if self.folded_on == "all" else self.folded_on} if self.folded_on else {}),
         }
 
     def summary_text(self) -> str:
@@ -138,6 +147,8 @@ class PlackettBurmanDesign:
         ]
         if s["Center points"]:
             lines.append(f"Center points: {s['Center points']}")
+        if self.folded_on:
+            lines.append(f"Folded on factors: {s['Folded on factors']}")
         if self.center_points_per_replicate and self.n_text_factors:
             lines.append("* NOTE * The number of centerpoints specified is doubled for each categorical factor. "
                          "For Q categorical factors, the result is 2^Q times as many centerpoints.")

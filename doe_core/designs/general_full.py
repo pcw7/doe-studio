@@ -56,6 +56,16 @@ class GeneralFullFactorialDesign:
     n_blocks: int
     seed: int | None = None
 
+    point_col = "PtType"
+    folded_on = None   # 일반 완전요인설계는 접을 수 없다
+
+    def rebuild_runs(self, coded: pd.DataFrame) -> pd.DataFrame:
+        runs = coded[["StdOrder", "RunOrder", self.point_col, "Blocks"]].copy()
+        for L, f in zip(self.letters, self.factors):
+            values = np.array(f.levels, dtype=float if f.numeric else object)
+            runs[f.name] = values[coded[L].values.astype(int) - 1]
+        return runs
+
     @property
     def n_factors(self) -> int:
         return len(self.factors)
@@ -133,11 +143,9 @@ def create_general_full_factorial(
     coded = assign_orders(coded, ["Blocks", "_rep", "_order"], randomize=randomize, seed=seed)
     coded = coded[["StdOrder", "RunOrder", "PtType", "Blocks", *letters]]
 
-    runs = coded[["StdOrder", "RunOrder", "PtType", "Blocks"]].copy()
-    for L, f in zip(letters, factors):
-        values = np.array(f.levels, dtype=float if f.numeric else object)
-        runs[f.name] = values[coded[L].values - 1]
-    return GeneralFullFactorialDesign(
-        factors=list(factors), letters=letters, runs=runs, coded=coded, replicates=replicates,
+    d = GeneralFullFactorialDesign(
+        factors=list(factors), letters=letters, runs=pd.DataFrame(), coded=coded, replicates=replicates,
         n_blocks=replicates if block_on_replicates else 1, seed=seed,
     )
+    d.runs = d.rebuild_runs(coded)
+    return d

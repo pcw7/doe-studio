@@ -1,0 +1,4 @@
+# 모든 텍스트 파일은 저장소와 작업 폴더 모두 LF 로 통일
+* text=auto eol=lf
+*.MWX binary
+*.png binary
