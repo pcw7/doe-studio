@@ -1,5 +1,4 @@
 """반응 최적화·예측 화면 — Minitab 'Response Optimizer' · 'Predict' · 'Overlaid Contour Plot'."""
-import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -10,14 +9,10 @@ from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
 from doe_core.designs.general_full import GeneralFullFactorialDesign
 from doe_core.designs.mixture import MixtureDesign
 from doe_core.designs.response_surface import ResponseSurfaceDesign
-from doe_core.optimize.optimizer import (
-    default_goal, multiple_response_prediction, optimize, parameters_table, setting_table, solution_table,
-)
+from app.goals import goals_editor, nonzero_bounds, show_results
+from doe_core.optimize.optimizer import optimize
 from doe_core.optimize.predict import predict, prediction_table, settings_table
 from doe_core.plots.contour_plots import factor_range, overlaid_contour_plot
-
-GOAL_KO = {"maximize": "최대화", "minimize": "최소화", "target": "목표값"}
-GOAL_EN = {v: k for k, v in GOAL_KO.items()}
 
 st.title("반응 최적화·예측")
 st.caption("Response Optimizer · Predict · Overlaid Contour Plot")
@@ -25,7 +20,8 @@ ws = require_ws()
 st.caption(ws_caption(ws))
 d = ws.design
 if isinstance(d, MixtureDesign):
-    st.info("혼합물 설계의 반응 최적화(성분 합 제약)는 다음 단계에서 지원합니다. 지금은 **분석** 화면에서 모형을 확인하세요.")
+    from app.mixture_panel import render_optimizer
+    render_optimizer(ws)
     st.stop()
 is_dsd = isinstance(d, DefinitiveScreeningDesign)
 is_rs = isinstance(d, ResponseSurfaceDesign) or is_dsd
@@ -59,34 +55,7 @@ for r in responses:
         st.error(f"{r} 모형을 적합하지 못했습니다: {e}")
         st.stop()
 
-st.subheader("목표 (Desirability)")
-st.write("목표·하한·목표값·상한을 정합니다. 빈 값은 데이터 최솟값·최댓값으로 채웁니다. 가중치·중요도는 0.1~10.")
-rows = []
-for r, a in models.items():
-    rows.append({"반응": r, "목표": "최대화", "하한": float(np.min(a.y)), "목표값": float(np.max(a.y)),
-                 "상한": float(np.max(a.y)), "가중치": 1.0, "중요도": 1.0})
-gdf = st.data_editor(pd.DataFrame(rows), key=f"goals_{'_'.join(responses)}", hide_index=True, width="stretch",
-                     disabled=["반응"],
-                     column_config={"목표": st.column_config.SelectboxColumn("목표", options=list(GOAL_EN), required=True)})
-
-goals = []
-try:
-    for row in gdf.itertuples(index=False):
-        a = models[row[0]]
-        g = GOAL_EN[row[1]]
-        lo, tg, hi = float(row[2]), float(row[3]), float(row[4])
-        ymin, ymax = float(np.min(a.y)), float(np.max(a.y))
-        kw = {}
-        if g in ("maximize", "target") and not np.isclose(lo, ymin):
-            kw["lower"] = lo
-        if g in ("minimize", "target") and not np.isclose(hi, ymax):
-            kw["upper"] = hi
-        if g == "target" or not np.isclose(tg, ymax if g == "maximize" else ymin):
-            kw["target"] = tg
-        goals.append(default_goal(a, g, weight=float(row[5]), importance=float(row[6]), **kw))
-except Exception as e:  # noqa: BLE001
-    st.error(f"목표 설정이 올바르지 않습니다: {e}")
-    st.stop()
+goals = goals_editor(models, key=f"goals_{'_'.join(responses)}")
 
 hold = {}
 with st.expander("요인 고정 (Constraints: Hold at value)"):
@@ -109,20 +78,7 @@ if st.button("최적화", type="primary"):
 opt = st.session_state.get("opt")
 if opt and opt[0] == responses:
     res = opt[1]
-    st.subheader("결과")
-    st.metric("종합 만족도 (Composite Desirability)", f"{res.D:.4f}")
-    st.markdown("**파라미터 (Parameters)**")
-    show_table(parameters_table(list(models.values()), goals))
-    st.markdown("**해 (Solution)**")
-    show_table(solution_table(res, goals))
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        st.markdown("**설정 (Setting)**")
-        show_table(setting_table(res))
-    with c2:
-        st.markdown("**다중 반응 예측 (Multiple Response Prediction)**")
-        show_table(multiple_response_prediction(res))
-        show_table(pd.DataFrame([{"반응": r, "개별 만족도 d": f"{v:.5f}"} for r, v in res.d.items()]))
+    show_results(res, models, goals)
 
     cont = [L for L, f in zip(d.letters, d.factors) if getattr(f, "is_numeric", False) and hasattr(f, "low")]
     if len(responses) >= 2 and len(cont) >= 2:
@@ -131,9 +87,7 @@ if opt and opt[0] == responses:
         c1, c2 = st.columns(2)
         xL = c1.selectbox("X 축", cont, format_func=lambda L: names[L])
         yL = c2.selectbox("Y 축", [L for L in cont if L != xL], format_func=lambda L: names[L])
-        # 만족도가 0 이 아닌 범위: 최대화 (하한, ∞), 최소화 (−∞, 상한), 목표값 (하한, 상한)
-        bounds = {g.response: (g.lower if g.lower is not None else -np.inf,
-                               g.upper if g.upper is not None else np.inf) for g in goals}
+        bounds = nonzero_bounds(goals)
         hold_other = {k: v for k, v in res.settings.items() if k not in (names[xL], names[yL])}
         try:
             show_plot(overlaid_contour_plot(list(models.values()), bounds, xL, yL, hold=hold_other, mode=plot_mode()))

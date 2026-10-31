@@ -710,3 +710,44 @@ def feasible(design: MixtureDesign, P: np.ndarray, tol: float = 1e-9) -> np.ndar
     G, h = _inequalities(design.components, design.letters, design.constraints)
     P = np.atleast_2d(P)
     return np.all(P @ G.T <= h + tol, axis=1) & (np.abs(P.sum(axis=1) - 1) < 1e-6)
+
+
+def fast_rows(a: "MixtureAnalysis"):
+    """(비율 행렬 P(n × q), 공정 변수 코드값 행렬 Z(n × 공정 변수 수)) → 설계행렬 행. 최적화처럼 반복 계산용."""
+    d = a.design
+    lo = np.array([c.lower for c in d.components])
+    pos = {L: i for i, L in enumerate(d.letters)}
+    ppos = {X: i for i, X in enumerate(d.process_letters)}
+    n_blk = {id(t): len([j for j, ti in enumerate(a.col_term) if a.terms[ti] is t]) for t in a.terms if t.kind == "blocks"}
+
+    def rows(P: np.ndarray, Z: np.ndarray | None = None) -> np.ndarray:
+        P = np.atleast_2d(np.asarray(P, dtype=float))
+        if a.units == "amounts":
+            U = P * d.total
+        elif a.units == "pseudocomponents":
+            U = (P - lo) / (1 - lo.sum())
+        else:
+            U = P
+        Z = np.zeros((len(P), len(d.process))) if Z is None else np.atleast_2d(Z)
+        cols = []
+        for t in a.terms:
+            if t.kind == "blocks":
+                cols.append(np.zeros((len(P), n_blk[id(t)])))
+                continue
+            c = [U[:, pos[L]] for L in t.comps]
+            if t.kind == "linear":
+                col = c[0]
+            elif t.kind == "product":
+                col = np.prod(np.column_stack(c), axis=1)
+            elif t.kind == "cubic":
+                col = c[0] * c[1] * (c[0] - c[1])
+            elif t.kind == "quartic":
+                col = c[0] * c[1] * (c[0] - c[1]) ** 2
+            else:
+                with np.errstate(divide="ignore"):
+                    col = 1.0 / c[0]
+            for X in t.proc:
+                col = col * Z[:, ppos[X]]
+            cols.append(col[:, None])
+        return np.hstack(cols)
+    return rows
