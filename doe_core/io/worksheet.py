@@ -33,6 +33,7 @@ from ..designs.plackett_burman import PlackettBurmanDesign
 from ..designs.response_surface import ResponseSurfaceDesign
 from ..designs.mixture import Component, LinearConstraint, MixtureDesign
 from ..designs.definitive_screening import DefinitiveScreeningDesign
+from ..designs.split_plot import SplitPlotDesign
 from ..designs.words import LETTERS, word_from_str, word_to_str
 
 FORMAT = "doe-studio-worksheet"
@@ -46,7 +47,7 @@ DESIGN_COLS = ("StdOrder", "RunOrder", "CenterPt", "PtType", "Blocks")
 @dataclass
 class Worksheet:
     design: (TwoLevelDesign | PlackettBurmanDesign | GeneralFullFactorialDesign | ResponseSurfaceDesign | MixtureDesign
-             | DefinitiveScreeningDesign)
+             | DefinitiveScreeningDesign | SplitPlotDesign)
     columns: pd.DataFrame = field(default_factory=pd.DataFrame)   # index = StdOrder
     nonregular: bool = False                                       # 사용자 정의 설계가 정규 부분요인이 아님
 
@@ -120,6 +121,11 @@ def design_to_dict(d) -> dict:
                 "components": [{"name": c.name, "lower": c.lower, "upper": c.upper} for c in d.components],
                 "process": [_factor_to_dict(f) for f in d.process],
                 "constraints": [{"coefs": lc.coefs, "lower": lc.lower, "upper": lc.upper} for lc in d.constraints]}
+    if isinstance(d, SplitPlotDesign):
+        return {"type": "split_plot", "factors": [_factor_to_dict(f) for f in d.factors], "n_htc": d.n_htc,
+                "base_runs": d.base_runs, "generators": d.generators,
+                "defining": [word_to_str(w) for w in d.alias.defining], "n_blocks": d.n_blocks,
+                "wp_replicates": d.wp_replicates, "subplot_replicates": d.subplot_replicates, "seed": d.seed}
     base = {"factors": [_factor_to_dict(f) for f in d.factors], "replicates": d.replicates,
             "n_blocks": d.n_blocks, "seed": d.seed}
     if isinstance(d, TwoLevelDesign):
@@ -168,6 +174,11 @@ def design_from_dict(meta: dict, coded: pd.DataFrame):
             d = ResponseSurfaceDesign(meta["kind"], factors, meta["letters"], pd.DataFrame(), coded, meta["alpha"],
                                       meta["base_runs"], meta["base_blocks"], meta["replicates"], meta["n_blocks"],
                                       meta["fraction"], dict(meta["generators"]), meta["seed"], meta["point_col"])
+        elif kind == "split_plot":
+            alias = alias_structure(len(factors), [word_from_str(w) for w in meta["defining"]], [])
+            d = SplitPlotDesign(factors, pd.DataFrame(), coded, meta["n_htc"], meta["base_runs"],
+                                dict(meta["generators"]), alias, meta["n_blocks"], meta["wp_replicates"],
+                                meta["subplot_replicates"], meta["seed"])
         elif kind == "definitive_screening":
             d = DefinitiveScreeningDesign(factors, meta["letters"], pd.DataFrame(), coded, meta["order"],
                                           meta["replicates"], meta["n_blocks"], meta["seed"])

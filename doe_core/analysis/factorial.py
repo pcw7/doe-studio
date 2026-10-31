@@ -124,6 +124,12 @@ class FactorialAnalysis:
     def is_dsd(self) -> bool:
         return isinstance(self.design, DefinitiveScreeningDesign)
 
+    def coef_cov(self) -> np.ndarray:
+        """계수의 공분산 행렬(코드화 단위)."""
+        if self.mse is None:
+            return np.full((self.p, self.p), np.nan)
+        return self.cov_unscaled * self.mse
+
     def se_coef(self) -> np.ndarray:
         if self.mse is None:
             return np.full(self.p, np.nan)
@@ -407,7 +413,7 @@ class FactorialAnalysis:
         if is_hierarchical(self.terms):
             labels, T = self._uncoded_transform()
             coef = T @ self.beta
-            cov = T @ self.cov_unscaled @ T.T * (self.mse if self.mse is not None else np.nan)
+            cov = T @ self.coef_cov() @ T.T
             ses = np.sqrt(np.clip(np.diag(cov), 0, None))
             title = "Regression Equation in Uncoded Units"
         else:
@@ -479,6 +485,15 @@ def analyze_factorial(
     반응표면 설계·확정적 선별설계가 들어오면 analyze_response_surface 로 넘긴다(order 대신 model 사용,
     기본은 반응표면 완전 2차, 확정적 선별설계 선형 — Minitab 'Analyze Screening Design' 예제의 Linear).
     """
+    from ..designs.split_plot import SplitPlotDesign
+    if isinstance(design, SplitPlotDesign):
+        from .split_plot import SplitPlotAnalysis
+        coded, yv, used, cov = _prepare(design, y, covariates)
+        tl = factorial_terms(design, order=order, terms=terms, covariates=list(cov), include_blocks=include_blocks,
+                             include_center=False, blocks_present=coded["Blocks"].nunique() > 1)
+        a = _build(design, response, coded, yv, used, tl, cov)
+        return SplitPlotAnalysis(a.design, a.response, a.y, a.used_rows, a.terms, a.removed_terms, a.X,
+                                 a.col_labels, a.col_term, a.covariates)
     if isinstance(design, (ResponseSurfaceDesign, DefinitiveScreeningDesign)):
         if model is None:
             model = "linear" if isinstance(design, DefinitiveScreeningDesign) else "full quadratic"
