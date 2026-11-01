@@ -1,4 +1,4 @@
-"""시작 화면: 소개, 현재 워크시트, 파일 불러오기(DOE Studio JSON, Minitab .MWX, CSV)."""
+"""시작 화면: 소개, 현재 워크시트, 파일 불러오기(DOE Studio JSON, Minitab .MWX, CSV, Excel .xlsx)."""
 import io
 
 import pandas as pd
@@ -7,6 +7,7 @@ import streamlit as st
 from app.i18n import O, T
 from app.state import SAMPLES, get_ws, set_ws, worksheet_from_json, ws_caption
 from doe_core.io.mwx import read_mwx
+from doe_core.io.xlsx import read_xlsx_sheets
 from doe_core.io.worksheet import define_custom_design, design_kind_of, load_mwx_worksheet
 
 st.title("DOE Studio")
@@ -31,8 +32,9 @@ with c1:
 
 with c2:
     st.subheader(T("파일 불러오기", "Open a file"))
-    up = st.file_uploader(T("DOE Studio 워크시트(.json), Minitab 워크시트(.mwx), CSV",
-                            "DOE Studio worksheet (.json), Minitab worksheet (.mwx), CSV"), type=["json", "mwx", "csv"])
+    up = st.file_uploader(T("DOE Studio 워크시트(.json), Minitab 워크시트(.mwx), CSV, Excel(.xlsx)",
+                            "DOE Studio worksheet (.json), Minitab worksheet (.mwx), CSV, Excel (.xlsx)"),
+                          type=["json", "mwx", "csv", "xlsx"])
     if up is not None:
         name = up.name.lower()
         if name.endswith(".json"):
@@ -44,7 +46,17 @@ with c2:
                 st.error(T("불러오지 못했습니다: ", "Could not load: ") + str(e))
         else:
             try:
-                df = read_mwx(io.BytesIO(up.getvalue())) if name.endswith(".mwx") else pd.read_csv(up)
+                if name.endswith(".xlsx"):
+                    sheets = {k: v for k, v in read_xlsx_sheets(up.getvalue()).items() if not v.empty}
+                    if not sheets:
+                        raise ValueError(T("값이 있는 시트가 없습니다.", "No sheet has data."))
+                    pick = st.selectbox(T("시트", "Sheet"), list(sheets), key=f"xlsx_sheet_{up.name}") \
+                        if len(sheets) > 1 else next(iter(sheets))
+                    df = sheets[pick]
+                elif name.endswith(".mwx"):
+                    df = read_mwx(io.BytesIO(up.getvalue()))
+                else:
+                    df = pd.read_csv(up)
             except Exception as e:  # noqa: BLE001
                 st.error(T("파일을 읽지 못했습니다: ", "Could not read the file: ") + str(e))
                 st.stop()

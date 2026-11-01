@@ -108,6 +108,12 @@ def worksheet_from_json(data: bytes) -> Worksheet:
         return load_worksheet(p)
 
 
+def worksheet_xlsx(ws: Worksheet) -> bytes:
+    """워크시트(런 순서)를 Excel 파일로."""
+    from doe_core.io.xlsx import frames_to_xlsx
+    return frames_to_xlsx({"Worksheet": ws.table("run")})
+
+
 def worksheet_csv(ws: Worksheet) -> bytes:
     buf = io.StringIO()
     ws.table("run").to_csv(buf, index=False)
