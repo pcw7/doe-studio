@@ -13,7 +13,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from ..optimize.predict import _lookup, design_row
-from .theme import LINE_W, MARKER, style, tokens
+from .theme import LINE_W, MARKER, overlay_note, style, subtitle, tokens
 
 SEQ_BLUE = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6",
             "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b"]
@@ -132,7 +132,7 @@ def contour_plot(a, x: str, y: str, *, hold: dict | None = None, levels=None, sh
                         marker=dict(color=t["text"], size=MARKER - 2, symbol="circle-open", line=dict(width=1.5)),
                         hovertemplate="설계점 (%{x:.4g}, %{y:.4g})<extra></extra>")
     style(fig, mode, title=f"{z_label(a)} 등고선도: {names[Ly]} vs {names[Lx]}",
-          en=f"Contour Plot of {z_label(a)} vs {names[Ly]}, {names[Lx]} · " + _hold_text(a, x, y, hold, covariates),
+          en=subtitle(f"Contour Plot of {z_label(a)} vs {names[Ly]}, {names[Lx]}", _hold_text(a, x, y, hold, covariates)),
           height=520, showlegend=False)
     fig.update_xaxes(title_text=names[Lx], showgrid=False)
     fig.update_yaxes(title_text=names[Ly], showgrid=False)
@@ -151,7 +151,8 @@ def surface_plot(a, x: str, y: str, *, hold: dict | None = None, covariates: dic
         hovertemplate=f"{names[Lx]} %{{x:.4g}}<br>{names[Ly]} %{{y:.4g}}<br>{z_label(a)} %{{z:.4g}}<extra></extra>",
     ))
     style(fig, mode, title=f"{z_label(a)} 표면도: {names[Ly]}, {names[Lx]}",
-          en=f"Surface Plot of {z_label(a)} · " + _hold_text(a, x, y, hold, covariates), height=560, showlegend=False)
+          en=subtitle(f"Surface Plot of {z_label(a)}", _hold_text(a, x, y, hold, covariates)), height=560,
+          showlegend=False)
     axis = dict(backgroundcolor=t["surface"], gridcolor=t["grid"], color=t["text2"])
     fig.update_layout(scene=dict(xaxis=dict(title=names[Lx], **axis), yaxis=dict(title=names[Ly], **axis),
                                  zaxis=dict(title=z_label(a), **axis)))
@@ -197,8 +198,9 @@ def overlaid_contour_plot(analyses: list, bounds: dict, x: str, y: str, *, hold:
                                      line=dict(width=LINE_W), name=label,
                                      showlegend=i == 0, legendgroup=resp, hoverinfo="skip"))
     style(fig, mode, title=f"중첩 등고선도: {', '.join(zs)}",
-          en="Overlaid Contour Plot · 회색이 아닌 영역 = 모든 반응이 범위 안 · " + _hold_text(a0, x, y, hold, covariates),
+          en=subtitle("Overlaid Contour Plot", "회색이 아닌 영역 = 모든 반응이 범위 안", _hold_text(a0, x, y, hold, covariates)),
           height=540)
+    overlay_note(fig, feasible, np.ones_like(feasible, dtype=bool), t)
     fig.update_xaxes(title_text=names[Lx], showgrid=False)
     fig.update_yaxes(title_text=names[Ly], showgrid=False)
     return fig

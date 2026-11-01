@@ -23,7 +23,7 @@ import plotly.graph_objects as go
 
 from ..analysis.mixture import feasible, mixture_rows, reference_blend
 from .contour_plots import SEQ_BLUE
-from .theme import LINE_W, MARKER, style, tokens
+from .theme import LINE_W, MARKER, overlay_note, style, subtitle, tokens
 
 H = np.sqrt(3) / 2
 DASHES = ["solid", "dash", "dot", "dashdot"]
@@ -369,7 +369,7 @@ def mixture_contour_plot(a, triplet=None, *, hold: dict | None = None, process: 
                                  marker=dict(color=t["text"], size=MARKER - 2, symbol="circle-open", line=dict(width=1.5)),
                                  hoverinfo="skip"))
     style(fig, mode, title=f"{a.response} 혼합물 등고선도",
-          en=f"Mixture Contour Plot of {a.response} ({', '.join(nm)}) · " + _hold_text(tri, process, a.design),
+          en=subtitle(f"Mixture Contour Plot of {a.response} ({', '.join(nm)})", _hold_text(tri, process, a.design)),
           height=600, showlegend=False)
     _axes_off(fig)
     return fig
@@ -414,7 +414,7 @@ def mixture_surface_plot(a, triplet=None, *, hold: dict | None = None, process: 
     fig.add_trace(go.Scatter3d(x=cx[:3], y=cy[:3], z=[zmin] * 3, mode="text", text=[f"<b>{s}</b>" for s in nm],
                                textfont=dict(color=t["text"], size=13), hoverinfo="skip", showlegend=False))
     style(fig, mode, title=f"{a.response} 혼합물 표면도",
-          en=f"Mixture Surface Plot of {a.response} · " + _hold_text(tri, process, a.design), height=600,
+          en=subtitle(f"Mixture Surface Plot of {a.response}", _hold_text(tri, process, a.design)), height=600,
           showlegend=False)
     hidden = dict(showticklabels=False, title="", backgroundcolor=t["surface"], gridcolor=t["grid"], showgrid=False)
     fig.update_layout(scene=dict(xaxis=hidden, yaxis=hidden,
@@ -460,7 +460,8 @@ def mixture_overlaid_contour_plot(analyses: list, bounds: dict, triplet=None, *,
                                      hoverinfo="skip", connectgaps=False))
     a0 = analyses[0]
     style(fig, mode, title=f"혼합물 중첩 등고선도: {', '.join(zs)}",
-          en="Overlaid Contour Plot · 회색이 아닌 영역 = 모든 반응이 범위 안 · " + _hold_text(tri, process, a0.design),
+          en=subtitle("Overlaid Contour Plot", "회색이 아닌 영역 = 모든 반응이 범위 안", _hold_text(tri, process, a0.design)),
           height=620, showlegend=True)
     _axes_off(fig)
+    overlay_note(fig, ok, inside, t)
     return fig

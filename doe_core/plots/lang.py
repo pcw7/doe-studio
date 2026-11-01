@@ -12,6 +12,10 @@ HANGUL = re.compile(r"[가-힣]")
 _PAIR = re.compile(r"^(\**)(.*?)\s+\(([^()]*)\)(\**)$", re.S)
 
 FIG_PHRASES = {
+    "표시 범위 전체가 모든 반응의 범위 안입니다": "Every response is within its limits over the whole plotted region",
+    "하한·상한을 좁히면 경계선이 보입니다": "Narrow the lower and upper limits to see the boundaries",
+    "표시 범위에 모든 반응을 함께 만족하는 곳이 없습니다": "No point in the plotted region satisfies every response",
+    "범위를 넓히거나 다른 요인 값을 바꿔 보세요": "Widen the limits or change the held factor values",
     "회색이 아닌 영역 = 모든 반응이 범위 안": "non-grey region = all responses within limits",
     "기준 혼합물에서의 편차 (비율)": "Deviation from reference blend (proportion)",
     "기준 혼합물": "reference blend", "고정값: ": "Hold: ", "고정: ": "Hold: ", "적합치 ": "Fitted ",

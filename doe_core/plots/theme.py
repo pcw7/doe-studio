@@ -29,6 +29,37 @@ BAR_MAX = 24
 KEEP = "keep"          # 이 이름의 주석은 사용자 글자(요인 이름 등)라 영어 전환에서 바꾸지 않는다
 
 
+def subtitle(*parts: str) -> str:
+    """부제 조각을 ' · ' 로 잇는다. 빈 조각(고정값이 없을 때 등)은 빼서 끝에 ' ·' 가 남지 않게 한다."""
+    return " · ".join(p for p in parts if p)
+
+
+OVERLAY_ALL = "표시 범위 전체가 모든 반응의 범위 안입니다<br>하한·상한을 좁히면 경계선이 보입니다"
+OVERLAY_NONE = "표시 범위에 모든 반응을 함께 만족하는 곳이 없습니다<br>범위를 넓히거나 다른 요인 값을 바꿔 보세요"
+
+
+def overlay_note(fig: go.Figure, ok, inside, t: dict) -> go.Figure:
+    """중첩 등고선도에서 경계선이 하나도 없을 때(표시 범위 전체가 만족 / 아무 데도 만족하지 않음) 그림 가운데 안내.
+
+    기본 하한·상한이 데이터 최솟값·최댓값이면 보통 범위 전체가 만족해 빈 그림처럼 보이기 때문이다.
+    ok: 모든 반응이 범위 안인 격자점, inside: 그릴 수 있는 격자점(혼합물은 삼각형 안).
+    """
+    import numpy as np
+    ok, inside = np.asarray(ok, bool), np.asarray(inside, bool)
+    if not inside.any():
+        return fig
+    if ok[inside].all():
+        text = OVERLAY_ALL
+    elif not ok[inside].any():
+        text = OVERLAY_NONE
+    else:
+        return fig
+    fig.add_annotation(x=0.5, y=0.5, xref="paper", yref="paper", showarrow=False, text=text, align="center",
+                       font=dict(size=13, color=t["text"]), bgcolor=t["surface"], bordercolor=t["axis"],
+                       borderwidth=1, borderpad=8)
+    return fig
+
+
 def lift_legend(fig: go.Figure, px: int) -> go.Figure:
     """범례를 그림 영역 위로 px 픽셀 더 올리고 위 여백을 늘린다(그림 바로 위의 기준선 값·소제목과 겹치지 않게)."""
     m = fig.layout.margin
