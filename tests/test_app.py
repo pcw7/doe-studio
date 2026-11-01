@@ -270,3 +270,25 @@ def test_report_downloads_on_create_page():
     assert not at.exception
     d = at.session_state["worksheet"].design
     assert at.session_state[f"rep_design_{id(d)}_ko"]["xlsx"][:2] == b"PK"
+
+
+def test_taguchi_create_and_analyze_pages():
+    at = run("create.py")
+    at.segmented_control[0].set_value("Taguchi 설계").run()
+    assert not at.exception
+    at.button[0].click().run()
+    assert not at.exception
+    d = at.session_state["worksheet"].design
+    assert type(d).__name__ == "TaguchiDesign" and d.used_name == "L4(2^3)" and d.columns == [1, 2, 3]
+    import numpy as np
+    ws = at.session_state["worksheet"]
+    rng = np.random.default_rng(0)
+    ws.add_column("Y1", rng.normal(50, 2, d.n_runs), order="worksheet")
+    ws.add_column("Y2", rng.normal(52, 2, d.n_runs), order="worksheet")
+    at = run("analyze.py", ws)
+    assert not at.exception and any("Taguchi 설계 분석" in t.value for t in at.title)
+    at.button[0].click().run()
+    assert not at.exception
+    res = at.session_state["taguchi"][1]
+    assert set(res) == {"sn", "mean"}
+    assert any("Response Table for Signal to Noise Ratios" in m.value for m in at.markdown)

@@ -50,7 +50,7 @@ def sample(name, factors, **kw):
 
 
 @pytest.mark.parametrize("kind", ["2수준 요인설계", "분할구 설계", "Plackett-Burman", "확정적 선별설계", "일반 완전요인설계",
-                                  "반응표면 설계", "혼합물 설계"])
+                                  "반응표면 설계", "혼합물 설계", "Taguchi 설계"])
 def test_create_page_english(kind):
     at = run_en("create.py")
     next(w for w in at.segmented_control if w.key != "lang").set_value(kind).run()   # 사이드바 언어 선택 제외
@@ -111,3 +111,16 @@ def test_figures_and_reports_in_english():
     html = to_html(analysis_report(ws, a, lang="en"), plotlyjs="cdn")
     body = re.sub(r"<script.*?</script>", "", html, flags=re.S)
     assert "Analysis report — Strength" in body and not HANGUL.search(body)
+
+
+def test_taguchi_analyze_english():
+    from doe_core.designs.taguchi import create_taguchi_design
+    from doe_core.io.worksheet import Worksheet
+    d = create_taguchi_design("L8(2^7)", n_factors=4)
+    ws = Worksheet(d)
+    rng = np.random.default_rng(0)
+    ws.add_column("Y1", rng.normal(50, 2, 8), order="worksheet")
+    ws.add_column("Y2", rng.normal(52, 2, 8), order="worksheet")
+    at = run_en("analyze.py", ws)
+    at.button[0].click().run()
+    assert not at.exception and korean_left(at) == []

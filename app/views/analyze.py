@@ -28,6 +28,11 @@ if isinstance(d, MixtureDesign):
     from app.mixture_panel import render
     render(ws)
     st.stop()
+from doe_core.designs.taguchi import TaguchiDesign  # noqa: E402
+if isinstance(d, TaguchiDesign):
+    from app.taguchi_panel import render as render_taguchi
+    render_taguchi(ws)
+    st.stop()
 is_dsd = isinstance(d, DefinitiveScreeningDesign)
 is_sp = isinstance(d, SplitPlotDesign)
 is_rs = isinstance(d, ResponseSurfaceDesign) or is_dsd          # 제곱 항을 쓸 수 있는 설계

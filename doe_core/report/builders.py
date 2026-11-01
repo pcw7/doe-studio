@@ -18,12 +18,13 @@ KIND_KO = {
     "TwoLevelDesign": "2수준 요인설계", "PlackettBurmanDesign": "Plackett-Burman 설계",
     "GeneralFullFactorialDesign": "일반 완전요인설계", "ResponseSurfaceDesign": "반응표면 설계",
     "MixtureDesign": "혼합물 설계", "DefinitiveScreeningDesign": "확정적 선별설계", "SplitPlotDesign": "2수준 분할구 설계",
+    "TaguchiDesign": "Taguchi 설계",
 }
 KIND_EN = {
     "TwoLevelDesign": "2-level factorial design", "PlackettBurmanDesign": "Plackett-Burman design",
     "GeneralFullFactorialDesign": "General full factorial design", "ResponseSurfaceDesign": "Response surface design",
     "MixtureDesign": "Mixture design", "DefinitiveScreeningDesign": "Definitive screening design",
-    "SplitPlotDesign": "2-level split-plot design",
+    "SplitPlotDesign": "2-level split-plot design", "TaguchiDesign": "Taguchi design",
 }
 
 
@@ -205,4 +206,28 @@ def optimal_design_report(res, ws=None, *, lang: str = "ko") -> Report:
         tbl.insert(0, "Row", range(1, len(tbl) + 1))
         tbl["OptPoint"] = res.indicator()
         r.data_sheets[t("후보점·지시자", "Candidates and indicator")] = tbl
+    return r
+
+
+def taguchi_report(ws, analyses: dict, *, figures: bool = True, mode: str = "light", lang: str = "ko") -> Report:
+    """Taguchi 분석 보고서: 특성(S/N 비·평균 …)마다 계수표·모형 요약·분산분석표·반응표·주효과도."""
+    from ..analysis.taguchi import SN_TYPES
+    t = _tr(lang)
+    d = ws.design
+    r = Report(t("Taguchi 분석 보고서", "Taguchi analysis report"),
+               f"{d.used_name} · " + t(f"요인 {len(d.factors)}개 · 런 {d.n_runs}개",
+                                      f"{len(d.factors)} factors · {d.n_runs} runs"), lang=lang)
+    r.mono(d.columns_text())
+    for c, a in analyses.items():
+        r.heading(a.coefficients_title())
+        r.table(a.coefficients_table())
+        r.table(a.summary_table(), t("모형 요약 (Model Summary)"))
+        r.table(a.anova_table(), a.anova_title())
+        r.table(a.response_table(), a.response_title() + (f" — {SN_TYPES[a.sn_type]}" if c == "sn" else ""))
+        if figures:
+            from ..plots.taguchi_plots import taguchi_main_effects_plot
+            fig = _try(taguchi_main_effects_plot, a, mode)
+            if fig is not None:
+                r.figure(fig)
+    r.data_sheets[t("워크시트", "Worksheet")] = ws.table("run")
     return r

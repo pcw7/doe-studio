@@ -34,6 +34,7 @@ from ..designs.response_surface import ResponseSurfaceDesign
 from ..designs.mixture import Component, LinearConstraint, MixtureDesign
 from ..designs.definitive_screening import DefinitiveScreeningDesign
 from ..designs.split_plot import SplitPlotDesign
+from ..designs.taguchi import TaguchiDesign, array_by_name
 from ..designs.words import LETTERS, word_from_str, word_to_str
 
 FORMAT = "doe-studio-worksheet"
@@ -47,7 +48,7 @@ DESIGN_COLS = ("StdOrder", "RunOrder", "CenterPt", "PtType", "Blocks")
 @dataclass
 class Worksheet:
     design: (TwoLevelDesign | PlackettBurmanDesign | GeneralFullFactorialDesign | ResponseSurfaceDesign | MixtureDesign
-             | DefinitiveScreeningDesign | SplitPlotDesign)
+             | DefinitiveScreeningDesign | SplitPlotDesign | TaguchiDesign)
     columns: pd.DataFrame = field(default_factory=pd.DataFrame)   # index = StdOrder
     nonregular: bool = False                                       # 사용자 정의 설계가 정규 부분요인이 아님
 
@@ -121,6 +122,9 @@ def design_to_dict(d) -> dict:
                 "components": [{"name": c.name, "lower": c.lower, "upper": c.upper} for c in d.components],
                 "process": [_factor_to_dict(f) for f in d.process],
                 "constraints": [{"coefs": lc.coefs, "lower": lc.lower, "upper": lc.upper} for lc in d.constraints]}
+    if isinstance(d, TaguchiDesign):
+        return {"type": "taguchi", "array": d.array.name, "columns": list(d.columns),
+                "factors": [_factor_to_dict(f) for f in d.factors]}
     if isinstance(d, SplitPlotDesign):
         return {"type": "split_plot", "factors": [_factor_to_dict(f) for f in d.factors], "n_htc": d.n_htc,
                 "base_runs": d.base_runs, "generators": d.generators,
@@ -155,6 +159,11 @@ def design_from_dict(meta: dict, coded: pd.DataFrame):
                           pd.DataFrame(), coded, meta["degree"], meta["total"],
                           [LinearConstraint(**lc) for lc in meta["constraints"]], meta["constrained"],
                           meta["replicates"], meta["boundaries"], meta["n_blocks"], meta["seed"])
+        d.runs = d.rebuild_runs(coded)
+        return d
+    if kind == "taguchi":
+        factors = [GeneralFactor(f["name"], f["levels"], numeric=f["numeric"]) for f in meta["factors"]]
+        d = TaguchiDesign(array_by_name(meta["array"]), list(meta["columns"]), factors, pd.DataFrame(), coded)
         d.runs = d.rebuild_runs(coded)
         return d
     if kind == "general_full":
