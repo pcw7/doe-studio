@@ -6,7 +6,7 @@ import streamlit as st
 
 from app import fitted_models
 from app.i18n import O, T, lang
-from app.state import plot_mode, report_downloads, run_progress, show_plot, show_table, ws_caption
+from app.state import plot_mode, report_downloads, run_progress, show_plot, show_table
 from app.stepwise_ui import selection_details
 from doe_core.analysis.stepwise import DEFAULT_ALPHA, StepwiseOptions
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
@@ -59,7 +59,6 @@ def render(ws) -> None:
     d = ws.design
     st.title(T("혼합물 설계 분석", "Analyze mixture design"))
     st.caption("Analyze Mixture Design")
-    st.caption(ws_caption(ws))
     run_progress(ws)
     numeric_cols = [c for c in ws.columns.columns
                     if pd.api.types.is_numeric_dtype(ws.columns[c]) and ws.columns[c].notna().sum() > 1]
@@ -207,7 +206,6 @@ def render_optimizer(ws) -> None:
     st.caption(T("Mixture Response Optimizer — 성분 비율 합 1, 성분 범위·선형 제약 안에서 종합 만족도를 최대화합니다.",
                  "Maximizes the composite desirability with proportions summing to 1, within component bounds and "
                  "linear constraints."))
-    st.caption(ws_caption(ws))
     numeric_cols = [c for c in ws.columns.columns
                     if pd.api.types.is_numeric_dtype(ws.columns[c]) and ws.columns[c].notna().sum() > 1]
     if not numeric_cols:

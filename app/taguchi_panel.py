@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import T, lang
-from app.state import plot_mode, report_downloads, show_plot, show_table, ws_caption
+from app.state import plot_mode, report_downloads, show_plot, show_table
 from doe_core.analysis.taguchi import CHARACTERISTICS, SN_TYPES, _val, analyze_taguchi_worksheet, predict_levels
 from doe_core.plots.taguchi_plots import taguchi_main_effects_plot
 
@@ -21,7 +21,6 @@ def render(ws) -> None:
     d = ws.design
     st.title(T("Taguchi 설계 분석", "Analyze Taguchi design"))
     st.caption("Analyze Taguchi Design (static)")
-    st.caption(ws_caption(ws))
     numeric_cols = [c for c in ws.columns.columns
                     if pd.api.types.is_numeric_dtype(ws.columns[c]) and ws.columns[c].notna().sum() > 1]
     if not numeric_cols:

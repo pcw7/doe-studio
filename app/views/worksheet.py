@@ -6,7 +6,7 @@ import streamlit as st
 from app.i18n import O, T
 from app.state import (
     ROW_HEIGHT, require_ws, run_progress, set_ws, show_table, table_height, worksheet_csv, worksheet_json,
-    worksheet_xlsx, ws_caption,
+    worksheet_xlsx,
 )
 from doe_core.designs.factorial import TwoLevelDesign
 from doe_core.designs.modify import (
@@ -18,7 +18,6 @@ from doe_core.io.worksheet import NAME_MAX, clean_name, file_stem
 
 st.title(T("워크시트", "Worksheet"))
 ws = require_ws()
-st.caption(ws_caption(ws))
 run_progress(ws)
 notice = st.session_state.pop("ws_notice", None)
 if notice:

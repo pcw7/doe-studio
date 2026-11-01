@@ -7,7 +7,6 @@ import streamlit as st
 from app.i18n import O, T
 from app.state import (
     DESIGN_KIND_KO, SAMPLES, SAVED_TYPE_CLASS, get_ws, md_text, restore_autosave, set_ws, worksheet_from_json,
-    ws_caption,
 )
 from doe_core.examples import EXAMPLES
 from doe_core.io import autosave
@@ -23,9 +22,7 @@ st.page_link("views/help.py", label=T("처음이라면: 실험 흐름·설계 �
                                                                                    "and glossary"), icon=":material/help:")
 
 ws = get_ws()
-if ws is not None:
-    st.success(T("현재 워크시트: ", "Current worksheet: ") + ws_caption(ws))
-else:
+if ws is None:                # 있으면 화면 맨 위 '현재 작업' 띠에 보인다
     st.info(T("현재 워크시트가 없습니다. 새 설계를 만들거나 파일을 불러오세요.",
               "No current worksheet. Create a new design or open a file."))
 

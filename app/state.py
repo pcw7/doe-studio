@@ -1,6 +1,7 @@
 """화면 공통: 세션의 워크시트, 그래프 테마, 표 표시, 파일 내보내기."""
 from __future__ import annotations
 
+import html
 import io
 import json
 from datetime import datetime
@@ -223,14 +224,45 @@ def md_text(text: str) -> str:
     return "".join("\\" + ch if ch in "\\`*_{}[]<>()#+-.!|~$" else ch for ch in text)
 
 
-def ws_caption(ws: Worksheet) -> str:
-    """화면 위 설명 줄(마크다운). 작업 이름이 있으면 맨 앞에 굵게."""
-    d = ws.design
-    extra = [c for c in ws.columns.columns]
-    return ((f"**{md_text(ws.name)}** · " if ws.name else "")
-            + T(f"{kind_ko(d)} · 요인 {len(d.factors)}개 · 런 {d.n_runs}개",
-                f"{kind_ko(d)} · {len(d.factors)} factors · {d.n_runs} runs")
-            + (T(f" · 비설계 열: {', '.join(extra)}", f" · other columns: {', '.join(extra)}") if extra else ""))
+def work_state(ws: Worksheet | None) -> dict | None:
+    """'현재 작업' 띠에 보일 내용(바뀌었는지 비교하려고 사전으로)."""
+    if ws is None:
+        return None
+    r = run_states(ws)
+    return {"name": ws.name, "kind": kind_ko(ws.design), "factors": len(ws.design.factors), "runs": ws.design.n_runs,
+            "columns": list(ws.columns.columns), "done": int((r["state"] == "done").sum()),
+            "part": int((r["state"] == "part").sum()), "lang": st.session_state.get("lang")}
+
+
+def current_work_bar(s: dict, *, link: bool, key: str = "current_work") -> None:
+    """모든 화면 맨 위의 '현재 작업' 띠: 이름(없으면 설계 종류)을 크게, 아래에 설계·요인·런·열과 결과 입력 진행."""
+    e = html.escape
+    title = s["name"] or s["kind"]
+    detail = ([s["kind"]] if s["name"] else []) + [T(f"요인 {s['factors']}개", f"{s['factors']} factors"),
+                                                   T(f"런 {s['runs']}개", f"{s['runs']} runs")]
+    if s["columns"]:
+        cols = ", ".join(s["columns"][:4]) + (" …" if len(s["columns"]) > 4 else "")
+        detail.append(T("열: ", "columns: ") + cols)
+    n, done = s["runs"], s["done"]
+    progress = T(f"결과 입력 {done} / {n}런", f"results {done} / {n} runs")
+    if s["part"]:
+        progress += T(f" · 일부 {s['part']}런", f" · {s['part']} partly")
+    pct = 100 * done / n if n else 0
+    label = T("현재 작업", "Current work") + ("" if s["name"] else T(" · 이름 없음", " · unnamed"))
+    with st.container(border=True, key=key):
+        c1, c2 = st.columns([5, 1.2], vertical_alignment="center")
+        c1.html(
+            f'<div style="font-size:12px;opacity:.6">{e(label)}</div>'
+            f'<div style="font-size:18px;font-weight:650;line-height:1.35;margin-top:2px;overflow-wrap:anywhere">'
+            f'{e(title)}</div>'
+            f'<div style="font-size:13.5px;margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;'
+            f'font-variant-numeric:tabular-nums"><span style="opacity:.75">{e(" · ".join(detail))}</span>'
+            f'<span style="display:inline-flex;align-items:center;gap:8px"><span style="opacity:.75">{e(progress)}</span>'
+            f'<span style="display:inline-block;width:88px;height:4px;border-radius:2px;background:rgba(128,128,128,.25)">'
+            f'<span style="display:block;height:4px;border-radius:2px;width:{pct:.0f}%;background:#2a78d6"></span>'
+            f'</span></span></div>')
+        if link:
+            c2.page_link("views/worksheet.py", label=T("워크시트 열기", "Open worksheet"), icon=":material/table:")
 
 
 def report_downloads(make_report, key: str, fname: str) -> None:
