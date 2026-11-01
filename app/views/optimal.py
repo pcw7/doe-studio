@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import O, T, lang
-from app.state import report_downloads, require_ws, set_ws, show_table, worksheet_json, ws_caption
+from app.state import report_downloads, require_ws, set_ws, show_table, worksheet_json
 from doe_core.analysis.mixture import MIX_MODELS
 from doe_core.analysis.model import RS_MODELS
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
@@ -24,7 +24,6 @@ st.caption(T("Select Optimal Design — 워크시트의 설계 행(후보점)에
              "distance."))
 ws = require_ws()
 d = ws.design
-st.caption(ws_caption(ws))
 from doe_core.designs.taguchi import TaguchiDesign  # noqa: E402
 if isinstance(d, TaguchiDesign):
     st.info(T("Taguchi 설계는 직교배열 자체가 최적 설계라 이 기능을 쓰지 않습니다.",

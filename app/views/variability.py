@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import T, lang
-from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
+from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table
 from app.contour_ui import contour_tab
 from app.stepwise_ui import selection_details, stepwise_input
 from doe_core.analysis.model import factorial_terms
@@ -20,7 +20,6 @@ from doe_core.plots.residual_plots import four_in_one
 st.title(T("산포 분석", "Analyze variability"))
 st.caption("Pre-Process Responses for Analyze Variability · Analyze Variability")
 ws = require_ws()
-st.caption(ws_caption(ws))
 d = ws.design
 if isinstance(d, (ResponseSurfaceDesign, DefinitiveScreeningDesign, MixtureDesign, SplitPlotDesign)) or \
         type(d).__name__ == "TaguchiDesign":

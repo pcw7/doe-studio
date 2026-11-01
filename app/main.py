@@ -17,10 +17,11 @@ st.html("""<style>
 @media (max-width: 1024px) { [data-testid="stMainBlockContainer"] { padding-left: 24px; padding-right: 24px; } }
 @media (max-width: 480px) { [data-testid="stMainBlockContainer"] { padding-left: 20px; padding-right: 20px; } }
 [data-testid="stMetricValue"], [data-testid="stCode"] { font-variant-numeric: tabular-nums; }
+[class*="st-key-current_work"] { border-left: 3px solid #2a78d6 !important; }
 </style>""")
 
 from app.i18n import LANGS, T, install_placeholders  # noqa: E402
-from app.state import autosave_current  # noqa: E402
+from app.state import autosave_current, current_work_bar, get_ws, work_state  # noqa: E402
 
 install_placeholders()
 if st.session_state.get("lang") not in LANGS:
@@ -57,7 +58,24 @@ pages = {
                 url_path="power"),
     ],
 }
+pg = st.navigation(pages)
+# '현재 작업' 띠(모든 화면 맨 위). 화면이 워크시트를 바꾸면(값 입력·새 설계) 끝난 뒤 같은 자리에 다시 그린다.
+_bar = st.empty()
+
+
+def _draw(state, key: str) -> None:
+    if state is None:
+        _bar.empty()
+    else:
+        with _bar.container():
+            current_work_bar(state, link=pg.url_path != "worksheet", key=key)
+
+
+_shown = work_state(get_ws())
+_draw(_shown, "current_work")
 try:
-    st.navigation(pages).run()
+    pg.run()
+    if work_state(get_ws()) != _shown:
+        _draw(work_state(get_ws()), "current_work_after")
 finally:                     # st.rerun()·st.stop() 으로 끝나도 바뀐 워크시트를 저장한다
     autosave_current()

@@ -3,7 +3,9 @@
 - 엔진: 워크시트 이름 다듬기(공백·길이)·저장 왕복(이름 없으면 'name' 키 없음)·설계 수정 뒤에도 유지,
   파일 이름에서 Windows 금지 글자 바꾸기, 자동 저장 이름 바꾸기(저장 시각·순서 그대로)·지우기.
 - 화면: 시작 화면 목록의 '이름' → 입력 → 저장, '지우기' → 확인 → 지움(취소하면 그대로),
-  워크시트 화면의 '작업 이름' 이 설명 줄·자동 저장·내려받는 파일 이름(.json·.csv·.xlsx)에 반영.
+  워크시트 화면의 '작업 이름' 이 '현재 작업' 띠·자동 저장·내려받는 파일 이름(.json·.csv·.xlsx)에 반영.
+- '현재 작업' 띠: 모든 화면 맨 위에 이름(없으면 설계 종류)·설계·런·결과 입력 진행, 워크시트 화면 밖에서는 '워크시트 열기'.
+  화면이 워크시트를 바꾸면(새 설계) 같은 실행 안에서 띠도 바뀐다. 이름은 HTML 로 해석하지 않는다.
 """
 from datetime import datetime, timedelta
 
@@ -88,6 +90,13 @@ def test_rename_and_delete(folder):
         autosave.rename("../evil", "x")
 
 
+def bar(at) -> str:
+    """'현재 작업' 띠의 HTML(없으면 빈 글자)."""
+    found = [h.proto.body for h in at.get("html") if "현재 작업" in h.proto.body or "Current work" in h.proto.body]
+    assert len(found) <= 1
+    return found[0] if found else ""
+
+
 def _buttons(at, label):
     return [b for b in at.button if b.label == label]
 
@@ -140,12 +149,12 @@ def test_worksheet_name_input(folder, file_names):
     box.input("  촉매 A/B  ").run()
     assert not at.exception
     assert at.session_state["worksheet"].name == "촉매 A/B"
-    assert at.caption[0].value.startswith("**촉매 A/B** · 2수준 요인설계")
+    assert "촉매 A/B</div>" in bar(at)
     assert file_names[-3:] == ["촉매 A_B.json", "촉매 A_B.csv", "촉매 A_B.xlsx"]
     assert autosave.recent()[0].name == "촉매 A/B"                   # 이름도 자동 저장된다
-    # 시작 화면의 현재 워크시트 줄에도 이름
+    # 시작 화면 맨 위 띠에도 이름(예전의 '현재 워크시트' 초록 줄은 띠와 겹쳐 뺐다)
     at.switch_page("views/home.py").run()
-    assert any("**촉매 A/B**" in s.value for s in at.success)
+    assert "촉매 A/B</div>" in bar(at) and not at.success
 
 
 def test_home_list_english(folder):
@@ -163,3 +172,37 @@ def test_home_list_english(folder):
     at.button(key=f"as_del_{slot}").click().run()
     assert not at.exception
     assert not korean_left(at), korean_left(at)
+
+
+def test_current_work_bar(folder):
+    ws = _ws(name="촉매 <A> & B")
+    ws.add_column("순도", [99.0] * 5 + [np.nan] * 6)
+    at = run("analyze.py", ws)
+    assert not at.exception
+    b = bar(at)
+    assert "촉매 &lt;A&gt; &amp; B</div>" in b                       # 이름은 글자 그대로(HTML 로 해석하지 않음)
+    assert "2수준 요인설계 · 요인 3개 · 런 11개 · 열: 수율, 순도" in b
+    assert "결과 입력 5 / 11런 · 일부 6런" in b
+    assert [p.proto.label for p in at.get("page_link")].count("워크시트 열기") == 1
+    at.switch_page("views/worksheet.py").run()
+    assert bar(at) and "워크시트 열기" not in [p.proto.label for p in at.get("page_link")]
+    assert not at.caption or "2수준 요인설계 · 요인" not in at.caption[0].value   # 제목 아래 설명 줄은 없앴다
+
+    # 이름 없는 작업: 설계 종류를 크게, '이름 없음' 표시
+    at = run("worksheet.py", _ws())
+    assert "현재 작업 · 이름 없음</div>" in bar(at) and ">2수준 요인설계</div>" in bar(at)
+
+    # 워크시트가 없으면 띠도 없다. 새 설계를 만들면 같은 실행 안에서 띠가 생긴다
+    at = run("create.py")
+    assert bar(at) == ""
+    at.button[0].click().run()
+    assert not at.exception
+    assert "결과 입력 0 / " in bar(at)
+
+
+def test_current_work_bar_english(folder):
+    from tests.test_app_english import run_en
+    at = run_en("analyze.py", _ws(name="Batch A"))
+    b = bar(at)
+    assert "Current work</div>" in b and "Batch A</div>" in b and "results 11 / 11 runs" in b
+    assert "현재" not in b and "결과" not in b

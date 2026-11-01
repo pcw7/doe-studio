@@ -6,7 +6,7 @@ import streamlit as st
 
 from app.i18n import O, T, lang
 from app.state import (
-    boxcox_input, plot_mode, report_downloads, require_ws, run_progress, show_plot, show_table, ws_caption,
+    boxcox_input, plot_mode, report_downloads, require_ws, run_progress, show_plot, show_table,
 )
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
@@ -51,7 +51,6 @@ elif is_rs:
 else:
     st.title(T("분할구 설계 분석", "Analyze split-plot design") if is_sp else T("요인설계 분석", "Analyze factorial design"))
     st.caption("Analyze Factorial Design" + (" (split-plot)" if is_sp else ""))
-st.caption(ws_caption(ws))
 run_progress(ws)
 if is_sp:
     htc = ", ".join(d.htc_letters)

@@ -2,7 +2,7 @@
 import pandas as pd
 import streamlit as st
 
-from app.state import boxcox_input, plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
+from app.state import boxcox_input, plot_mode, report_downloads, require_ws, show_plot, show_table
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.model import RS_MODELS
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
@@ -19,7 +19,6 @@ from doe_core.plots.contour_plots import factor_range, overlaid_contour_plot
 st.title(T("반응 최적화·예측", "Response optimizer & predict"))
 st.caption("Response Optimizer · Predict · Overlaid Contour Plot")
 ws = require_ws()
-st.caption(ws_caption(ws))
 d = ws.design
 if isinstance(d, MixtureDesign):
     from app.mixture_panel import render_optimizer

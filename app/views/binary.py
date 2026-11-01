@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import T, lang
-from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
+from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.binary import analyze_binary
 from doe_core.analysis.effects import effects
@@ -19,7 +19,6 @@ from doe_core.plots.effects_plots import pareto_chart
 st.title(T("이항 반응 분석", "Analyze binary response"))
 st.caption("Analyze Binary Response (logit)")
 ws = require_ws()
-st.caption(ws_caption(ws))
 d = ws.design
 if isinstance(d, (MixtureDesign, SplitPlotDesign)) or type(d).__name__ == "TaguchiDesign":
     st.info(T("이항 반응 분석은 요인설계·반응표면·선별 설계에서 씁니다.",
