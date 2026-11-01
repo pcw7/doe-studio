@@ -4,6 +4,7 @@ import streamlit as st
 
 from app.i18n import T, lang
 from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
+from app.contour_ui import contour_tab
 from app.stepwise_ui import selection_details, stepwise_input
 from doe_core.analysis.model import factorial_terms
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
@@ -103,7 +104,8 @@ alpha = st.session_state.get("var_alpha_used", alpha)       # 단계적 선택�
 from doe_core.report import analysis_report  # noqa: E402
 report_downloads(lambda figs: analysis_report(ws, a, alpha=alpha, figures=figs, lang=lang()),
                  f"rep_var_{id(a)}_{lang()}", T(f"{a.response}_산포분석보고서", f"{a.response}_variability_report"))
-tab_tbl, tab_eff, tab_res = st.tabs([T("결과표", "Tables"), T("효과도", "Effects"), T("잔차 그림", "Residuals")])
+tab_tbl, tab_eff, tab_res, tab_con = st.tabs([T("결과표", "Tables"), T("효과도", "Effects"), T("잔차 그림", "Residuals"),
+                                              T("등고선·표면도(표준편차)", "Contour & surface (standard deviation)")])
 mode_plot = plot_mode()
 with tab_tbl:
     st.markdown(T("**방법 (Method)**"))
@@ -143,3 +145,6 @@ with tab_res:
         st.info(T("오차 자유도가 0 이라 잔차 그림을 그리지 않습니다.", "With 0 error DF, residual plots are not drawn."))
     else:
         show_plot(four_in_one(a, "regular", mode_plot))
+with tab_con:
+    st.caption(T("값은 표준편차(exp(Ln 모형))입니다.", "Values are standard deviations (exp of the Ln model)."))
+    contour_tab(a, mode_plot, "var_")

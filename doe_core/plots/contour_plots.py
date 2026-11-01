@@ -102,6 +102,11 @@ def _levels(Z, levels):
     return dict(start=vals[0], end=vals[-1], size=step)
 
 
+def z_label(a) -> str:
+    """등고선 값의 이름: 이항 모형은 P(사건), 그 밖은 반응(산포 모형은 표준편차 열 이름)."""
+    return f"P({a.event_name})" if getattr(a, "is_binary", False) else a.response
+
+
 def contour_plot(a, x: str, y: str, *, hold: dict | None = None, levels=None, show_points: bool = True,
                  covariates: dict | None = None, mode: str = "light", n: int = 60) -> go.Figure:
     t = tokens(mode)
@@ -113,9 +118,9 @@ def contour_plot(a, x: str, y: str, *, hold: dict | None = None, levels=None, sh
         x=xs, y=ys, z=Z, colorscale=[[i / (len(SEQ_BLUE) - 1), c] for i, c in enumerate(SEQ_BLUE)],
         contours=dict(showlabels=True, labelfont=dict(color=t["text"], size=11), coloring="fill", **(lv or {})),
         autocontour=lv is None, ncontours=7 if lv is None else None,
-        line=dict(width=1, color=t["surface"]), colorbar=dict(title=dict(text=a.response, side="right"),
+        line=dict(width=1, color=t["surface"]), colorbar=dict(title=dict(text=z_label(a), side="right"),
                                                              tickfont=dict(color=t["text2"])),
-        hovertemplate=f"{names[Lx]} %{{x:.4g}}<br>{names[Ly]} %{{y:.4g}}<br>{a.response} %{{z:.4g}}<extra></extra>",
+        hovertemplate=f"{names[Lx]} %{{x:.4g}}<br>{names[Ly]} %{{y:.4g}}<br>{z_label(a)} %{{z:.4g}}<extra></extra>",
     ))
     if show_points:
         f = a.design
@@ -126,8 +131,8 @@ def contour_plot(a, x: str, y: str, *, hold: dict | None = None, levels=None, sh
         fig.add_scatter(x=pts[:, 0], y=pts[:, 1], mode="markers", name="설계점",
                         marker=dict(color=t["text"], size=MARKER - 2, symbol="circle-open", line=dict(width=1.5)),
                         hovertemplate="설계점 (%{x:.4g}, %{y:.4g})<extra></extra>")
-    style(fig, mode, title=f"{a.response} 등고선도: {names[Ly]} vs {names[Lx]}",
-          en=f"Contour Plot of {a.response} vs {names[Ly]}, {names[Lx]} · " + _hold_text(a, x, y, hold, covariates),
+    style(fig, mode, title=f"{z_label(a)} 등고선도: {names[Ly]} vs {names[Lx]}",
+          en=f"Contour Plot of {z_label(a)} vs {names[Ly]}, {names[Lx]} · " + _hold_text(a, x, y, hold, covariates),
           height=520, showlegend=False)
     fig.update_xaxes(title_text=names[Lx], showgrid=False)
     fig.update_yaxes(title_text=names[Ly], showgrid=False)
@@ -142,14 +147,14 @@ def surface_plot(a, x: str, y: str, *, hold: dict | None = None, covariates: dic
     names = dict(zip(a.design.letters, [f.name for f in a.design.factors]))
     fig = go.Figure(go.Surface(
         x=xs, y=ys, z=Z, colorscale=[[i / (len(SEQ_BLUE) - 1), c] for i, c in enumerate(SEQ_BLUE)],
-        colorbar=dict(title=dict(text=a.response, side="right"), tickfont=dict(color=t["text2"])),
-        hovertemplate=f"{names[Lx]} %{{x:.4g}}<br>{names[Ly]} %{{y:.4g}}<br>{a.response} %{{z:.4g}}<extra></extra>",
+        colorbar=dict(title=dict(text=z_label(a), side="right"), tickfont=dict(color=t["text2"])),
+        hovertemplate=f"{names[Lx]} %{{x:.4g}}<br>{names[Ly]} %{{y:.4g}}<br>{z_label(a)} %{{z:.4g}}<extra></extra>",
     ))
-    style(fig, mode, title=f"{a.response} 표면도: {names[Ly]}, {names[Lx]}",
-          en=f"Surface Plot of {a.response} · " + _hold_text(a, x, y, hold, covariates), height=560, showlegend=False)
+    style(fig, mode, title=f"{z_label(a)} 표면도: {names[Ly]}, {names[Lx]}",
+          en=f"Surface Plot of {z_label(a)} · " + _hold_text(a, x, y, hold, covariates), height=560, showlegend=False)
     axis = dict(backgroundcolor=t["surface"], gridcolor=t["grid"], color=t["text2"])
     fig.update_layout(scene=dict(xaxis=dict(title=names[Lx], **axis), yaxis=dict(title=names[Ly], **axis),
-                                 zaxis=dict(title=a.response, **axis)))
+                                 zaxis=dict(title=z_label(a), **axis)))
     return fig
 
 

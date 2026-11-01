@@ -7,6 +7,7 @@ from app.state import plot_mode, report_downloads, require_ws, show_plot, show_t
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.binary import analyze_binary
 from doe_core.analysis.effects import effects
+from app.contour_ui import contour_tab
 from app.stepwise_ui import selection_details, stepwise_input
 from doe_core.analysis.model import RS_MODELS, factorial_terms, rs_terms
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
@@ -103,7 +104,8 @@ if a.removed_terms:
     st.warning(T("다음 항은 앞의 항과 완전히 별칭이라 모형에서 뺐습니다: ",
                  "These terms are completely aliased with earlier terms and were removed: ")
                + ", ".join(t.name for t in a.removed_terms))
-tab_tbl, tab_eff = st.tabs([T("결과표", "Tables"), T("효과도", "Effects")])
+tab_tbl, tab_eff, tab_con = st.tabs([T("결과표", "Tables"), T("효과도", "Effects"),
+                                     T("등고선·표면도(확률)", "Contour & surface (probability)")])
 with tab_tbl:
     selection_details(a, lang() == "en")
     c1, c2 = st.columns(2)
@@ -153,3 +155,6 @@ with tab_eff:
                          "Standardized effect = Wald Z; reference line = normal z(1 − α/2)."))
         except ValueError as err:
             st.info(str(err))
+with tab_con:
+    st.caption(T("값은 사건 확률(0~1)입니다.", "Values are event probabilities (0 to 1)."))
+    contour_tab(a, plot_mode(), "bin_")

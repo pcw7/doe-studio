@@ -13,13 +13,13 @@ from doe_core.analysis.effects import effects
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.means import means_table
 from doe_core.analysis.model import RS_MODELS, factor_term, factorial_terms, rs_terms
+from app.contour_ui import contour_tab
 from app.stepwise_ui import selection_details, stepwise_input
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
 from doe_core.designs.general_full import GeneralFullFactorialDesign
 from doe_core.designs.mixture import MixtureDesign
 from doe_core.designs.response_surface import ResponseSurfaceDesign
 from doe_core.designs.split_plot import SplitPlotDesign
-from doe_core.plots.contour_plots import contour_plot, default_hold, surface_plot
 from doe_core.plots.effects_plots import half_normal_effects_chart, normal_effects_chart, pareto_chart
 from doe_core.plots.factorial_plots import cube_plot, interaction_pairs, interaction_plot, main_effects_plot
 from doe_core.plots.residual_plots import four_in_one
@@ -295,26 +295,4 @@ with tab_con:
                   "Contour plots need at least 2 continuous factors and no center point term. "
                   "If the model has a center point term, clear 'Include center points' and analyze again."))
     else:
-        c1, c2, c3 = st.columns(3)
-        xL = c1.selectbox(T("X 축"), numeric_letters, format_func=lambda L: f"{L} ({names[L]})")
-        yL = c2.selectbox(T("Y 축"), [L for L in numeric_letters if L != xL], format_func=lambda L: f"{L} ({names[L]})")
-        n_lv = c3.slider(T("등고선 수"), 2, 11, 7)
-        hold = {}
-        others = [L for L in d.letters if L not in (xL, yL)]
-        if others:
-            st.markdown(T("**고정값 (Hold values)**"))
-            defaults = default_hold(a, exclude=(xL, yL))
-            cols = st.columns(min(4, len(others)))
-            for i, L in enumerate(others):
-                f = d.factors[d.letters.index(L)]
-                with cols[i % len(cols)]:
-                    if getattr(f, "is_numeric", False) and hasattr(f, "low"):
-                        hold[f.name] = st.number_input(f.name, value=float(defaults[f.name]), key=f"hold_{L}")
-                    else:
-                        opts = list(getattr(f, "levels", [f.low, f.high]))
-                        hold[f.name] = st.selectbox(f.name, opts, key=f"hold_{L}")
-        try:
-            show_plot(contour_plot(a, xL, yL, hold=hold, levels=n_lv, mode=mode))
-            show_plot(surface_plot(a, xL, yL, hold=hold, mode=mode))
-        except ValueError as err:
-            st.info(str(err))
+        contour_tab(a, mode)

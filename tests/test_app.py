@@ -515,3 +515,28 @@ def test_binary_page_with_stepwise():
     cells = read_xlsx_cells(to_xlsx(binary_report(ws, a, figures=False)))
     flat = " ".join(str(v) for sh in cells.values() for v in sh.values())
     assert "Backward Elimination of Terms" in flat and "Deviance R-Sq" in flat
+
+
+def test_contour_tabs_binary_and_variability():
+    """이항(확률)·산포(표준편차) 모형의 등고선·표면도 탭."""
+    import numpy as np
+    from tests.test_binary import _spoilage
+    from doe_core.plots.contour_plots import contour_plot, grid
+    ws, y, m = _spoilage()
+    at = run("binary.py", ws)
+    at.selectbox(key="bin_events").set_value("Spoilage").run()
+    at.selectbox(key="bin_trials").set_value("Containers").run()
+    at.button(key="bin_run").click().run()
+    assert not at.exception and len(at.get("plotly_chart")) >= 2
+    a = at.session_state["binary"]
+    fig = contour_plot(a, "VacuumPress", "ContaminationLevel", hold={"Preservative": "No", "CoolTemp": 5})
+    assert fig.layout.title.text.startswith("P(Event) 등고선도")
+    _, _, Z = grid(a, "VacuumPress", "ContaminationLevel", hold={"Preservative": "No", "CoolTemp": 5}, n=5)
+    assert np.all((Z > 0) & (Z < 1))
+    d = create_two_level_design(3, replicates=3, seed=2)
+    w2 = Worksheet(d)
+    w2.add_column("Strength", list(30 + np.random.default_rng(3).normal(0, 1, len(d.coded))))
+    at = run("variability.py", w2)
+    at.button(key="var_pre").click().run()
+    at.button(key="var_run").click().run()
+    assert not at.exception
