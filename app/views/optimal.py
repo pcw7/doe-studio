@@ -2,7 +2,7 @@
 import pandas as pd
 import streamlit as st
 
-from app.state import require_ws, set_ws, show_table, worksheet_json, ws_caption
+from app.state import report_downloads, require_ws, set_ws, show_table, worksheet_json, ws_caption
 from doe_core.analysis.mixture import MIX_MODELS
 from doe_core.analysis.model import RS_MODELS
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
@@ -86,6 +86,8 @@ st.code("\n".join([*res.header_lines(), "Specified Design" if res.task == "evalu
 if res.statistics:
     show_table(res.statistics_table().rename(columns={0: "통계량", 1: "값"}))
     st.caption("D-optimality 는 클수록, A-optimality 는 작을수록 좋습니다. 최적성은 설계 크기와 모형이 같을 때만 비교합니다.")
+from doe_core.report.builders import optimal_design_report  # noqa: E402
+report_downloads(lambda figs: optimal_design_report(res, ws), f"rep_optd_{id(res)}", "최적설계보고서")
 
 if res.task != "evaluate":
     c1, c2, c3 = st.columns(3)

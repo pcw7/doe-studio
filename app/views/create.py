@@ -2,7 +2,7 @@
 import pandas as pd
 import streamlit as st
 
-from app.state import set_ws, show_table, worksheet_csv, worksheet_json
+from app.state import report_downloads, set_ws, show_table, worksheet_csv, worksheet_json
 from doe_core.designs.catalog import ROMAN, available_designs
 from doe_core.designs.common import Factor, factor_letters
 from doe_core.designs.definitive_screening import MAX_FACTORS as DSD_MAX, base_runs_for, create_definitive_screening
@@ -343,3 +343,5 @@ if ws is not None and st.session_state.get("created_notice"):
     c1.download_button("워크시트 저장 (.json)", worksheet_json(ws), "doe_worksheet.json", "application/json")
     c2.download_button("CSV 내보내기", worksheet_csv(ws), "doe_worksheet.csv", "text/csv")
     st.page_link("views/worksheet.py", label="워크시트에서 결과 입력하기", icon=":material/table:")
+    from doe_core.report import design_report
+    report_downloads(lambda figs: design_report(ws, figures=figs), f"rep_design_{id(d)}", "설계보고서")

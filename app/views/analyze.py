@@ -4,7 +4,7 @@ from itertools import combinations
 import pandas as pd
 import streamlit as st
 
-from app.state import plot_mode, require_ws, show_plot, show_table, ws_caption
+from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
 from doe_core.analysis.effects import effects
@@ -113,6 +113,9 @@ if a.df_error == 0:
 
 numeric_letters = [L for L, f in zip(d.letters, d.factors) if getattr(f, "is_numeric", False) and hasattr(f, "low")]
 can_contour = len(numeric_letters) >= 2 and not any(t.kind == "center" for t in a.terms)
+from doe_core.report import analysis_report  # noqa: E402
+report_downloads(lambda figs: analysis_report(ws, a, alpha=alpha, figures=figs), f"rep_an_{id(a)}",
+                 f"{a.response}_분석보고서")
 tab_tbl, tab_eff, tab_res, tab_fac, tab_con = st.tabs(["결과표", "효과도", "잔차 그림", "요인 그림", "등고선·표면도"])
 
 with tab_tbl:

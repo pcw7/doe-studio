@@ -25,7 +25,6 @@ from scipy import stats
 
 from ..designs.general_full import GeneralFullFactorialDesign
 from ..designs.definitive_screening import DefinitiveScreeningDesign
-from ..designs.definitive_screening import DefinitiveScreeningDesign
 from ..designs.response_surface import ResponseSurfaceDesign
 from . import fmt
 from .model import Term, factorial_terms, is_hierarchical, names_by_letter, rs_terms, term_matrix

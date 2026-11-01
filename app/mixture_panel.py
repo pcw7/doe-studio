@@ -4,7 +4,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from app.state import plot_mode, show_plot, show_table, ws_caption
+from app.state import plot_mode, report_downloads, show_plot, show_table, ws_caption
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.mixture import (
@@ -100,6 +100,8 @@ def render(ws) -> None:
     st.subheader(f"{a.response} 분석 결과")
     if a.removed_terms:
         st.warning("다음 항은 앞의 항과 선형 종속이라 모형에서 뺐습니다: " + ", ".join(t.name for t in a.removed_terms))
+    from doe_core.report import analysis_report
+    report_downloads(lambda figs: analysis_report(ws, a, figures=figs), f"rep_mix_{id(a)}", f"{a.response}_분석보고서")
     tab_tbl, tab_res, tab_trace, tab_con, tab_pred = st.tabs(["결과표", "잔차 그림", "반응 추적 그림",
                                                               "삼각 등고선·표면도", "예측"])
     mode_plot = plot_mode()
@@ -227,6 +229,9 @@ def render_optimizer(ws) -> None:
         st.stop()
     res = opt[3]
     show_results(res, models, goals)
+    from doe_core.report import optimization_report
+    report_downloads(lambda figs: optimization_report(models, goals, res, title="혼합물 반응 최적화 보고서"),
+                     f"rep_mopt_{id(res)}", "혼합물_최적화보고서")
     if d.q >= 3 and len(responses) >= 2:
         st.subheader("혼합물 중첩 등고선도 (Overlaid Contour Plot)")
         names = [c.name for c in d.components]

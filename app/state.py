@@ -106,3 +106,35 @@ def ws_caption(ws: Worksheet) -> str:
     extra = [c for c in ws.columns.columns]
     return (f"{kind_ko(d)} · 요인 {len(d.factors)}개 · 런 {d.n_runs}개"
             + (f" · 비설계 열: {', '.join(extra)}" if extra else ""))
+
+
+def report_downloads(make_report, key: str, fname: str) -> None:
+    """'보고서 만들기' 를 누르면 보고서를 만들어 Excel·HTML·PDF 내려받기 버튼을 보여 준다.
+
+    make_report(figures: bool) -> doe_core.report.Report. 만든 파일은 key 로 세션에 둔다(분석이 바뀌면 key 도 바뀐다).
+    """
+    from doe_core.report import to_html, to_pdf, to_xlsx
+    with st.expander("보고서 내려받기 (Excel · HTML · PDF)"):
+        c0, c1, c2, c3 = st.columns([1.4, 1, 1, 1], vertical_alignment="bottom")
+        figs = c0.checkbox("그래프 포함", True, key=f"{key}_figs",
+                           help="PDF 의 그래프는 그림 파일로 만들어 넣으므로 몇 초 더 걸립니다.")
+        if c0.button("보고서 만들기", key=f"{key}_make"):
+            with st.spinner("보고서를 만드는 중…"):
+                rep = make_report(figs)
+                files = {"xlsx": to_xlsx(rep), "html": to_html(rep).encode("utf-8")}
+                try:
+                    files["pdf"] = to_pdf(rep, figures=figs)
+                except Exception as e:  # noqa: BLE001
+                    files["pdf_error"] = f"{type(e).__name__}: {e}"
+            st.session_state[key] = files
+        files = st.session_state.get(key)
+        if not files:
+            st.caption("Excel 에는 결과표와 원자료(워크시트·적합치)가, HTML·PDF 에는 표와 그래프가 들어갑니다.")
+            return
+        c1.download_button("Excel (.xlsx)", files["xlsx"], f"{fname}.xlsx",
+                           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"{key}_x")
+        c2.download_button("HTML", files["html"], f"{fname}.html", "text/html", key=f"{key}_h")
+        if "pdf" in files:
+            c3.download_button("PDF", files["pdf"], f"{fname}.pdf", "application/pdf", key=f"{key}_p")
+        else:
+            c3.caption("PDF 를 만들지 못했습니다(reportlab 필요): " + files["pdf_error"])

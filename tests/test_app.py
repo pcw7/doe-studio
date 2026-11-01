@@ -246,3 +246,27 @@ def test_mixture_panel_plots_and_predict():
     assert len(at.tabs) >= 5
     assert any("Fit" in df.value.columns for df in at.dataframe)               # 예측 탭의 예측표
     assert any("Centroid of vertices" in c.value for c in at.caption)
+
+
+def test_report_downloads_on_analysis_page():
+    ws = _sample_ws("InsulationProperties.MWX", ["Material", "InjPress", "InjTemp", "CoolTemp"])
+    at = run("analyze.py", ws)
+    at.selectbox[0].set_value("Strength").run()
+    at.button[0].click().run()
+    assert not at.exception
+    next(c for c in at.checkbox if c.label == "그래프 포함").uncheck().run()
+    next(b for b in at.button if b.label == "보고서 만들기").click().run()
+    assert not at.exception
+    a = at.session_state["analysis"]
+    files = at.session_state[f"rep_an_{id(a)}"]
+    assert files["xlsx"][:2] == b"PK" and files["pdf"][:5] == b"%PDF-" and b"<!doctype html>" in files["html"]
+
+
+def test_report_downloads_on_create_page():
+    at = run("create.py")
+    at.button[0].click().run()
+    next(c for c in at.checkbox if c.label == "그래프 포함").uncheck().run()
+    next(b for b in at.button if b.label == "보고서 만들기").click().run()
+    assert not at.exception
+    d = at.session_state["worksheet"].design
+    assert at.session_state[f"rep_design_{id(d)}"]["xlsx"][:2] == b"PK"
