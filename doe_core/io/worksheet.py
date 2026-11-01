@@ -214,21 +214,28 @@ def design_from_dict(meta: dict, coded: pd.DataFrame):
     return d
 
 
-def save_worksheet(ws: Worksheet, path: str | Path) -> Path:
-    path = Path(path)
-    doc = {
+def worksheet_to_dict(ws: Worksheet) -> dict:
+    """저장 형식(JSON 으로 바꿀 수 있는 사전)."""
+    return {
         "format": FORMAT, "version": VERSION,
         "design": design_to_dict(ws.design),
         "nonregular": ws.nonregular,
         "coded": _frame_to_dict(ws.design.coded),
         "columns": {"StdOrder": [int(v) for v in ws.columns.index], **_frame_to_dict(ws.columns)},
     }
-    path.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def save_worksheet(ws: Worksheet, path: str | Path) -> Path:
+    path = Path(path)
+    path.write_text(json.dumps(worksheet_to_dict(ws), ensure_ascii=False, indent=1), encoding="utf-8")
     return path
 
 
 def load_worksheet(path: str | Path) -> Worksheet:
-    doc = json.loads(Path(path).read_text(encoding="utf-8"))
+    return worksheet_from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
+
+
+def worksheet_from_dict(doc: dict) -> Worksheet:
     if doc.get("format") != FORMAT:
         raise ValueError("DOE Studio 워크시트 파일이 아닙니다.")
     if doc.get("version", 0) > VERSION:

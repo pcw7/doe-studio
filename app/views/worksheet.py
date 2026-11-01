@@ -79,7 +79,7 @@ with t1:
                           T(f"{v} ({names[v]})만", f"{v} ({names[v]}) only"))
         if st.button(T("접기", "Fold")):
             try:
-                set_ws(ws.with_design(fold_design(d, on)))
+                set_ws(ws.with_design(fold_design(d, on)), new=False)
                 st.rerun()
             except Exception as e:  # noqa: BLE001
                 st.error(str(e))
@@ -89,7 +89,7 @@ with t2:
                "Copies every run (including center points) into new blocks. Randomize afterwards."))
     if st.button(T("반복 추가", "Add replicates")):
         try:
-            set_ws(ws.with_design(replicate_design(d, int(n_add))))
+            set_ws(ws.with_design(replicate_design(d, int(n_add))), new=False)
             st.rerun()
         except ValueError as e:
             st.error(str(e))
@@ -101,12 +101,12 @@ with t3:
     c1, c2 = st.columns(2)
     if c1.button(T("랜덤화", "Randomize")):
         try:
-            set_ws(ws.with_design(randomize_design(d, block=which, seed=int(seed) or None)))
+            set_ws(ws.with_design(randomize_design(d, block=which, seed=int(seed) or None)), new=False)
             st.rerun()
         except ValueError as e:
             st.error(str(e))
     if c2.button(T("런 번호 다시 매기기 (Renumber)")):
-        set_ws(ws.with_design(renumber_design(d)))
+        set_ws(ws.with_design(renumber_design(d)), new=False)
         st.rerun()
 with t5:
     can_axial = isinstance(d, (TwoLevelDesign, PlackettBurmanDesign)) and all(f.is_numeric for f in d.factors)
@@ -125,7 +125,7 @@ with t5:
                                                              st.number_input("α", 0.1, 10.0, 1.414))
         n_c = st.number_input(T("축 블록에 추가할 중앙점 수", "Center points to add to the axial block"), 0, 20, 0)
         if st.button(T("축점 추가", "Add axial points")):
-            set_ws(ws.with_design(add_axial_points(d, alpha=alpha, center_points=int(n_c))))
+            set_ws(ws.with_design(add_axial_points(d, alpha=alpha, center_points=int(n_c))), new=False)
             st.rerun()
 with t4:
     show_table(display_design(d, units="coded"))

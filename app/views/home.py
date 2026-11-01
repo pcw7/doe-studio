@@ -1,10 +1,14 @@
 """시작 화면: 소개, 현재 워크시트, 파일 불러오기(DOE Studio JSON, Minitab .MWX, CSV, Excel .xlsx)."""
 import io
+from datetime import datetime
 
 import streamlit as st
 
 from app.i18n import O, T
-from app.state import SAMPLES, get_ws, set_ws, worksheet_from_json, ws_caption
+from app.state import (
+    DESIGN_KIND_KO, SAMPLES, SAVED_TYPE_CLASS, get_ws, restore_autosave, set_ws, worksheet_from_json, ws_caption,
+)
+from doe_core.io import autosave
 from doe_core.io.csvfile import read_csv_bytes
 from doe_core.io.mwx import read_mwx
 from doe_core.io.xlsx import read_xlsx_sheets
@@ -23,6 +27,40 @@ else:
     st.info(T("현재 워크시트가 없습니다. 새 설계를 만들거나 파일을 불러오세요.",
               "No current worksheet. Create a new design or open a file."))
 
+
+def _recent_rows(entries) -> None:
+    today = datetime.now().date()
+    for e in entries:
+        when = (T("오늘 ", "Today ") if e.saved_at.date() == today else f"{e.saved_at:%Y-%m-%d} ") + f"{e.saved_at:%H:%M}"
+        kind = O(DESIGN_KIND_KO.get(SAVED_TYPE_CLASS.get(e.design_type, ""), e.design_type))
+        facs = ", ".join(e.factors[:4]) + (" …" if len(e.factors) > 4 else "")
+        text = T(f"**{when}** · {kind} · 요인 {len(e.factors)}개({facs}) · 런 {e.n_runs}개",
+                 f"**{when}** · {kind} · {len(e.factors)} factors ({facs}) · {e.n_runs} runs")
+        if e.columns:
+            text += T(" · 열: ", " · columns: ") + ", ".join(e.columns)
+        c_text, c_btn = st.columns([5, 1], vertical_alignment="center")
+        c_text.markdown(text)
+        if c_btn.button(T("이어서 하기", "Continue"), key=f"restore_{e.slot}"):
+            try:
+                restore_autosave(e.slot)
+                st.rerun()
+            except (OSError, ValueError, KeyError) as err:
+                st.error(T("되살리지 못했습니다: ", "Could not restore: ") + str(err))
+
+
+recent = [e for e in autosave.recent(6) if e.slot != st.session_state.get("autosave_slot")][:5]
+if recent:
+    if ws is None:
+        with st.container(border=True):
+            st.subheader(T("이전 작업 이어서 하기", "Continue previous work"))
+            st.caption(T("작업은 바뀔 때마다 이 컴퓨터에 자동 저장됩니다. 새로 고치거나 창을 닫았다면 여기서 되살리세요.",
+                         "Work is saved on this computer whenever it changes. After a reload or closing the window, "
+                         "restore it here."))
+            _recent_rows(recent)
+    else:
+        with st.expander(T("최근 작업 (자동 저장)", "Recent work (autosaved)")):
+            _recent_rows(recent)
+
 c1, c2 = st.columns(2)
 with c1:
     st.subheader(T("새 실험 설계", "New experiment"))
@@ -37,32 +75,39 @@ with c2:
     up = st.file_uploader(T("DOE Studio 워크시트(.json), Minitab 워크시트(.mwx), CSV·텍스트(한글 엑셀 저장본 포함), Excel(.xlsx)",
                             "DOE Studio worksheet (.json), Minitab worksheet (.mwx), CSV or text, Excel (.xlsx)"),
                           type=["json", "mwx", "csv", "txt", "tsv", "xlsx"])
-    if up is not None:
+    # 올린 파일은 한 번만 읽는다(파일이 올라가 있는 동안 화면이 다시 그려질 때마다 다시 읽으면 st.rerun 이 끝없이
+    # 되풀이되고, 정의를 마친 표의 '설계로 정의' 칸도 다시 나타난다).
+    if up is None:
+        for k in ("upload_id", "upload_error", "import_sheets"):
+            st.session_state.pop(k, None)
+    elif st.session_state.get("upload_id") != up.file_id:
+        st.session_state["upload_id"] = up.file_id
+        for k in ("upload_error", "import_sheets", "import_df"):
+            st.session_state.pop(k, None)
         name = up.name.lower()
-        if name.endswith(".json"):
-            try:
+        try:
+            if name.endswith(".json"):
                 set_ws(worksheet_from_json(up.getvalue()))
-                st.success(T("워크시트를 불러왔습니다.", "Worksheet loaded."))
                 st.rerun()
-            except Exception as e:  # noqa: BLE001
-                st.error(T("불러오지 못했습니다: ", "Could not load: ") + str(e))
-        else:
-            try:
-                if name.endswith(".xlsx"):
-                    sheets = {k: v for k, v in read_xlsx_sheets(up.getvalue()).items() if not v.empty}
-                    if not sheets:
-                        raise ValueError(T("값이 있는 시트가 없습니다.", "No sheet has data."))
-                    pick = st.selectbox(T("시트", "Sheet"), list(sheets), key=f"xlsx_sheet_{up.name}") \
-                        if len(sheets) > 1 else next(iter(sheets))
-                    df = sheets[pick]
-                elif name.endswith(".mwx"):
-                    df = read_mwx(io.BytesIO(up.getvalue()))
-                else:
-                    df = read_csv_bytes(up.getvalue())
-            except Exception as e:  # noqa: BLE001
-                st.error(T("파일을 읽지 못했습니다: ", "Could not read the file: ") + str(e))
-                st.stop()
-            st.session_state["import_df"] = df
+            elif name.endswith(".xlsx"):
+                sheets = {k: v for k, v in read_xlsx_sheets(up.getvalue()).items() if not v.empty}
+                if not sheets:
+                    raise ValueError(T("값이 있는 시트가 없습니다.", "No sheet has data."))
+                st.session_state["import_sheets"] = sheets
+            elif name.endswith(".mwx"):
+                st.session_state["import_df"] = read_mwx(io.BytesIO(up.getvalue()))
+            else:
+                st.session_state["import_df"] = read_csv_bytes(up.getvalue())
+        except Exception as e:  # noqa: BLE001
+            st.session_state["upload_error"] = str(e)
+    if st.session_state.get("upload_error"):
+        st.error(T("파일을 읽지 못했습니다: ", "Could not read the file: ") + st.session_state["upload_error"])
+    sheets = st.session_state.get("import_sheets")
+    if sheets:
+        pick = st.selectbox(T("시트", "Sheet"), list(sheets), key="xlsx_sheet") if len(sheets) > 1 else next(iter(sheets))
+        if st.session_state.get("import_sheet_pick") != pick or "import_df" not in st.session_state:
+            st.session_state["import_sheet_pick"] = pick
+            st.session_state["import_df"] = sheets[pick]
 
     df = st.session_state.get("import_df")
     if df is not None:
@@ -93,7 +138,8 @@ with c2:
                 if as_kind != "auto":
                     kw = {"kind": as_kind}
                 set_ws(define_custom_design(df, factors, **kw))
-                st.session_state.pop("import_df", None)
+                for k in ("import_df", "import_sheets", "import_sheet_pick"):
+                    st.session_state.pop(k, None)
                 st.success(T("설계를 정의했습니다. 분석 화면으로 이동하세요.", "Design defined. Go to the Analyze page."))
                 st.rerun()
             except Exception as e:  # noqa: BLE001
