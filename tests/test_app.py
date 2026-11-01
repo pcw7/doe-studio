@@ -449,3 +449,25 @@ def test_analyze_page_expanded_tables_and_storage():
     at.button(key="store_btn").click().run()
     assert not at.exception
     assert {"FITS1", "SRES1"} <= set(at.session_state["worksheet"].columns.columns)
+
+
+def test_power_page():
+    """검정력·표본 크기: 워크시트 없이도 열린다. 2수준 예제(0.229…), 반복 수 풀기, PB, 일반 완전요인."""
+    at = run("power.py")
+    assert not at.exception
+    at.number_input(key="pw_omit_two_level").set_value(2).run()
+    at.button(key="pw_run").click().run()
+    assert not at.exception
+    res = at.session_state["power"]
+    assert [round(float(v), 3) for v in res.table["Power"]] == [0.229, 0.533, 0.735, 0.858]
+    at.text_input(key="pw_reps_two_level").set_value("").run()
+    at.text_input(key="pw_pow_two_level").set_value("0.8").run()
+    at.button(key="pw_run").click().run()
+    assert not at.exception and at.session_state["power"].solve == "reps"
+    at.segmented_control(key="pw_kind").set_value("gff").run()
+    at.text_input(key="pw_reps_gff").set_value("").run()
+    at.text_input(key="pw_pow_gff").set_value("0.9").run()
+    at.checkbox(key="pw_gff_blocks").check().run()
+    at.button(key="pw_run").click().run()
+    assert not at.exception
+    assert at.session_state["power"].table.values.tolist() == [["0.4", "2", "18", "0.9", "0.930521"]]

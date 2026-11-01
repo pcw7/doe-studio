@@ -179,3 +179,13 @@ def test_binary_page_english():
     at.selectbox(key="bin_trials").set_value("Containers").run()
     at.button(key="bin_run").click().run()
     assert not at.exception and korean_left(at) == []
+
+
+def test_power_page_english():
+    at = run_en("power.py")
+    at.button(key="pw_run").click().run()
+    assert not at.exception and korean_left(at) == []
+    for kind in ("pb", "gff"):
+        at.segmented_control(key="pw_kind").set_value(kind).run()
+        at.button(key="pw_run").click().run()
+        assert not at.exception and korean_left(at) == []
