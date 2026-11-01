@@ -175,8 +175,9 @@ def to_pdf(report: Report, *, figures: bool = True) -> bytes:
                 cap = [] if _has_title(b.content) or not b.title else [Paragraph(_para_text(b.title), st["h3"])]
                 emit([*cap, img, Spacer(1, 8)], True)
             except Exception as e:  # noqa: BLE001
-                emit([Paragraph(_para_text(f"[그래프] {b.title or ''} — 그림을 만들 수 없습니다"
-                                           f"(kaleido 필요): {type(e).__name__}"), st["note"])], True)
+                emit([Paragraph(_para_text(report.t(f"[그래프] {b.title or ''} — 그림을 만들 수 없습니다(kaleido 필요): ",
+                                                     f"[Graph] {b.title or ''} — could not render (needs kaleido): ")
+                                            + type(e).__name__), st["note"])], True)
     if heading is not None:
         story.append(heading)
 

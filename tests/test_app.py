@@ -258,7 +258,7 @@ def test_report_downloads_on_analysis_page():
     next(b for b in at.button if b.label == "보고서 만들기").click().run()
     assert not at.exception
     a = at.session_state["analysis"]
-    files = at.session_state[f"rep_an_{id(a)}"]
+    files = at.session_state[f"rep_an_{id(a)}_ko"]
     assert files["xlsx"][:2] == b"PK" and files["pdf"][:5] == b"%PDF-" and b"<!doctype html>" in files["html"]
 
 
@@ -269,4 +269,4 @@ def test_report_downloads_on_create_page():
     next(b for b in at.button if b.label == "보고서 만들기").click().run()
     assert not at.exception
     d = at.session_state["worksheet"].design
-    assert at.session_state[f"rep_design_{id(d)}"]["xlsx"][:2] == b"PK"
+    assert at.session_state[f"rep_design_{id(d)}_ko"]["xlsx"][:2] == b"PK"

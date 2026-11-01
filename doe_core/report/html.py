@@ -79,8 +79,9 @@ def to_html(report: Report, *, plotlyjs: str = "inline") -> str:
             has_title = bool(getattr(getattr(b.content.layout, "title", None), "text", None))
             cap = f"<figcaption>{escape(b.title)}</figcaption>" if b.title and not has_title else ""
             parts.append(f"<figure>{cap}{div}</figure>")
-    parts.append(f"<footer>DOE Studio 로 만든 보고서 · {escape(report.stamp)}</footer>")
-    return ("<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\">"
+    parts.append(f"<footer>{report.t('DOE Studio 로 만든 보고서', 'Report made with DOE Studio')} · "
+                 f"{escape(report.stamp)}</footer>")
+    return (f"<!doctype html><html lang=\"{report.lang}\"><head><meta charset=\"utf-8\">"
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
             f"<title>{escape(report.title)}</title><style>{CSS}</style></head>"
             f"<body><main>{''.join(parts)}</main></body></html>")

@@ -10,17 +10,28 @@ import streamlit as st  # noqa: E402
 
 st.set_page_config(page_title="DOE Studio", page_icon="🧪", layout="wide")
 
+from app.i18n import LANGS, T  # noqa: E402
+
+if st.session_state.get("lang") not in LANGS:
+    st.session_state["lang"] = "ko"
+with st.sidebar:
+    st.segmented_control("언어 · Language", list(LANGS), key="lang", format_func=LANGS.get, required=True)
+
 VIEWS = Path(__file__).parent / "views"
 pages = {
     "DOE Studio": [
-        st.Page(VIEWS / "home.py", title="시작", icon=":material/home:", default=True),
+        st.Page(VIEWS / "home.py", title=T("시작", "Home"), icon=":material/home:", default=True),
     ],
-    "실험계획 (DOE)": [
-        st.Page(VIEWS / "create.py", title="설계 생성", icon=":material/grid_on:", url_path="create"),
-        st.Page(VIEWS / "worksheet.py", title="워크시트·설계 수정", icon=":material/table:", url_path="worksheet"),
-        st.Page(VIEWS / "analyze.py", title="분석·그래프", icon=":material/monitoring:", url_path="analyze"),
-        st.Page(VIEWS / "optimize.py", title="반응 최적화·예측", icon=":material/tune:", url_path="optimize"),
-        st.Page(VIEWS / "optimal.py", title="최적 설계", icon=":material/filter_alt:", url_path="optimal"),
+    T("실험계획 (DOE)", "Design of Experiments"): [
+        st.Page(VIEWS / "create.py", title=T("설계 생성", "Create design"), icon=":material/grid_on:", url_path="create"),
+        st.Page(VIEWS / "worksheet.py", title=T("워크시트·설계 수정", "Worksheet & modify design"), icon=":material/table:",
+                url_path="worksheet"),
+        st.Page(VIEWS / "analyze.py", title=T("분석·그래프", "Analyze & graphs"), icon=":material/monitoring:",
+                url_path="analyze"),
+        st.Page(VIEWS / "optimize.py", title=T("반응 최적화·예측", "Response optimizer & predict"), icon=":material/tune:",
+                url_path="optimize"),
+        st.Page(VIEWS / "optimal.py", title=T("최적 설계", "Optimal design"), icon=":material/filter_alt:",
+                url_path="optimal"),
     ],
 }
 st.navigation(pages).run()
