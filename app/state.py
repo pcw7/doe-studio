@@ -8,6 +8,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from app.i18n import O, T
+from app.i18n import figure as _figure_lang
 from doe_core.io.worksheet import Worksheet, load_worksheet, save_worksheet
 
 KEY = "worksheet"
@@ -42,7 +44,7 @@ def plot_mode() -> str:
 
 
 def show_plot(fig) -> None:
-    st.plotly_chart(fig, theme=None, width="stretch", config={"displaylogo": False})
+    st.plotly_chart(_figure_lang(fig), theme=None, width="stretch", config={"displaylogo": False})
 
 
 def _numeric_like(col: pd.Series) -> bool:
@@ -70,7 +72,7 @@ def show_table(df: pd.DataFrame, *, max_rows: int = 40, **kw) -> None:
 
 
 def kind_ko(design) -> str:
-    return DESIGN_KIND_KO.get(type(design).__name__, type(design).__name__)
+    return O(DESIGN_KIND_KO.get(type(design).__name__, type(design).__name__))
 
 
 def worksheet_json(ws: Worksheet) -> bytes:
@@ -95,8 +97,9 @@ def worksheet_csv(ws: Worksheet) -> bytes:
 def require_ws() -> Worksheet:
     ws = get_ws()
     if ws is None:
-        st.info("아직 워크시트가 없습니다. **설계 생성**에서 설계를 만들거나 **시작** 화면에서 파일을 불러오세요.")
-        st.page_link("views/create.py", label="설계 생성으로 가기", icon=":material/grid_on:")
+        st.info(T("아직 워크시트가 없습니다. **설계 생성**에서 설계를 만들거나 **시작** 화면에서 파일을 불러오세요.",
+                  "No worksheet yet. Create a design in **Create design** or open a file on the **Home** page."))
+        st.page_link("views/create.py", label=T("설계 생성으로 가기"), icon=":material/grid_on:")
         st.stop()
     return ws
 
@@ -104,8 +107,9 @@ def require_ws() -> Worksheet:
 def ws_caption(ws: Worksheet) -> str:
     d = ws.design
     extra = [c for c in ws.columns.columns]
-    return (f"{kind_ko(d)} · 요인 {len(d.factors)}개 · 런 {d.n_runs}개"
-            + (f" · 비설계 열: {', '.join(extra)}" if extra else ""))
+    return (T(f"{kind_ko(d)} · 요인 {len(d.factors)}개 · 런 {d.n_runs}개",
+              f"{kind_ko(d)} · {len(d.factors)} factors · {d.n_runs} runs")
+            + (T(f" · 비설계 열: {', '.join(extra)}", f" · other columns: {', '.join(extra)}") if extra else ""))
 
 
 def report_downloads(make_report, key: str, fname: str) -> None:
@@ -114,12 +118,13 @@ def report_downloads(make_report, key: str, fname: str) -> None:
     make_report(figures: bool) -> doe_core.report.Report. 만든 파일은 key 로 세션에 둔다(분석이 바뀌면 key 도 바뀐다).
     """
     from doe_core.report import to_html, to_pdf, to_xlsx
-    with st.expander("보고서 내려받기 (Excel · HTML · PDF)"):
+    with st.expander(T("보고서 내려받기 (Excel · HTML · PDF)", "Download report (Excel · HTML · PDF)")):
         c0, c1, c2, c3 = st.columns([1.4, 1, 1, 1], vertical_alignment="bottom")
-        figs = c0.checkbox("그래프 포함", True, key=f"{key}_figs",
-                           help="PDF 의 그래프는 그림 파일로 만들어 넣으므로 몇 초 더 걸립니다.")
-        if c0.button("보고서 만들기", key=f"{key}_make"):
-            with st.spinner("보고서를 만드는 중…"):
+        figs = c0.checkbox(T("그래프 포함"), True, key=f"{key}_figs",
+                           help=T("PDF 의 그래프는 그림 파일로 만들어 넣으므로 몇 초 더 걸립니다.",
+                                  "Graphs in the PDF are rendered as images, which takes a few more seconds."))
+        if c0.button(T("보고서 만들기"), key=f"{key}_make"):
+            with st.spinner(T("보고서를 만드는 중…", "Building the report…")):
                 rep = make_report(figs)
                 files = {"xlsx": to_xlsx(rep), "html": to_html(rep).encode("utf-8")}
                 try:
@@ -129,7 +134,8 @@ def report_downloads(make_report, key: str, fname: str) -> None:
             st.session_state[key] = files
         files = st.session_state.get(key)
         if not files:
-            st.caption("Excel 에는 결과표와 원자료(워크시트·적합치)가, HTML·PDF 에는 표와 그래프가 들어갑니다.")
+            st.caption(T("Excel 에는 결과표와 원자료(워크시트·적합치)가, HTML·PDF 에는 표와 그래프가 들어갑니다.",
+                         "Excel holds the result tables and raw data (worksheet, fits); HTML and PDF hold tables and graphs."))
             return
         c1.download_button("Excel (.xlsx)", files["xlsx"], f"{fname}.xlsx",
                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"{key}_x")
@@ -137,4 +143,5 @@ def report_downloads(make_report, key: str, fname: str) -> None:
         if "pdf" in files:
             c3.download_button("PDF", files["pdf"], f"{fname}.pdf", "application/pdf", key=f"{key}_p")
         else:
-            c3.caption("PDF 를 만들지 못했습니다(reportlab 필요): " + files["pdf_error"])
+            c3.caption(T("PDF 를 만들지 못했습니다(reportlab 필요): ", "Could not build the PDF (needs reportlab): ")
+                       + files["pdf_error"])

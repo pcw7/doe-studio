@@ -22,6 +22,7 @@ class Report:
     blocks: list[Block] = field(default_factory=list)
     data_sheets: dict[str, pd.DataFrame] = field(default_factory=dict)   # Excel 에만 들어가는 원자료(숫자)
     created: datetime = field(default_factory=datetime.now)
+    lang: str = "ko"                                                     # "en" 이면 그래프 글자도 영어로
 
     def heading(self, text: str) -> "Report":
         self.blocks.append(Block("heading", text))
@@ -40,8 +41,14 @@ class Report:
         return self
 
     def figure(self, fig, title: str | None = None) -> "Report":
+        if self.lang == "en":
+            from ..plots.lang import to_english
+            fig = to_english(fig)
         self.blocks.append(Block("figure", fig, title))
         return self
+
+    def t(self, ko: str, en: str) -> str:
+        return en if self.lang == "en" else ko
 
     @property
     def stamp(self) -> str:

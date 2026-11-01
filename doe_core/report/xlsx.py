@@ -121,7 +121,7 @@ def _sheet_name(name: str, used: set) -> str:
 
 
 def _report_sheet(rep: Report) -> _Sheet:
-    sh = _Sheet("보고서")
+    sh = _Sheet(rep.t("보고서", "Report"))
     sh.put([rep.title], TITLE)
     if rep.subtitle:
         sh.put([rep.subtitle], NOTE)
@@ -150,7 +150,8 @@ def _report_sheet(rep: Report) -> _Sheet:
                 sh.put([b.note], NOTE)
             sh.blank()
         elif b.kind == "figure":
-            sh.put([f"[그래프] {b.title or ''} — HTML·PDF 보고서에서 볼 수 있습니다."], NOTE)
+            sh.put([rep.t(f"[그래프] {b.title or ''} — HTML·PDF 보고서에서 볼 수 있습니다.",
+                          f"[Graph] {b.title or ''} — see the HTML or PDF report.")], NOTE)
     return sh
 
 
