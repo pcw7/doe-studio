@@ -123,8 +123,15 @@ def design_to_dict(d) -> dict:
                 "process": [_factor_to_dict(f) for f in d.process],
                 "constraints": [{"coefs": lc.coefs, "lower": lc.lower, "upper": lc.upper} for lc in d.constraints]}
     if isinstance(d, TaguchiDesign):
-        return {"type": "taguchi", "array": d.array.name, "columns": list(d.columns),
-                "factors": [_factor_to_dict(f) for f in d.factors]}
+        out = {"type": "taguchi", "array": d.array.name, "columns": list(d.columns),
+               "factors": [_factor_to_dict(f) for f in d.factors]}
+        try:
+            same = array_by_name(d.array.name).rows == d.array.rows
+        except (KeyError, ValueError):
+            same = False
+        if not same:                                 # 사용자 배열(데이터로 만든 배열)
+            out["custom_array"] = {"runs": d.array.runs, "levels": list(d.array.levels), "rows": d.array.rows}
+        return out
     if isinstance(d, SplitPlotDesign):
         return {"type": "split_plot", "factors": [_factor_to_dict(f) for f in d.factors], "n_htc": d.n_htc,
                 "base_runs": d.base_runs, "generators": d.generators,
@@ -163,7 +170,13 @@ def design_from_dict(meta: dict, coded: pd.DataFrame):
         return d
     if kind == "taguchi":
         factors = [GeneralFactor(f["name"], f["levels"], numeric=f["numeric"]) for f in meta["factors"]]
-        d = TaguchiDesign(array_by_name(meta["array"]), list(meta["columns"]), factors, pd.DataFrame(), coded)
+        if "custom_array" in meta:
+            from ..designs.taguchi import TaguchiArray
+            ca = meta["custom_array"]
+            arr = TaguchiArray(int(ca["runs"]), tuple(ca["levels"]), ca["rows"], meta["array"])
+        else:
+            arr = array_by_name(meta["array"])
+        d = TaguchiDesign(arr, list(meta["columns"]), factors, pd.DataFrame(), coded)
         d.runs = d.rebuild_runs(coded)
         return d
     if kind == "general_full":
@@ -611,14 +624,15 @@ def _looks_dsd(df: pd.DataFrame, factors: list[str]) -> bool:
 
 
 def design_kind_of(df: pd.DataFrame, factors: list[str], process=None) -> str:
-    """데이터로 사용자 정의 설계 종류를 고른다: mixture / dsd / response_surface / two_level."""
+    """데이터로 사용자 정의 설계 종류를 고른다: mixture / dsd / response_surface / general_full / taguchi / two_level."""
+    from .custom_designs import multilevel_kind
     if process or _constant_sum(df, list(factors)) is not None:
         return "mixture"
     if _looks_dsd(df, list(factors)):
         return "dsd"
     if "PtType" in df.columns and df["PtType"].isin([-1, 2]).any():
         return "response_surface"
-    return "two_level"
+    return multilevel_kind(df, list(factors)) or "two_level"
 
 
 def define_custom_design(df: pd.DataFrame, factors: list[str], **kwargs) -> Worksheet:
@@ -628,7 +642,7 @@ def define_custom_design(df: pd.DataFrame, factors: list[str], **kwargs) -> Work
     중앙점)면 확정적 선별설계, 점 유형 열(PtType)에 축점(−1)이나 모서리 중점(2)이 있으면 반응표면 설계,
     아니면 2수준 요인설계로 정의한다.
     """
-    kind = design_kind_of(df, factors, kwargs.get("process"))
+    kind = kwargs.pop("kind", None) or design_kind_of(df, factors, kwargs.get("process"))
     if kind == "mixture":
         return define_custom_mixture(df, factors, **kwargs)
     kwargs.pop("process", None)
@@ -636,6 +650,9 @@ def define_custom_design(df: pd.DataFrame, factors: list[str], **kwargs) -> Work
         return define_custom_dsd(df, factors, **kwargs)
     if kind == "response_surface":
         return define_custom_response_surface(df, factors, **kwargs)
+    if kind in ("general_full", "taguchi"):
+        from .custom_designs import define_custom_general_full, define_custom_taguchi
+        return define_custom_general_full(df, factors) if kind == "general_full" else define_custom_taguchi(df, factors)[0]
     return define_custom_two_level(df, factors, **kwargs)
 
 

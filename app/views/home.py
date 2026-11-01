@@ -76,15 +76,21 @@ with c2:
         process = st.multiselect(T("공정 변수 열(혼합물 설계일 때)", "Process variable columns (mixture designs)"),
                                  [c for c in candidates if c not in factors])
         kind_ko = {"mixture": "혼합물 설계", "dsd": "확정적 선별설계", "response_surface": "반응표면 설계",
-                   "two_level": "2수준 요인설계"}
+                   "two_level": "2수준 요인설계", "general_full": "일반 완전요인설계", "taguchi": "Taguchi 설계"}
         if len(factors) >= 2:
             try:
                 st.caption(T("인식한 설계 종류: ", "Detected design: ") + O(kind_ko[design_kind_of(df, factors, process)]))
             except Exception:  # noqa: BLE001
                 pass
+        as_kind = st.selectbox(T("설계 종류로 정의", "Define as"), ["auto", "taguchi", "general_full"],
+                               format_func=lambda k: T("자동 판정", "Automatic") if k == "auto" else O(kind_ko[k]),
+                               key="import_kind")
         if st.button(T("설계로 정의", "Define design"), type="primary", disabled=len(factors) < 2):
             try:
-                set_ws(define_custom_design(df, factors, **({"process": process} if process else {})))
+                kw = {"process": process} if process else {}
+                if as_kind != "auto":
+                    kw = {"kind": as_kind}
+                set_ws(define_custom_design(df, factors, **kw))
                 st.session_state.pop("import_df", None)
                 st.success(T("설계를 정의했습니다. 분석 화면으로 이동하세요.", "Design defined. Go to the Analyze page."))
                 st.rerun()
