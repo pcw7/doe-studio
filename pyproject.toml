@@ -19,6 +19,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4", "kaleido>=1.0"]   # kaleido: 그래프 PNG 내보내기·육안 확인
+report = ["reportlab>=4.0", "kaleido>=1.0"]   # PDF 보고서(한글 글꼴은 시스템 TTF), PDF 안 그래프
 
 [tool.setuptools.packages.find]
 include = ["doe_core*"]

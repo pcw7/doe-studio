@@ -2,7 +2,7 @@
 import pandas as pd
 import streamlit as st
 
-from app.state import plot_mode, require_ws, show_plot, show_table, ws_caption
+from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.model import RS_MODELS
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
@@ -79,6 +79,8 @@ opt = st.session_state.get("opt")
 if opt and opt[0] == responses:
     res = opt[1]
     show_results(res, models, goals)
+    from doe_core.report import optimization_report
+    report_downloads(lambda figs: optimization_report(models, goals, res), f"rep_opt_{id(res)}", "최적화보고서")
 
     cont = [L for L, f in zip(d.letters, d.factors) if getattr(f, "is_numeric", False) and hasattr(f, "low")]
     if len(responses) >= 2 and len(cont) >= 2:

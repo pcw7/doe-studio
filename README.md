@@ -23,7 +23,7 @@
 ## 개발 환경
 
 ```powershell
-python -m pip install -e .[dev]
+python -m pip install -e .[dev,report]   # report: PDF 보고서(reportlab)
 python research/fetch_samples.py   # Minitab 문서 예제 데이터(.MWX) 내려받기(테스트·예제용, 선택)
 python -m pytest
 streamlit run app/main.py          # 화면: http://localhost:8501
@@ -57,3 +57,5 @@ streamlit run app/main.py          # 화면: http://localhost:8501
   - [x] 화면: 혼합물·DSD·분할구 생성, 혼합물·선별·분할구 분석, 최적 설계 페이지, 예제 데이터 3종 추가
   - [x] 혼합물 예측·그래프(단순체 설계도, 반응 추적 그림, 삼각 등고선·표면도·중첩 등고선)
   - [x] 혼합물 반응 최적화(성분 합·범위·선형 제약, 공정 변수, 고정값)
+- [ ] 4단계: 보고서 내보내기, 한/영 전환, 시범 사용 피드백
+  - [x] 보고서 내보내기: Excel(.xlsx, 의존성 없음)·HTML(그래프 포함, 한 파일)·PDF(reportlab, 한글 글꼴 내장) — 설계·분석·최적화·최적 설계 화면

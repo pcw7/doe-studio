@@ -86,15 +86,6 @@ def alias_title(a, max_order: int | None | str = "default") -> str:
     return "Alias Structure" if max_order is None or max_order >= k else f"Alias Structure (up to order {max_order})"
 
 
-def alias_title(a, max_order: int | None | str = "default") -> str:
-    if getattr(a, "is_dsd", False):
-        return "Alias Structure (up to order 2)"
-    k = len(a.design.letters)
-    if max_order == "default":
-        max_order = default_alias_order(k)
-    return "Alias Structure" if max_order is None or max_order >= k else f"Alias Structure (up to order {max_order})"
-
-
 def has_aliasing(a, max_order: int | None | str = "default") -> bool:
     _, _, A = alias_matrix(a, max_order)
     return bool(np.any(np.round(A, 2) != 0))
