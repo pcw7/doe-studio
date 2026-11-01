@@ -8,7 +8,8 @@ from __future__ import annotations
 import re
 
 HANGUL = re.compile(r"[가-힣]")
-_PAIR = re.compile(r"^(\**)(.*?)\s*\(([^()]*)\)(\**)$", re.S)
+# 우리 라벨은 '한글 (English)' 처럼 괄호 앞을 띄어 쓴다. '온도(°C)' 처럼 붙여 쓴 것은 단위가 붙은 사용자 이름이라 바꾸지 않는다.
+_PAIR = re.compile(r"^(\**)(.*?)\s+\(([^()]*)\)(\**)$", re.S)
 
 FIG_PHRASES = {
     "회색이 아닌 영역 = 모든 반응이 범위 안": "non-grey region = all responses within limits",
@@ -32,10 +33,11 @@ def english_of(ko: str) -> str | None:
     return None
 
 
-def fig_text(s):
+def fig_text(s, pair: bool = True):
+    """그래프 글자의 영어. pair=False 면 '한글 (English)' 꼴 판정 없이 짧은 말 사전만 쓴다(이미 영어인 부제)."""
     if not isinstance(s, str) or not HANGUL.search(s):
         return s
-    e = english_of(s)
+    e = english_of(s) if pair else None
     if e:
         return e
     for k in sorted(FIG_PHRASES, key=len, reverse=True):
@@ -51,7 +53,10 @@ def to_english(fig):
     sub = title.subtitle.text if title and title.subtitle and title.subtitle.text else None
     if sub:
         parts = sub.split(" · ")
-        fig.update_layout(title_text=fig_text(parts[0]), title_subtitle_text=fig_text(" · ".join(parts[1:])))
+        # 부제 첫 부분은 이미 영어 제목이다('Main Effects Plot for 수율 (Fitted Means)'). 한글 반응 이름이 들어 있어도
+        # '한글 (English)' 라벨로 보고 괄호 속만 남기면 안 된다.
+        fig.update_layout(title_text=fig_text(parts[0], pair=False),
+                          title_subtitle_text=fig_text(" · ".join(parts[1:])))
     elif title and title.text:
         fig.update_layout(title_text=fig_text(title.text))
     for ax in [k for k in fig.layout if k.startswith(("xaxis", "yaxis"))]:
@@ -64,7 +69,8 @@ def to_english(fig):
             if a.title and a.title.text:
                 a.title.text = fig_text(a.title.text)
     for ann in fig.layout.annotations or []:
-        ann.text = fig_text(ann.text)
+        if getattr(ann, "name", None) != "keep":           # theme.KEEP: 요인 이름 같은 사용자 글자
+            ann.text = fig_text(ann.text)
     for tr in fig.data:
         if getattr(tr, "name", None):
             tr.name = fig_text(tr.name)

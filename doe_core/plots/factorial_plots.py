@@ -17,7 +17,7 @@ from plotly.subplots import make_subplots
 
 from ..analysis import fmt
 from ..analysis.means import _levels, fitted_at
-from .theme import LINE_W, MARKER, style, tokens
+from .theme import KEEP, LINE_W, MARKER, lift_legend, style, tokens
 
 
 def _names(a) -> dict[str, str]:
@@ -109,8 +109,11 @@ def main_effects_plot(a, letters: list[str] | None = None, mode: str = "light") 
         fig.update_xaxes(type="category", categoryorder="array", categoryarray=cats, showgrid=False, row=1, col=i)
     style(fig, mode, title=f"{a.response} 주효과도", en=f"Main Effects Plot for {a.response} (Fitted Means)",
           height=380, showlegend=ct is not None and a.two_level)
-    for ann in fig.layout.annotations:
+    for ann in fig.layout.annotations:                   # 소제목 = 요인 이름(사용자 글자)
         ann.font = dict(size=12, color=t["text2"])
+        ann.name = KEEP
+    if ct is not None and a.two_level:
+        lift_legend(fig, 22)
     fig.update_yaxes(title_text="적합 평균 (Fitted Mean)", row=1, col=1)
     return fig
 

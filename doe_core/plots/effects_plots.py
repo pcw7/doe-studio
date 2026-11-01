@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 from scipy import stats
 
 from ..analysis.effects import EffectsResult
-from .theme import BAR_MAX, LINE_W, MARKER, style, tokens
+from .theme import BAR_MAX, KEEP, LINE_W, MARKER, lift_legend, style, tokens
 
 PERCENT_TICKS = [1, 5, 10, 20, 30, 50, 70, 80, 90, 95, 99]
 
@@ -44,9 +44,31 @@ def pareto_chart(e: EffectsResult, mode: str = "light") -> go.Figure:
     style(fig, mode, title="효과의 Pareto 차트" if not e.standardized else "표준화 효과의 Pareto 차트",
           en=e.pareto_title, height=height)
     fig.update_layout(barmode="overlay", bargap=max(0.0, 1 - BAR_MAX / 34))
+    if len(fig.data) > 1:
+        lift_legend(fig, 22)
+    _factor_name_box(fig, e, t)
     fig.update_xaxes(title_text=xlabel, rangemode="tozero")
     fig.update_yaxes(title_text="항 (Term)", categoryorder="array", categoryarray=list(p["Term"]), showgrid=False)
     return fig
+
+
+def _factor_name_box(fig: go.Figure, e: EffectsResult, t: dict) -> None:
+    """Pareto 오른쪽의 요인 문자 → 이름 표(이름이 문자와 다를 때만). 이름은 사용자 글자라 영어로 바꾸지 않는다."""
+    one = e.table[e.table["Term"].str.len() == 1]
+    pairs = [(L, str(n)) for L, n in zip(one["Term"], one["Name"]) if str(n) != L]
+    if not pairs:
+        return
+    pairs.sort()
+    width = min(260, 34 + 8 * max(len(n) for _, n in pairs))
+    fig.update_layout(margin=dict(r=(fig.layout.margin.r or 24) + width))
+    fig.add_annotation(x=1.02, y=1, xref="paper", yref="paper", xanchor="left", yanchor="top", showarrow=False,
+                       align="left", text="요인 (Factor)", font=dict(size=12, color=t["text2"]))
+    m = fig.layout.margin
+    plot_h = max((fig.layout.height or 450) - (m.t or 0) - (m.b or 0), 60)
+    fig.add_annotation(x=1.02, y=1 - 22 / plot_h, xref="paper", yref="paper", xanchor="left", yanchor="top",
+                       showarrow=False,
+                       align="left", name=KEEP, font=dict(size=12, color=t["text"]),
+                       text="<br>".join(f"{L}&nbsp;&nbsp;{n}" for L, n in pairs))
 
 
 def _prob_axis(fig: go.Figure, half: bool = False, row=None, col=None):
