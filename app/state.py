@@ -64,6 +64,25 @@ def _numeric_like(col: pd.Series) -> bool:
     return True
 
 
+def boxcox_input(key: str, *, allow_custom: bool = True):
+    """Box-Cox 변환 선택(Options > Box-Cox transformation). (boxcox 인자, 반올림 여부)."""
+    KO = {"none": ("변환 없음", "No transformation"), "optimal": ("최적 λ", "Optimal λ"),
+          "0": ("λ = 0 (자연로그)", "λ = 0 (natural log)"), "0.5": ("λ = 0.5 (제곱근)", "λ = 0.5 (square root)"),
+          "custom": ("λ 직접 입력", "λ")}
+    opts = list(KO) if allow_custom else ["none", "optimal", "0", "0.5"]
+    c1, c2 = st.columns(2)
+    choice = c1.selectbox(T("Box-Cox 변환 (Box-Cox transformation)"), opts, format_func=lambda v: T(*KO[v]), key=key)
+    rounded = True
+    if choice == "none":
+        return None, True
+    if choice == "optimal":
+        rounded = c2.checkbox(T("반올림한 λ 사용(0.5 단위) (Use rounded λ)"), value=True, key=f"{key}_round")
+        return "optimal", rounded
+    if choice == "custom":
+        return float(c2.number_input("λ", -2.0, 2.0, 1.0, step=0.5, key=f"{key}_lam")), True
+    return float(choice), True
+
+
 def show_table(df: pd.DataFrame, *, max_rows: int = 40, **kw) -> None:
     """표를 행 수만큼 펼쳐(최대 max_rows 행) 보여 준다. 숫자로 읽히는 열은 오른쪽 정렬."""
     cfg = {c: st.column_config.Column(alignment="right") for c in df.columns if _numeric_like(df[c])}

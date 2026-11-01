@@ -107,6 +107,11 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
     if a.removed_terms:
         r.text(t("완전 별칭(선형 종속)이라 뺀 항: ", "Removed (completely aliased) terms: ")
                + ", ".join(x.name for x in a.removed_terms))
+    bc = getattr(a, "boxcox", None)
+    if bc is not None:
+        r.heading(t("방법 (Method)", "Method"))
+        r.table(bc.method_table(), note=t(f"분석 표는 변환한 반응 {a.response_label} 기준.",
+                                          f"Tables are for the transformed response {a.response_label}."))
     sel = getattr(a, "selection", None)
     if sel is not None:
         from ..analysis.stepwise import METHOD_TITLE_KO
@@ -191,6 +196,10 @@ def optimization_report(models: dict, goals: list, res, *, title: str | None = N
     r = Report(title or t("반응 최적화 보고서", "Response optimization report"),
                t(f"반응 {', '.join(models)} · 종합 만족도 {res.D:.4f}",
                  f"Responses {', '.join(models)} · composite desirability {res.D:.4f}"), lang=lang)
+    bcs = [f"{k}: λ = {a.boxcox.lam:g}" for k, a in models.items() if getattr(a, "boxcox", None) is not None]
+    if bcs:
+        r.text(t("Box-Cox 변환(적합치는 원래 단위): ", "Box-Cox transformation (fits in original units): ")
+               + ", ".join(bcs))
     r.heading(t("파라미터 (Parameters)"))
     r.table(parameters_table(list(models.values()), goals))
     r.heading(t("해 (Solution)"))

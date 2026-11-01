@@ -4,6 +4,7 @@
   일반 완전요인은 수준 값 → 수준 번호. 블록은 평균화(효과 코딩 0), 중앙점 항(Ct Pt)은 모든 숫자 요인이 중점이면 1.
 - 공변량은 값을 주면 그 값, 없으면 데이터 평균('Include covariates in prediction' 을 끄면 평균화와 같음).
 - CI = Fit ± t(1 − α/2, 오차 DF)·SE Fit, PI = Fit ± t·√(SE Fit² + MSE).
+- Box-Cox 변환 모형은 적합치·구간 끝을 원래 단위로 되돌린다(단조 변환). SE Fit 은 되돌릴 수 없어 '*'.
 - 표시: Minitab 'Predict' 출력은 각 값을 유효숫자 6자리(258.242, 2.35414, (253.393, 263.090)),
   반응 최적화기의 'Multiple Response Prediction' 은 SE Fit 유효숫자 3자리 기준(750.0, 34.3, (679.3, 820.7)).
   문서 예제(ThermalEnergyTest, InsulationProperties)와 일치한다.
@@ -77,13 +78,20 @@ def design_row(a, settings: dict, covariates: dict | None = None) -> np.ndarray:
 def predict(a, settings: dict, *, covariates: dict | None = None, confidence: float = 0.95) -> Prediction:
     x0 = design_row(a, settings, covariates)
     fit = float(x0 @ a.beta)
+    bc = getattr(a, "boxcox", None)
     if a.mse is None:
         nan = float("nan")
-        return Prediction(fit, nan, (nan, nan), (nan, nan), dict(settings), confidence)
+        f = float(bc.inverse(fit)) if bc is not None else fit
+        return Prediction(f, nan, (nan, nan), (nan, nan), dict(settings), confidence)
     se = float(np.sqrt(x0 @ a.coef_cov() @ x0))                     # 분할구는 전구 분산을 반영한 공분산
     t = float(stats.t.ppf(1 - (1 - confidence) / 2, a.df_error))
     spi = float(np.sqrt(se ** 2 + a.mse))
-    return Prediction(fit, se, (fit - t * se, fit + t * se), (fit - t * spi, fit + t * spi), dict(settings), confidence)
+    ci, pi = (fit - t * se, fit + t * se), (fit - t * spi, fit + t * spi)
+    if bc is not None:
+        back = lambda v: float(bc.inverse(v))  # noqa: E731
+        return Prediction(back(fit), float("nan"), tuple(sorted((back(ci[0]), back(ci[1])))),
+                          tuple(sorted((back(pi[0]), back(pi[1])))), dict(settings), confidence)
+    return Prediction(fit, se, ci, pi, dict(settings), confidence)
 
 
 def predict_many(a, rows: list[dict], **kw) -> list[Prediction]:

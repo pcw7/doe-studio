@@ -140,3 +140,18 @@ def test_stepwise_analyze_english(method):
     at.button[0].click().run()
     assert not at.exception and korean_left(at) == []
     assert any(c.value.startswith("Step 1:") for c in at.code)
+
+
+def test_boxcox_options_english():
+    from doe_core.designs.factorial import create_two_level_design
+    from doe_core.io.worksheet import Worksheet
+    ws = Worksheet(create_two_level_design(4, randomize=False))
+    y = [1.68, 1.98, 3.28, 3.44, 4.98, 5.70, 9.97, 9.07, 2.07, 2.44, 4.09, 4.53, 7.77, 9.43, 11.75, 16.30]
+    ws.add_column("Rate", np.array(y), order="std")
+    at = run_en("analyze.py", ws)
+    at.selectbox(key="bc_analyze").set_value("optimal").run()
+    at.slider[0].set_value(1).run()
+    at.button[0].click().run()
+    assert not at.exception and korean_left(at) == []
+    at = run_en("optimize.py", ws)
+    assert korean_left(at) == []

@@ -324,3 +324,27 @@ def test_analyze_page_stepwise():
     rep = analysis_report(ws, at.session_state["analysis"], figures=False)
     assert StepwiseOptions(method="backward").alphas()[1] == 0.1
     assert rep is not None
+
+
+def test_analyze_and_optimize_with_boxcox():
+    """Box-Cox: 시추 속도 2⁴(Montgomery) — 분석 화면에서 최적 λ(반올림 0 → 로그), 최적화 화면은 원래 단위."""
+    import numpy as np
+    d = create_two_level_design(4, randomize=False)
+    ws = Worksheet(d)
+    y = [1.68, 1.98, 3.28, 3.44, 4.98, 5.70, 9.97, 9.07, 2.07, 2.44, 4.09, 4.53, 7.77, 9.43, 11.75, 16.30]
+    ws.add_column("Rate", np.array(y), order="std")
+    at = run("analyze.py", ws)
+    at.selectbox(key="bc_analyze").set_value("optimal").run()
+    at.slider[0].set_value(1).run()
+    at.button[0].click().run()
+    assert not at.exception
+    a = at.session_state["analysis"]
+    assert a.boxcox is not None and a.response_label == "ln(Rate)"
+    assert any(c.value.startswith("ln(Rate) = ") for c in at.code)
+    at = run("optimize.py", ws)
+    at.selectbox(key="bc_optimize").set_value("0").run()
+    assert not at.exception
+    at.button[0].click().run()
+    assert not at.exception
+    res = at.session_state["opt"][1]
+    assert 1.0 < res.fits["Rate"] < 30.0                      # 원래 단위(로그 단위면 3 안팎)

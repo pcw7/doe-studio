@@ -58,7 +58,7 @@ class ResponseGoal:
 def default_goal(a, goal: str, *, target: float | None = None, lower: float | None = None,
                  upper: float | None = None, weight: float = 1.0, importance: float = 1.0) -> ResponseGoal:
     """데이터 최솟값·최댓값으로 빈 값을 채운 목표."""
-    y = a.y
+    y = getattr(a, "y_original", a.y)
     lo_d, hi_d = float(np.min(y)), float(np.max(y))
     given = {k for k, v in (("lower", lower), ("target", target), ("upper", upper)) if v is not None}
     if goal == "maximize":
@@ -136,8 +136,10 @@ def evaluate(analyses: list, goals: list[ResponseGoal], settings: dict, covariat
     fits, ds = {}, {}
     for a, g in zip(analyses, goals):
         y = float(design_row(a, settings, covariates) @ a.beta)
+        if getattr(a, "boxcox", None) is not None:
+            y = float(a.boxcox.inverse(y))                       # 원래 단위로
         fits[g.response] = y
-        ds[g.response] = desirability(y, g)
+        ds[g.response] = desirability(y, g) if math.isfinite(y) else 0.0
     return composite(list(ds.values()), goals), ds, fits
 
 
@@ -237,7 +239,7 @@ def _bound_text(v, a, given: bool) -> str:
         return ""
     if given:
         return f"{v:g}"
-    d = min(_data_decimals(a.y), fmt.decimals_for_sig(v, 6))
+    d = min(_data_decimals(getattr(a, "y_original", a.y)), fmt.decimals_for_sig(v, 6))
     return fmt.fixed(v, d)
 
 
@@ -252,7 +254,7 @@ def parameters_table(analyses: list, goals: list[ResponseGoal]) -> pd.DataFrame:
     cols = {"Lower": "lower", "Target": "target", "Upper": "upper"}
     dec = {}
     for col, attr in cols.items():
-        ds = [min(_data_decimals(a.y), fmt.decimals_for_sig(getattr(g, attr), 6))
+        ds = [min(_data_decimals(getattr(a, "y_original", a.y)), fmt.decimals_for_sig(getattr(g, attr), 6))
               for a, g in zip(analyses, goals) if getattr(g, attr) is not None and attr not in g._given]
         dec[col] = max(ds) if ds else 0
     rows = []
