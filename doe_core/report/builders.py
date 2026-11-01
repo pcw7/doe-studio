@@ -197,6 +197,56 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
     return r
 
 
+def binary_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: str = "light", lang: str = "ko") -> Report:
+    """이항 반응 분석 보고서(Analyze Binary Response)."""
+    t = _tr(lang)
+    d = a.design
+    r = Report(t(f"{a.response} 이항 반응 분석 보고서", f"Binary response report — {a.response}"),
+               t(f"{kind_ko(d)} · 로짓 · 행 {a.n}개", f"{kind_ko(d, 'en')} · logit · {a.n} rows"), lang=lang)
+    r.text(t("모형 항: ", "Model terms: ") + ", ".join(x.name for x in a.terms))
+    if a.removed_terms:
+        r.text(t("완전 별칭(선형 종속)이라 뺀 항: ", "Removed (completely aliased) terms: ")
+               + ", ".join(x.name for x in a.removed_terms))
+    r.heading(t("방법 (Method)", "Method"))
+    r.table(a.method_table())
+    r.heading(t("반응 정보 (Response Information)", "Response Information"))
+    r.table(a.response_table())
+    r.heading(t("코드화된 계수 (Coded Coefficients)", "Coded Coefficients"))
+    r.table(a.coefficients_table(expanded=True))
+    oc, ocat = a.odds_continuous(), a.odds_categorical()
+    if not oc.empty:
+        r.heading(t("연속 예측변수의 오즈비 (Odds Ratios for Continuous Predictors)", "Odds Ratios for Continuous Predictors"))
+        r.table(oc)
+    if not ocat.empty:
+        r.heading(t("범주형 예측변수의 오즈비 (Odds Ratios for Categorical Predictors)",
+                    "Odds Ratios for Categorical Predictors"))
+        r.table(ocat, note=t("Level A 의 Level B 에 대한 오즈비", "Odds ratio for level A relative to level B"))
+    r.heading(t("모형 요약 (Model Summary)", "Model Summary"))
+    r.table(a.summary_table())
+    r.heading(t("적합도 검정 (Goodness-of-Fit Tests)", "Goodness-of-Fit Tests"))
+    r.table(a.gof_table())
+    r.heading(t("분산 분석 (Analysis of Variance)", "Analysis of Variance"))
+    r.table(a.anova_table())
+    eq = a.equation()
+    if eq:
+        r.heading(t("회귀 방정식 (" + eq[0] + ")", eq[0]))
+        r.mono(eq[1])
+    if a.two_level:
+        from ..analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
+        if _try(has_aliasing, a):
+            r.heading(t("별칭 구조 (" + alias_title(a) + ")", alias_title(a)))
+            r.table(factor_name_table(a))
+            r.mono("\n".join(alias_lines(a)))
+    if figures and (a.two_level or a.is_rs):
+        from ..analysis.effects import effects
+        from ..plots.effects_plots import pareto_chart
+        e = _try(effects, a, alpha)
+        if e is not None:
+            r.heading(t("그래프", "Graphs"))
+            r.figure(pareto_chart(e, mode), t("효과의 Pareto 차트", "Pareto chart of the effects"))
+    return r
+
+
 def optimization_report(models: dict, goals: list, res, *, title: str | None = None, lang: str = "ko") -> Report:
     from ..optimize.optimizer import multiple_response_prediction, parameters_table, setting_table, solution_table
     t = _tr(lang)

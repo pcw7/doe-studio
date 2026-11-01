@@ -168,3 +168,14 @@ def test_variability_page_english():
     at.button(key="var_pre").click().run()
     at.button(key="var_run").click().run()
     assert not at.exception and korean_left(at) == []
+
+
+def test_binary_page_english():
+    from tests.test_binary import _spoilage
+    ws, y, m = _spoilage()
+    at = run_en("binary.py", ws)
+    assert korean_left(at) == []
+    at.selectbox(key="bin_events").set_value("Spoilage").run()
+    at.selectbox(key="bin_trials").set_value("Containers").run()
+    at.button(key="bin_run").click().run()
+    assert not at.exception and korean_left(at) == []
