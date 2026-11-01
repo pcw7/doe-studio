@@ -4,7 +4,10 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import O, T
-from app.state import require_ws, set_ws, show_table, worksheet_csv, worksheet_json, worksheet_xlsx, ws_caption
+from app.state import (
+    ROW_HEIGHT, require_ws, run_progress, set_ws, show_table, table_height, worksheet_csv, worksheet_json,
+    worksheet_xlsx, ws_caption,
+)
 from doe_core.designs.factorial import TwoLevelDesign
 from doe_core.designs.modify import (
     display_design, fold_design, randomize_design, renumber_design, replicate_design,
@@ -15,6 +18,7 @@ from doe_core.designs.response_surface import add_axial_points, axial_alpha, axi
 st.title(T("워크시트", "Worksheet"))
 ws = require_ws()
 st.caption(ws_caption(ws))
+run_progress(ws)
 notice = st.session_state.pop("ws_notice", None)
 if notice:
     st.success(T(*notice))
@@ -83,7 +87,7 @@ st.write(T("설계 열은 고칠 수 없습니다. 반응 값은 표에 바로 �
            "Design columns are locked. Type responses into the table or paste them from Excel."))
 edited = st.data_editor(
     table, key=f"editor_{order}_{'|'.join(ws.columns.columns)}_{ws.design.n_runs}", hide_index=True, width="stretch",
-    disabled=design_cols, num_rows="fixed", height=35 * (min(len(table), 25) + 1) + 3,
+    disabled=design_cols, num_rows="fixed", height=table_height(min(len(table), 25)), row_height=ROW_HEIGHT,
 )
 extra = [c for c in edited.columns if c not in design_cols]
 

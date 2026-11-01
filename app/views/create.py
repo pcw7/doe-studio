@@ -25,8 +25,12 @@ COL_EN = {"요인": "Factor", "이름": "Name", "유형": "Type", "낮음": "Low
 NUMERIC, TEXT = ("숫자", "Numeric"), ("텍스트", "Text")
 
 
+NUMERIC_COLS = ("낮음", "높음", "하한", "상한")       # 수준 값은 숫자처럼 오른쪽 정렬(텍스트 요인 이름도 같은 칸)
+
+
 def col_cfg(columns, extra: dict | None = None) -> dict:
-    cfg = {c: st.column_config.Column(T(c, COL_EN.get(c))) for c in columns if c in COL_EN}
+    cfg = {c: st.column_config.Column(T(c, COL_EN.get(c)), alignment="right" if c in NUMERIC_COLS else None)
+           for c in columns if c in COL_EN}
     cfg.update(extra or {})
     return cfg
 
@@ -101,7 +105,8 @@ if kind == "2수준 요인설계":
         full = T("완전", "Full")
         show_table(pd.DataFrame([{T("런", "Runs"): e.n_runs, T("부분", "Fraction"): full if e.fraction == "full" else e.fraction,
                                   T("해상도", "Resolution"): ROMAN.get(e.resolution, full) if e.resolution else full,
-                                  T("가능한 블록", "Blocks"): ", ".join(map(str, [1, *sorted(e.blocks)]))} for e in entries]))
+                                  T("가능한 블록", "Blocks"): ", ".join(map(str, [1, *sorted(e.blocks)]))} for e in entries]),
+                   column_config={T("부분", "Fraction"): st.column_config.Column(alignment="right")})
     if st.button(T("설계 생성", "Create design"), type="primary"):
         try:
             design = create_two_level_design(int(k), int(runs), factors=to_factors(fdf), n_blocks=int(blocks),

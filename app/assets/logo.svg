@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="24" viewBox="0 0 132 24" role="img" aria-label="DOE Studio">
+  <rect x="4.5" y="4.5" width="15" height="15" rx="1.5" fill="none" stroke="#2a78d6" stroke-width="1.5"/>
+  <circle cx="4.5" cy="4.5" r="2.6" fill="#2a78d6"/>
+  <circle cx="19.5" cy="4.5" r="2.6" fill="#2a78d6"/>
+  <circle cx="4.5" cy="19.5" r="2.6" fill="#2a78d6"/>
+  <circle cx="19.5" cy="19.5" r="2.6" fill="#2a78d6"/>
+  <circle cx="12" cy="12" r="2.6" fill="#2a78d6"/>
+  <text x="31" y="17.5" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="700"
+        fill="#2a78d6" letter-spacing="-0.2">DOE Studio</text>
+</svg>

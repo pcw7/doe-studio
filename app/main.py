@@ -8,7 +8,16 @@ if str(ROOT) not in sys.path:
 
 import streamlit as st  # noqa: E402
 
-st.set_page_config(page_title="DOE Studio", page_icon="🧪", layout="wide")
+ASSETS = Path(__file__).parent / "assets"
+st.set_page_config(page_title="DOE Studio", page_icon=str(ASSETS / "mark.svg"), layout="wide")
+# 제품 표시: 중앙점이 있는 2x2 요인설계 마크 + 이름(사이드바 맨 위, 접으면 마크만)
+st.logo(str(ASSETS / "logo.svg"), icon_image=str(ASSETS / "mark.svg"), size="medium")
+# 좁은 화면의 좌우 여백(태블릿 24px·휴대폰 20px — 기본 1rem 은 글이 가장자리에 붙는다), 숫자는 고정폭 숫자
+st.html("""<style>
+@media (max-width: 1024px) { [data-testid="stMainBlockContainer"] { padding-left: 24px; padding-right: 24px; } }
+@media (max-width: 480px) { [data-testid="stMainBlockContainer"] { padding-left: 20px; padding-right: 20px; } }
+[data-testid="stMetricValue"], [data-testid="stCode"] { font-variant-numeric: tabular-nums; }
+</style>""")
 
 from app.i18n import LANGS, T, install_placeholders  # noqa: E402
 from app.state import autosave_current  # noqa: E402
@@ -26,7 +35,7 @@ with st.sidebar:
 
 VIEWS = Path(__file__).parent / "views"
 pages = {
-    "DOE Studio": [
+    "": [
         st.Page(VIEWS / "home.py", title=T("시작", "Home"), icon=":material/home:", default=True),
         st.Page(VIEWS / "help.py", title=T("도움말", "Help"), icon=":material/help:", url_path="help"),
     ],

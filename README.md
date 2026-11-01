@@ -125,6 +125,8 @@ streamlit run app/main.py            # 브라우저에서 http://localhost:8501
 | `tests/` | pytest. `tests/fixtures/minitab_docs/` 에 Minitab 문서 예제의 출력표(정답지) |
 | `research/` | 문서·예제 데이터 수집 도구 |
 | `assets/readme/` | 이 문서의 화면 그림 |
+| `app/static/fonts/` | 내장 글꼴 Pretendard(SIL Open Font License 1.1, 라이선스 `Pretendard-OFL.txt`) |
+| `app/assets/` | 제품 마크(중앙점이 있는 2×2 요인설계) |
 
 ## 개발
 
@@ -194,5 +196,6 @@ streamlit run app/main.py
   - [x] 중첩 등고선도: 경계선이 없을 때(범위 전체 만족·만족하는 곳 없음) 안내, 그래프 부제 끝 ' ·' 정리
   - [x] 축점·반복 추가 뒤 '블록 N만 랜덤화' 버튼(새로 붙은 런은 Minitab 처럼 섞이지 않고 붙음)
   - [x] PDF 보고서의 주요 결과 요약 기호 깨짐 수정(○·△·)
+  - [x] 화면 다듬기: Pretendard 글꼴 내장, 앱 크기의 제목·본문, 제품 마크, 실험 진행 표시(런별 결과 입력 상태), 표 높이·여백 정리
 
 </details>
