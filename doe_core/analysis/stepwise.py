@@ -24,6 +24,7 @@
 - 단계 표의 1단계는 시작 모형이 비어 있지 않을 때(Backward 는 완전 모형) 시작 모형이다. Forward 정보 기준은 상수만 있는
   모형도 비교 대상이며 늘 첫 단계로 보인다.
 - 같은 모형이 다시 나오면(α_enter > α_remove 일 때 생길 수 있는 순환) 멈춘다.
+- 가중 회귀(가중치·산포 분석)도 같은 규칙: SS 는 모두 가중, 정보 기준의 −2lnL 에 −Σln w.
 """
 from __future__ import annotations
 
@@ -107,6 +108,7 @@ class StepFit:
     n: int
     press: float | None
     mse_full: float | None
+    log_w: float = 0.0
 
     @property
     def p(self) -> int:
@@ -126,7 +128,7 @@ class StepFit:
         adj = max(0.0, 1 - mse / (self.sst / (self.n - 1))) if mse is not None and self.sst > 0 else None
         pred = max(0.0, 1 - self.press / self.sst) if self.press is not None and self.sst > 0 else None
         cp = (self.sse / self.mse_full - (self.n - 2 * self.p)) if self.mse_full else None
-        ic = info_criteria(self.sse, self.n, self.p)
+        ic = info_criteria(self.sse, self.n, self.p, self.log_w)
         return {"S": math.sqrt(mse) if mse is not None else None, "R-sq": r2, "R-sq(adj)": adj, "R-sq(pred)": pred,
                 "Mallows' Cp": cp, "AICc": ic["AICc"], "BIC": ic["BIC"]}
 
@@ -145,11 +147,14 @@ class _Engine:
     """후보 항의 열 묶음으로 부분 모형을 적합하고 추가·제거 F 검정을 한다."""
 
     def __init__(self, cands: list[Term], mats: list[np.ndarray], labels: list[list[str]], y: np.ndarray,
-                 categorical: set[str], opts: StepwiseOptions):
+                 categorical: set[str], opts: StepwiseOptions, weights: np.ndarray | None = None):
         self.cands, self.mats, self.labels, self.y = cands, mats, labels, y
         self.n = len(y)
-        d = y - y.mean()
-        self.sst = float(d @ d)
+        self.w = np.ones(self.n) if weights is None else np.asarray(weights, dtype=float)
+        self.sw = np.sqrt(self.w)
+        self.log_w = float(np.sum(np.log(self.w))) if weights is not None else 0.0
+        d = y - float(np.sum(self.w * y) / np.sum(self.w))
+        self.sst = float(np.sum(self.w * d ** 2))
         self.opts = opts
         self.excluded: set[int] = set()         # 포화 모형에서 먼저 뺀 항(다시 고려하지 않음)
         self._cache: dict[tuple[int, ...], tuple[float, int] | None] = {}
@@ -195,9 +200,9 @@ class _Engine:
             if X.shape[1] > self.n or _rank(X) < X.shape[1]:
                 self._cache[key] = None
             else:
-                beta, *_ = np.linalg.lstsq(X, self.y, rcond=None)
+                beta, *_ = np.linalg.lstsq(X * self.sw[:, None], self.y * self.sw, rcond=None)
                 r = self.y - X @ beta
-                self._cache[key] = (float(r @ r), X.shape[1])
+                self._cache[key] = (float(np.sum(self.w * r ** 2)), X.shape[1])
         v = self._cache[key]
         return None if v is None else v[0]
 
@@ -295,19 +300,20 @@ class _Engine:
         for i in key:
             labels += self.labels[i]
             col_term += [i] * self.df_of(i)
-        XtX_inv = np.linalg.inv(X.T @ X)
-        beta = XtX_inv @ X.T @ self.y
+        Xw = X * self.w[:, None]
+        XtX_inv = np.linalg.inv(X.T @ Xw)
+        beta = XtX_inv @ Xw.T @ self.y
         r = self.y - X @ beta
-        sse = float(r @ r)
+        sse = float(np.sum(self.w * r ** 2))
         dfe = self.n - X.shape[1]
         se = np.sqrt(np.diag(XtX_inv) * sse / dfe) if dfe > 0 else np.full(X.shape[1], np.nan)
-        hat = np.einsum("ij,jk,ik->i", X, XtX_inv, X)
-        press = None if np.any(hat > 1 - 1e-9) else float(np.sum((r / (1 - hat)) ** 2))
+        hat = self.w * np.einsum("ij,jk,ik->i", X, XtX_inv, X)
+        press = None if np.any(hat > 1 - 1e-9) else float(np.sum(self.w * (r / (1 - hat)) ** 2))
         term_p: dict[int, float | None] = {}
         for i in key:
             t = self.removal_test(set(key), i)
             term_p[i] = None if t is None else t[1]
-        return StepFit(key, labels, col_term, beta, se, term_p, sse, self.sst, self.n, press, mse_full)
+        return StepFit(key, labels, col_term, beta, se, term_p, sse, self.sst, self.n, press, mse_full, self.log_w)
 
 
 def _round(x: float) -> float:
@@ -480,10 +486,10 @@ def _candidates(design, coded, cov, tl: list[Term], factorial: bool):
 
 
 def select_model(design, response, coded, yv, used, tl: list[Term], cov, opts: StepwiseOptions,
-                 *, factorial: bool) -> FactorialAnalysis:
-    """단계적 선택으로 고른 모형의 분석 결과(.selection 에 단계 정보)."""
+                 *, factorial: bool, weights: np.ndarray | None = None) -> FactorialAnalysis:
+    """단계적 선택으로 고른 모형의 분석 결과(.selection 에 단계 정보). weights 가 있으면 가중 회귀."""
     cands, mats, labels, aliased = _candidates(design, coded, cov, tl, factorial)
-    eng = _Engine(cands, mats, labels, yv, _categorical_letters(design), opts)
+    eng = _Engine(cands, mats, labels, yv, _categorical_letters(design), opts, weights)
     ae, ar = opts.alphas()
     forced = _resolve(opts.force, cands, "모든 모형에 포함할")
     initial = _resolve(opts.initial, cands, "시작 모형에 포함할") if opts.method == "stepwise" else set()
@@ -619,7 +625,7 @@ def select_model(design, response, coded, yv, used, tl: list[Term], cov, opts: S
     result = StepwiseResult(opts, cands, [cands[i] for i in pre_removed], steps, chosen, ae, ar,
                             full_estimable=full_ok, notes=notes)
     final = [cands[i] for i in steps[chosen].terms]
-    a = _build(design, response, coded, yv, used, final, cov)
+    a = _build(design, response, coded, yv, used, final, cov, weights=weights)
     a.removed_terms = list(aliased) + a.removed_terms
     a.selection = result
     return a

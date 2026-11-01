@@ -16,7 +16,7 @@
 문서에 없어 정한 것
 - 반복 런의 '첫 행' 은 런 순서가 가장 앞선 행. 개수가 1 이하라 표준편차를 구할 수 없으면 결측.
 - Ratio Effect 는 Effect 와 같은 소수 자리(문서 예제 0.3830 / −0.9598).
-- 최대우도(Maximum likelihood) 추정, 단계적 선택과의 병용은 아직 지원하지 않는다.
+- 최대우도(Maximum likelihood) 추정은 아직 지원하지 않는다. 단계적 선택은 가중 회귀로 같은 규칙(포화 모형 ¼ 선제거 포함).
 """
 from __future__ import annotations
 
@@ -127,7 +127,8 @@ class VariabilityAnalysis(FactorialAnalysis):
 
 
 def analyze_variability(ws, std_column: str, counts_column: str | None = None, *, order: int | None = 2,
-                        terms: list[str] | None = None, include_blocks: bool | None = None) -> VariabilityAnalysis:
+                        terms: list[str] | None = None, include_blocks: bool | None = None,
+                        stepwise=None) -> VariabilityAnalysis:
     """표준편차 열(전처리 결과)로 산포 분석. counts_column 이 있으면 가중치 4/ψ'((n−1)/2)."""
     from ..designs.definitive_screening import DefinitiveScreeningDesign
     from ..designs.mixture import MixtureDesign
@@ -151,6 +152,12 @@ def analyze_variability(ws, std_column: str, counts_column: str | None = None, *
         raise ValueError("분석할 표준편차가 2개 이상 있어야 합니다.")
     tl = factorial_terms(d, order=order, terms=terms, include_blocks=include_blocks, include_center=False,
                          blocks_present=coded["Blocks"].nunique() > 1, center_present=False)
-    a = _build(d, std_column, coded, yv, used, tl, {}, weights=wv)
-    return VariabilityAnalysis(a.design, a.response, a.y, a.used_rows, a.terms, a.removed_terms, a.X,
-                               a.col_labels, a.col_term, a.covariates, weights=a.weights)
+    if stepwise is not None and getattr(stepwise, "active", False):
+        from .stepwise import select_model
+        a = select_model(d, std_column, coded, yv, used, tl, {}, stepwise, factorial=True, weights=wv)
+    else:
+        a = _build(d, std_column, coded, yv, used, tl, {}, weights=wv)
+    v = VariabilityAnalysis(a.design, a.response, a.y, a.used_rows, a.terms, a.removed_terms, a.X,
+                            a.col_labels, a.col_term, a.covariates, weights=a.weights)
+    v.selection = a.selection
+    return v

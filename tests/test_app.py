@@ -471,3 +471,20 @@ def test_power_page():
     at.button(key="pw_run").click().run()
     assert not at.exception
     assert at.session_state["power"].table.values.tolist() == [["0.4", "2", "18", "0.9", "0.930521"]]
+
+
+def test_variability_page_with_stepwise():
+    import numpy as np
+    d = create_two_level_design(3, replicates=3, seed=2)
+    ws = Worksheet(d)
+    rng = np.random.default_rng(3)
+    sd = np.where(d.coded["A"].values > 0, 3.0, 1.0)
+    ws.add_column("Strength", list(30 + rng.normal(0, 1, len(d.coded)) * sd))
+    at = run("variability.py", ws)
+    at.button(key="var_pre").click().run()
+    at.selectbox(key="vsw_method").set_value("backward").run()
+    at.button(key="var_run").click().run()
+    assert not at.exception
+    a = at.session_state["variability"]
+    assert a.selection is not None and a.selection.method == "backward"
+    assert any("Backward Elimination of Terms" in m.value for m in at.markdown)
