@@ -19,6 +19,7 @@ FIG_PHRASES = {
     "꼭지점": "Vertex", "중심점": "Center point", "축점": "Axial point", "중앙점 적합 평균": "Center point fitted mean",
     "적합 평균": "Fitted mean", "관측치": "Obs", "잔차": "Residual", "빈도": "Frequency", "편차": "Deviation",
     "효과": "Effect", "중앙": "Center", "런 ": "Runs ", "개": "", "유형 ": "Type ",
+    "평균": "Mean",
 }
 
 

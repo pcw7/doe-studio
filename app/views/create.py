@@ -16,6 +16,7 @@ from doe_core.designs.mixture import (
 from doe_core.designs.plackett_burman import PB_RUNS, create_plackett_burman_design
 from doe_core.designs.response_surface import BBD_CATALOG, available_ccd, create_box_behnken, create_ccd
 from doe_core.designs.split_plot import MAX_FACTORS as SP_MAX, available_split_plot, create_split_plot_design
+from doe_core.designs.taguchi import TYPES as TG_TYPES, available_taguchi, create_taguchi_design, default_columns
 from doe_core.io.worksheet import Worksheet
 
 # 표 편집기 열(코드가 쓰는 이름은 한글 그대로, 보이는 머리글만 바꿈)
@@ -37,7 +38,7 @@ st.caption(T("요인설계 · 선별 설계 · 반응표면 설계 · 혼합물 
 kind = st.segmented_control(
     T("설계 유형 (Type of Design)"),
     ["2수준 요인설계", "분할구 설계", "Plackett-Burman", "확정적 선별설계", "일반 완전요인설계", "반응표면 설계",
-     "혼합물 설계"],
+     "혼합물 설계", "Taguchi 설계"],
     default="2수준 요인설계", required=True, format_func=O,
 )
 SEED_HELP = T("같은 값이면 같은 런 순서가 나옵니다. 0 이면 매번 다릅니다.",
@@ -317,6 +318,57 @@ elif kind == "혼합물 설계":
                     cons.append(LinearConstraint(coefs, None if pd.isna(lo) else float(lo) / float(total),
                                                  None if pd.isna(hi) else float(hi) / float(total)))
                 design = create_extreme_vertices(q, constraints=cons, degree=degree, center=center, **common)
+        except Exception as e:  # noqa: BLE001
+            error = e
+
+elif kind == "Taguchi 설계":
+    TG_KO = {"2-level": "2수준", "3-level": "3수준", "4-level": "4수준", "5-level": "5수준", "mixed 2-3": "혼합 2·3수준",
+             "mixed 2-4": "혼합 2·4수준", "mixed 2-8": "혼합 2·8수준", "mixed 3-6": "혼합 3·6수준"}
+    MAX_F = {2: 31, 3: 25, 4: 9, 5: 6, 6: 1, 8: 1}
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        tkind = st.selectbox(T("설계 종류 (Type of Design)"), list(TG_TYPES), format_func=lambda v: T(TG_KO[v], O(v)))
+        lvls = TG_TYPES[tkind]
+        counts = {}
+        for lv in lvls:
+            lo = 1 if len(lvls) > 1 else 2
+            counts[lv] = int(st.number_input(T(f"{lv}수준 요인 수", f"Number of {lv}-level factors"), lo, MAX_F[lv],
+                                             lo if len(lvls) > 1 else min(3, MAX_F[lv]), key=f"tg_n_{tkind}_{lv}"))
+        try:
+            avail = available_taguchi(tkind, counts)
+        except ValueError as ex:
+            avail = []
+            st.warning(str(ex))
+        if not avail:
+            st.warning(T("이 요인 수를 담을 수 있는 배열이 없습니다.", "No array can hold this number of factors."))
+            st.stop()
+        arr = st.selectbox(T("설계 (Designs)"), avail, format_func=lambda a: f"{a.name} · " + runs_text(a.runs))
+        cols_used = default_columns(arr, counts)
+        st.caption(T("쓰는 배열 열: ", "Array columns: ") + " ".join(map(str, cols_used)))
+    with c2:
+        st.write(T("**요인 (Factors)** — 수준 값을 쉼표로 구분해 적습니다. Taguchi 설계는 런 순서를 랜덤화하지 않습니다.",
+                   "**Factors** — separate level values with commas. Taguchi designs are not randomized."))
+        lv_list = [arr.levels[c - 1] for c in cols_used]
+        letters = factor_letters(len(cols_used))
+        tbase = pd.DataFrame({"요인": letters, "이름": letters, "수준 수": lv_list,
+                              "수준 값": [", ".join(str(i + 1) for i in range(n)) for n in lv_list]})
+        tdf = st.data_editor(tbase, key=f"tg_{arr.name}_{len(cols_used)}", hide_index=True, width="stretch",
+                             disabled=["요인", "수준 수"],
+                             column_config=col_cfg(tbase.columns, {"수준 수": st.column_config.Column(
+                                 T("수준 수", "Levels"))}))
+    if st.button(T("설계 생성", "Create design"), type="primary"):
+        try:
+            facs = []
+            for r in tdf.itertuples(index=False):
+                vals = [v.strip() for v in str(r[3]).split(",") if v.strip()]
+                try:
+                    vals = [float(v) if "." in v else int(v) for v in vals]
+                except ValueError:
+                    pass
+                if len(vals) != int(r[2]):
+                    raise ValueError(T(f"{r[1]} 의 수준 값은 {r[2]}개여야 합니다.", f"{r[1]} needs {r[2]} level values."))
+                facs.append(GeneralFactor(str(r[1]).strip() or str(r[0]), vals))
+            design = create_taguchi_design(arr, facs, columns=cols_used)
         except Exception as e:  # noqa: BLE001
             error = e
 

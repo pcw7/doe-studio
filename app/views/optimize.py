@@ -24,6 +24,11 @@ if isinstance(d, MixtureDesign):
     from app.mixture_panel import render_optimizer
     render_optimizer(ws)
     st.stop()
+from doe_core.designs.taguchi import TaguchiDesign  # noqa: E402
+if isinstance(d, TaguchiDesign):
+    st.info(T("Taguchi 설계는 **분석** 화면의 '예측' 탭에서 수준 조합별 예측값(S/N 비·평균)을 확인합니다.",
+              "For Taguchi designs, use the 'Predict' tab on the **Analyze** page to predict S/N ratios and means."))
+    st.stop()
 is_dsd = isinstance(d, DefinitiveScreeningDesign)
 is_rs = isinstance(d, ResponseSurfaceDesign) or is_dsd
 numeric_cols = [c for c in ws.columns.columns if pd.api.types.is_numeric_dtype(ws.columns[c]) and ws.columns[c].notna().sum() > 1]

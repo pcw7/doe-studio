@@ -24,6 +24,7 @@ DESIGN_KIND_KO = {
     "MixtureDesign": "혼합물 설계",
     "DefinitiveScreeningDesign": "확정적 선별설계",
     "SplitPlotDesign": "2수준 분할구 설계",
+    "TaguchiDesign": "Taguchi 설계",
 }
 
 

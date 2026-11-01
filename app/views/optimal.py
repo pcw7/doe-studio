@@ -25,6 +25,11 @@ st.caption(T("Select Optimal Design — 워크시트의 설계 행(후보점)에
 ws = require_ws()
 d = ws.design
 st.caption(ws_caption(ws))
+from doe_core.designs.taguchi import TaguchiDesign  # noqa: E402
+if isinstance(d, TaguchiDesign):
+    st.info(T("Taguchi 설계는 직교배열 자체가 최적 설계라 이 기능을 쓰지 않습니다.",
+              "Taguchi designs are orthogonal arrays already; this feature does not apply."))
+    st.stop()
 n_cand = len(d.coded)
 
 with st.container(border=True):
