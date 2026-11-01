@@ -430,6 +430,27 @@ def create_box_behnken(
 # ---------------------------------------------------------------- 축점 추가(Modify Design)
 
 
+def axial_alpha(design, alpha: str | float = "default") -> float:
+    """축점 추가에 쓸 α 값: 'default' 는 모서리점 수 F 의 F^¼(회전 가능), 'face' 는 1, 숫자는 그대로."""
+    if alpha == "default":
+        n_corner = int((design.coded[design.point_col] == 1).sum()) // max(design.replicates, 1)
+        return n_corner ** 0.25
+    if alpha in ("face", "face_centered"):
+        return 1.0
+    return float(alpha)
+
+
+def axial_preview(design, alpha: str | float = "default") -> pd.DataFrame:
+    """축점의 실제 값(요인별 −α·+α 수준). 실험할 수 있는 범위인지 추가 전에 확인하는 표."""
+    a = axial_alpha(design, alpha)
+    rows = []
+    for L, f in zip(design.letters, design.factors):
+        mid, half = (f.low + f.high) / 2, (f.high - f.low) / 2
+        rows.append({"Factor": f.name, "−α": mid - a * half, "Low": f.low, "Center": mid, "High": f.high,
+                     "+α": mid + a * half})
+    return pd.DataFrame(rows)
+
+
 def add_axial_points(design, *, alpha: str | float = "default", center_points: int = 0) -> ResponseSurfaceDesign:
     """2수준 요인설계·PB 에 축점(새 블록)을 붙여 중심합성설계로 바꾼다(Minitab Modify Design > Add axial points).
 
@@ -447,13 +468,7 @@ def add_axial_points(design, *, alpha: str | float = "default", center_points: i
     pc = design.point_col
     letters = list(design.letters)
     k = len(letters)
-    n_corner = int((coded[pc] == 1).sum()) // max(design.replicates, 1)
-    if alpha == "default":
-        a_val = n_corner ** 0.25
-    elif alpha in ("face", "face_centered"):
-        a_val = 1.0
-    else:
-        a_val = float(alpha)
+    a_val = axial_alpha(design, alpha)
     rows = []
     for i in range(k):
         for s in (-1, 1):

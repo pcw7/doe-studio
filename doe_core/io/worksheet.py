@@ -84,6 +84,23 @@ class Worksheet:
         """비설계 열을 설계 코드값 워크시트(design.coded)의 행 순서로 돌려준다(분석용)."""
         return self.columns[name].reindex(self.design.coded["StdOrder"].values).reset_index(drop=True)
 
+    def rename_column(self, old: str, new: str) -> None:
+        """비설계 열 이름을 바꾼다. 설계 열·이미 있는 이름·빈 이름은 거부."""
+        new = new.strip()
+        if old not in self.columns.columns:
+            raise ValueError(f"{old!r} 열이 없습니다.")
+        if not new:
+            raise ValueError("새 이름이 비어 있습니다.")
+        if new != old and (new in self.columns.columns or new in self.design.runs.columns):
+            raise ValueError(f"{new!r} 이름은 이미 있습니다.")
+        self.columns = self.columns.rename(columns={old: new})
+
+    def drop_column(self, name: str) -> None:
+        """비설계 열을 지운다."""
+        if name not in self.columns.columns:
+            raise ValueError(f"{name!r} 열이 없습니다.")
+        self.columns = self.columns.drop(columns=[name])
+
     def with_design(self, design) -> "Worksheet":
         """설계를 바꾼(재랜덤화·반복·접기 등) 새 워크시트. 비설계 열은 StdOrder 로 이어 붙이고 새 런은 빈 값."""
         cols = self.columns.reindex(design.coded["StdOrder"].values)
