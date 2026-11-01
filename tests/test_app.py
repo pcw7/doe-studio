@@ -495,3 +495,23 @@ def test_help_page():
     assert not at.exception
     assert any("도움말" in t.value for t in at.title)
     assert len(at.tabs) == 5 and len(at.expander) >= 5
+
+
+def test_binary_page_with_stepwise():
+    from tests.test_binary import _spoilage
+    from doe_core.report.builders import binary_report
+    from doe_core.report import to_xlsx
+    from doe_core.report.xlsx import read_xlsx_cells
+    ws, y, m = _spoilage(seed=7, inter=0.12)
+    at = run("binary.py", ws)
+    at.selectbox(key="bin_events").set_value("Spoilage").run()
+    at.selectbox(key="bin_trials").set_value("Containers").run()
+    at.selectbox(key="bsw_method").set_value("backward").run()
+    at.button(key="bin_run").click().run()
+    assert not at.exception
+    a = at.session_state["binary"]
+    assert a.selection is not None and a.selection.method == "backward"
+    assert at.session_state["bin_alpha_used"] == 0.1
+    cells = read_xlsx_cells(to_xlsx(binary_report(ws, a, figures=False)))
+    flat = " ".join(str(v) for sh in cells.values() for v in sh.values())
+    assert "Backward Elimination of Terms" in flat and "Deviance R-Sq" in flat

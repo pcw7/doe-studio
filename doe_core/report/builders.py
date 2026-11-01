@@ -92,6 +92,22 @@ def _anova_with_indent(a) -> pd.DataFrame:
     return tbl
 
 
+def _selection_section(r, a, t, lang) -> None:
+    """단계적 선택 과정(방법·후보·단계 표 5단계씩·단계 설명)."""
+    sel = getattr(a, "selection", None)
+    if sel is None:
+        return
+    from ..analysis.stepwise import METHOD_TITLE_KO
+    r.heading(t(f"{METHOD_TITLE_KO[sel.method]} ({sel.title()})", sel.title()))
+    r.mono("\n".join(sel.method_lines()))
+    r.text(sel.candidate_line())
+    per = 5                                     # 쪽 너비에 맞게 5단계씩 나눈다
+    for k in range(0, len(sel.steps), per):
+        last = k + per >= len(sel.steps)
+        r.table(sel.details_table(k, per), note="  ".join(sel.footer_lines()) if last else None)
+    r.mono("\n".join(sel.step_notes(en=lang == "en")))
+
+
 def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: str = "light",
                     lang: str = "ko") -> Report:
     """분석 결과 보고서. a 는 analyze_worksheet 의 결과(요인·반응표면·DSD·분할구·혼합물)."""
@@ -112,17 +128,7 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
         r.heading(t("방법 (Method)", "Method"))
         r.table(bc.method_table(), note=t(f"분석 표는 변환한 반응 {a.response_label} 기준.",
                                           f"Tables are for the transformed response {a.response_label}."))
-    sel = getattr(a, "selection", None)
-    if sel is not None:
-        from ..analysis.stepwise import METHOD_TITLE_KO
-        r.heading(t(f"{METHOD_TITLE_KO[sel.method]} ({sel.title()})", sel.title()))
-        r.mono("\n".join(sel.method_lines()))
-        r.text(sel.candidate_line())
-        per = 5                                     # 쪽 너비에 맞게 5단계씩 나눈다
-        for k in range(0, len(sel.steps), per):
-            last = k + per >= len(sel.steps)
-            r.table(sel.details_table(k, per), note="  ".join(sel.footer_lines()) if last else None)
-        r.mono("\n".join(sel.step_notes(en=lang == "en")))
+    _selection_section(r, a, t, lang)
 
     variability = getattr(a, "is_variability", False)
     if variability:
@@ -207,6 +213,7 @@ def binary_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: str
     if a.removed_terms:
         r.text(t("완전 별칭(선형 종속)이라 뺀 항: ", "Removed (completely aliased) terms: ")
                + ", ".join(x.name for x in a.removed_terms))
+    _selection_section(r, a, t, lang)
     r.heading(t("방법 (Method)", "Method"))
     r.table(a.method_table())
     r.heading(t("반응 정보 (Response Information)", "Response Information"))
