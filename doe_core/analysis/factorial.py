@@ -44,6 +44,17 @@ def _rank(X: np.ndarray) -> int:
     return int(np.linalg.matrix_rank(X, tol=1e-8 * max(1.0, np.abs(X).max()) * max(X.shape)))
 
 
+def info_criteria(sse: float | None, n: int, p: int) -> dict:
+    """AICc·BIC(문서 공식, p = 상수 포함 계수 수). −2lnL = n·ln(SSE/n) + n + n·ln(2π).
+    AICc = −2lnL + 2(p+1) + 2(p+1)(p+2)/(n−p−2) — n−p−2 ≤ 0 이면 None. BIC = −2lnL + (p+1)·ln n.
+    SSE 가 0 이면 둘 다 None."""
+    if sse is None or sse <= 0 or n <= 0:
+        return {"AICc": None, "BIC": None}
+    m2ll = n * np.log(sse / n) + n + n * np.log(2 * np.pi)
+    aicc = None if n - p - 2 <= 0 else float(m2ll + 2 * (p + 1) + 2 * (p + 1) * (p + 2) / (n - p - 2))
+    return {"AICc": aicc, "BIC": float(m2ll + (p + 1) * np.log(n))}
+
+
 @dataclass
 class AnovaRow:
     source: str
@@ -73,6 +84,7 @@ class FactorialAnalysis:
     fitted: np.ndarray = field(init=False)
     resid: np.ndarray = field(init=False)
     hat: np.ndarray = field(init=False)
+    selection: object = field(default=None, repr=False)   # 단계적 선택 결과(StepwiseResult)
 
     def __post_init__(self):
         X, y = self.X, self.y
@@ -186,13 +198,22 @@ class FactorialAnalysis:
         adj = max(0.0, 1 - self.mse / (self.sst / (self.n - 1))) if self.mse is not None else None
         press = self.press()
         pred = max(0.0, 1 - press / self.sst) if press is not None else None
-        return {"S": s, "R-sq": r2, "R-sq(adj)": adj, "R-sq(pred)": pred, "PRESS": press}
+        out = {"S": s, "R-sq": r2, "R-sq(adj)": adj, "R-sq(pred)": pred, "PRESS": press}
+        out.update(info_criteria(self.sse, self.n, self.p))
+        return out
 
-    def summary_table(self) -> pd.DataFrame:
+    def summary_table(self, expanded: bool = False) -> pd.DataFrame:
+        """Minitab 'Model Summary'. expanded=True 면 PRESS·AICc·BIC 를 더한 확장표."""
         s = self.summary()
-        return pd.DataFrame([{"S": fmt.sig_text(s["S"]) if s["S"] is not None else fmt.MISSING,
-                              "R-sq": fmt.pct_text(s["R-sq"]), "R-sq(adj)": fmt.pct_text(s["R-sq(adj)"]),
-                              "R-sq(pred)": fmt.pct_text(s["R-sq(pred)"])}])
+        row = {"S": fmt.sig_text(s["S"]) if s["S"] is not None else fmt.MISSING,
+               "R-sq": fmt.pct_text(s["R-sq"]), "R-sq(adj)": fmt.pct_text(s["R-sq(adj)"])}
+        if expanded:
+            row["PRESS"] = fmt.sig_text(s["PRESS"]) if s["PRESS"] is not None else fmt.MISSING
+        row["R-sq(pred)"] = fmt.pct_text(s["R-sq(pred)"])
+        if expanded:
+            row["AICc"] = fmt.fixed(s["AICc"], 2)
+            row["BIC"] = fmt.fixed(s["BIC"], 2)
+        return pd.DataFrame([row])
 
     # ------------------------------------------------------------ 분산분석
     def _cols_of(self, term_indexes: set[int]) -> list[int]:
@@ -478,14 +499,20 @@ def analyze_factorial(
     include_blocks: bool | None = None,
     include_center: bool | None = None,
     model: str | None = None,
+    stepwise=None,
 ) -> FactorialAnalysis:
     """design.coded 행 순서로 정렬된 반응 y 로 요인설계를 분석한다. 반응·공변량이 빈 행은 뺀다.
 
     반응표면 설계·확정적 선별설계가 들어오면 analyze_response_surface 로 넘긴다(order 대신 model 사용,
     기본은 반응표면 완전 2차, 확정적 선별설계 선형 — Minitab 'Analyze Screening Design' 예제의 Linear).
+    stepwise: StepwiseOptions 를 주면 그 항들을 후보로 단계적 선택을 한다(분할구 설계는 불가).
     """
     from ..designs.split_plot import SplitPlotDesign
+    if stepwise is not None and not getattr(stepwise, "active", False):
+        stepwise = None
     if isinstance(design, SplitPlotDesign):
+        if stepwise is not None:
+            raise ValueError("분할구 설계에서는 단계적 선택을 쓸 수 없습니다.")
         from .split_plot import SplitPlotAnalysis
         coded, yv, used, cov = _prepare(design, y, covariates)
         tl = factorial_terms(design, order=order, terms=terms, covariates=list(cov), include_blocks=include_blocks,
@@ -497,7 +524,7 @@ def analyze_factorial(
         if model is None:
             model = "linear" if isinstance(design, DefinitiveScreeningDesign) else "full quadratic"
         return analyze_response_surface(design, y, response=response, covariates=covariates, model=model,
-                                        terms=terms, include_blocks=include_blocks)
+                                        terms=terms, include_blocks=include_blocks, stepwise=stepwise)
     coded, yv, used, cov = _prepare(design, y, covariates)
     pt = design.point_col
     tl = factorial_terms(
@@ -505,6 +532,9 @@ def analyze_factorial(
         include_center=include_center, blocks_present=coded["Blocks"].nunique() > 1,
         center_present=(not isinstance(design, GeneralFullFactorialDesign)) and bool((coded[pt] == 0).any()),
     )
+    if stepwise is not None:
+        from .stepwise import select_model
+        return select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=True)
     return _build(design, response, coded, yv, used, tl, cov)
 
 
@@ -517,11 +547,15 @@ def analyze_response_surface(
     model: str = "full quadratic",
     terms: list[str] | None = None,
     include_blocks: bool | None = None,
+    stepwise=None,
 ) -> FactorialAnalysis:
     """반응표면 설계 분석(Minitab 'Analyze Response Surface Design'). 기본 완전 2차 모형."""
     coded, yv, used, cov = _prepare(design, y, covariates)
     tl = rs_terms(design, model=model, terms=terms, covariates=list(cov), include_blocks=include_blocks,
                   blocks_present=coded["Blocks"].nunique() > 1)
+    if stepwise is not None and getattr(stepwise, "active", False):
+        from .stepwise import select_model
+        return select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=False)
     return _build(design, response, coded, yv, used, tl, cov)
 
 
@@ -533,6 +567,9 @@ def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, .
         from .mixture import analyze_mixture
         if covariates:
             raise ValueError("혼합물 분석에는 공변량을 쓸 수 없습니다.")
+        sw = kwargs.pop("stepwise", None)
+        if sw is not None and getattr(sw, "active", False):
+            raise ValueError("혼합물 분석의 단계적 선택은 아직 지원하지 않습니다.")
         return analyze_mixture(ws.design, y, response=response, **kwargs)
     cov = {c: ws.column(c).astype(float).values for c in covariates}
     return analyze_factorial(ws.design, y, response=response, covariates=cov, **kwargs)

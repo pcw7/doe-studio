@@ -107,6 +107,17 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
     if a.removed_terms:
         r.text(t("완전 별칭(선형 종속)이라 뺀 항: ", "Removed (completely aliased) terms: ")
                + ", ".join(x.name for x in a.removed_terms))
+    sel = getattr(a, "selection", None)
+    if sel is not None:
+        from ..analysis.stepwise import METHOD_TITLE_KO
+        r.heading(t(f"{METHOD_TITLE_KO[sel.method]} ({sel.title()})", sel.title()))
+        r.mono("\n".join(sel.method_lines()))
+        r.text(sel.candidate_line())
+        per = 5                                     # 쪽 너비에 맞게 5단계씩 나눈다
+        for k in range(0, len(sel.steps), per):
+            last = k + per >= len(sel.steps)
+            r.table(sel.details_table(k, per), note="  ".join(sel.footer_lines()) if last else None)
+        r.mono("\n".join(sel.step_notes(en=lang == "en")))
 
     if mixture:
         r.heading(a.coefficients_title())
