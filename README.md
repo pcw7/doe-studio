@@ -93,12 +93,12 @@ git 이 없으면 GitHub 저장소 페이지의 **Code → Download ZIP** 으로
 ### 여러 사람이 함께 쓰는 서버에 올리기
 
 ```powershell
-$env:DOE_STUDIO_AUTOSAVE = "0"                                   # 자동 저장 끄기(리눅스: export DOE_STUDIO_AUTOSAVE=0)
+$env:DOE_STUDIO_AUTOSAVE = "0"      # 자동 저장 끄기
 streamlit run app/main.py --server.address 0.0.0.0 --server.port 8501
 ```
 
 - 다른 사람은 브라우저에서 `http://서버주소:8501` 로 들어옵니다. 서버 방화벽에서 이 포트를 열어야 할 수 있습니다.
-- **자동 저장은 꺼 두세요.** 저장 폴더가 서버에 하나뿐이라, 켜 두면 시작 화면의 이전 작업 목록에 다른 사람의 작업도 보입니다. 끄면 각자 **워크시트 저장(.json)** 으로 파일을 받아 보관합니다.
+- **자동 저장은 꺼 두세요.** 저장 폴더가 서버에 하나뿐이라, 켜 두면 시작 화면의 이전 작업 목록에 다른 사람의 작업도 보입니다. 끄면 각자 **워크시트 저장(.json)** 으로 파일을 받아 보관합니다. 리눅스 셸에서는 `export DOE_STUDIO_AUTOSAVE=0` 입니다.
 - 인터넷이 막힌 서버라면 필요한 패키지(`pyproject.toml` 의 dependencies)를 인터넷이 되는 PC 에서 서버와 같은 OS·Python 버전으로 `pip download` 해 함께 옮깁니다.
 - PDF 보고서
   - 한글 글꼴: Windows 서버는 맑은 고딕을 자동으로 씁니다. 리눅스 서버는 나눔고딕을 설치해야 제 모양이 나옵니다(없으면 내장 CID 글꼴로 대신합니다).
