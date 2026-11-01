@@ -348,3 +348,39 @@ def test_analyze_and_optimize_with_boxcox():
     assert not at.exception
     res = at.session_state["opt"][1]
     assert 1.0 < res.fits["Rate"] < 30.0                      # 원래 단위(로그 단위면 3 안팎)
+
+
+def test_variability_page():
+    """산포 분석: 반복 런 2회 2³ → 전처리(첫 런 행에 표준편차·개수) → 분석(가중 최소제곱) → 보고서."""
+    import numpy as np
+    d = create_two_level_design(3, replicates=3, seed=2)
+    ws = Worksheet(d)
+    rng = np.random.default_rng(3)
+    ws.add_column("Strength", list(rng.normal(30, 2, len(d.coded))))
+    at = run("variability.py", ws)
+    assert not at.exception
+    at.button(key="var_pre").click().run()
+    assert not at.exception
+    w = at.session_state["worksheet"]
+    assert {"StDev_Strength", "Count_Strength"} <= set(w.columns.columns)
+    assert w.columns["StDev_Strength"].notna().sum() == 8
+    at.button(key="var_run").click().run()
+    assert not at.exception
+    a = at.session_state["variability"]
+    assert a.response == "StDev_Strength" and a.n == 8 and a.weighted
+    assert any("Ln(StDev_Strength)" in m.value for m in at.markdown)
+
+
+def test_analyze_page_with_weights():
+    import numpy as np
+    d = create_two_level_design(3, replicates=2, randomize=False)
+    ws = Worksheet(d)
+    rng = np.random.default_rng(8)
+    ws.add_column("Y", list(10 + rng.normal(0, 1, len(d.coded))))
+    ws.add_column("W", list(rng.uniform(0.5, 2, len(d.coded))))
+    at = run("analyze.py", ws)
+    at.selectbox(key="weights_col").set_value("W").run()
+    at.button[0].click().run()
+    assert not at.exception
+    a = at.session_state["analysis"]
+    assert a.weighted and a.response == "Y"

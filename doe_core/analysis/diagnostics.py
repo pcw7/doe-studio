@@ -23,6 +23,8 @@ def diagnostics(a) -> pd.DataFrame:
     n, p = a.n, getattr(a, "p_resid", a.p)       # 분할구: 고정효과 + 전구 항의 계수(순위)
     h = a.hat
     e = a.resid
+    w = np.asarray(getattr(a, "w", np.ones(n)), dtype=float)   # 가중 회귀: 표준화에 √w·e 를 쓴다
+    ew = e * np.sqrt(w)
     label = getattr(a, "response_label", a.response)
     out = pd.DataFrame({"Obs": a.used_rows + 1, label: a.y, "Fit": a.fitted, "Resid": e, "HI": h})
     if a.mse is None:
@@ -32,13 +34,13 @@ def diagnostics(a) -> pd.DataFrame:
         return out
     s = np.sqrt(a.mse)
     with np.errstate(divide="ignore", invalid="ignore"):
-        std = e / (s * np.sqrt(1 - h))
+        std = ew / (s * np.sqrt(1 - h))
         dfe1 = n - p - 1
-        s_i2 = (a.sse - e ** 2 / (1 - h)) / dfe1 if dfe1 > 0 else np.full(n, np.nan)
-        dele = e / (np.sqrt(s_i2) * np.sqrt(1 - h))
+        s_i2 = (a.sse - ew ** 2 / (1 - h)) / dfe1 if dfe1 > 0 else np.full(n, np.nan)
+        dele = ew / (np.sqrt(s_i2) * np.sqrt(1 - h))
         cook = std ** 2 / p * h / (1 - h)
         dfits = dele * np.sqrt(h / (1 - h))
-    out["SE Fit"] = s * np.sqrt(h)
+    out["SE Fit"] = s * np.sqrt(h / w)
     out["Std Resid"] = std
     out["Del Resid"] = dele
     out["Cook's D"] = cook

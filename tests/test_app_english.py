@@ -155,3 +155,16 @@ def test_boxcox_options_english():
     assert not at.exception and korean_left(at) == []
     at = run_en("optimize.py", ws)
     assert korean_left(at) == []
+
+
+def test_variability_page_english():
+    from doe_core.designs.factorial import create_two_level_design
+    from doe_core.io.worksheet import Worksheet
+    d = create_two_level_design(3, replicates=3, seed=2)
+    ws = Worksheet(d)
+    ws.add_column("Strength", list(np.random.default_rng(3).normal(30, 2, len(d.coded))))
+    at = run_en("variability.py", ws)
+    assert korean_left(at) == []
+    at.button(key="var_pre").click().run()
+    at.button(key="var_run").click().run()
+    assert not at.exception and korean_left(at) == []
