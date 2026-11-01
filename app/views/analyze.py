@@ -6,12 +6,11 @@ import streamlit as st
 
 from app.i18n import O, T, lang
 from app.state import (
-    boxcox_input, plot_mode, report_downloads, require_ws, run_progress, show_plot, show_table,
+    boxcox_input, key_results, plot_mode, report_downloads, require_ws, run_progress, show_plot, show_table,
 )
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
 from doe_core.analysis.storage import fits_table, store_statistics
-from doe_core.analysis.summary import key_findings, supports as supports_summary
 from doe_core.analysis.effects import effects
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.means import means_table
@@ -170,15 +169,7 @@ if a.df_error == 0:
     st.info(T("오차 자유도가 0 인 포화 모형입니다. 효과도는 Lenth 의 의사 표준오차(PSE)로 판단합니다.",
               "Saturated model (0 error DF). Effects plots use Lenth's pseudo standard error (PSE)."))
 
-if supports_summary(a):
-    with st.expander(T("주요 결과 요약", "Key results"), expanded=True):
-        icons = {"good": ":green[:material/check_circle:]", "warn": ":orange[:material/warning:]",
-                 "info": ":blue[:material/info:]"}
-        for f in key_findings(a, alpha):
-            st.markdown(f"{icons[f.level]} {T(f.ko, f.en)}")
-        st.caption(T("숫자에서 바로 나오는 사실만 적었습니다. 판단은 아래 표·그래프와 실험 지식으로 함께 하세요.",
-                     "Only facts that follow directly from the numbers. Judge them together with the tables, "
-                     "graphs and your process knowledge."))
+key_results(a, alpha)
 
 numeric_letters = [L for L, f in zip(d.letters, d.factors) if getattr(f, "is_numeric", False) and hasattr(f, "low")]
 can_contour = len(numeric_letters) >= 2 and not any(t.kind == "center" for t in a.terms)

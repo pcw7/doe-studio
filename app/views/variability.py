@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import T, lang
-from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table
+from app.state import key_results, plot_mode, report_downloads, require_ws, show_plot, show_table
 from app.contour_ui import contour_tab
 from app.stepwise_ui import selection_details, stepwise_input
 from doe_core.analysis.model import factorial_terms
@@ -112,6 +112,7 @@ a = st.session_state.get("variability")
 if a is None:
     st.stop()
 alpha = st.session_state.get("var_alpha_used", alpha)       # 단계적 선택이면 α to remove/enter
+key_results(a, alpha)
 
 from doe_core.report import analysis_report  # noqa: E402
 report_downloads(lambda figs: analysis_report(ws, a, alpha=alpha, figures=figs, lang=lang()),

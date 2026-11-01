@@ -265,6 +265,21 @@ def current_work_bar(s: dict, *, link: bool, key: str = "current_work") -> None:
             c2.page_link("views/worksheet.py", label=T("워크시트 열기", "Open worksheet"), icon=":material/table:")
 
 
+def key_results(a, alpha: float = 0.05) -> None:
+    """분석 결과 위의 '주요 결과 요약'(숫자에서 바로 나오는 사실). 요약을 만들 수 없는 분석이면 그리지 않는다."""
+    from doe_core.analysis.summary import key_findings, supports
+    if not supports(a):
+        return
+    with st.expander(T("주요 결과 요약", "Key results"), expanded=True):
+        icons = {"good": ":green[:material/check_circle:]", "warn": ":orange[:material/warning:]",
+                 "info": ":blue[:material/info:]"}
+        for f in key_findings(a, alpha):          # 항 이름의 '*'(물*에탄올)가 기울임이 되지 않게 기호는 글자 그대로
+            st.markdown(f"{icons[f.level]} {md_text(T(f.ko, f.en))}")
+        st.caption(T("숫자에서 바로 나오는 사실만 적었습니다. 판단은 아래 표·그래프와 실험 지식으로 함께 하세요.",
+                     "Only facts that follow directly from the numbers. Judge them together with the tables, "
+                     "graphs and your process knowledge."))
+
+
 def report_downloads(make_report, key: str, fname: str) -> None:
     """'보고서 만들기' 를 누르면 보고서를 만들어 Excel·HTML·PDF 내려받기 버튼을 보여 준다.
 
