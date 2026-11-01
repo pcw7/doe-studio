@@ -32,6 +32,8 @@ pages = {
                 url_path="optimize"),
         st.Page(VIEWS / "variability.py", title=T("산포 분석", "Analyze variability"), icon=":material/stacked_line_chart:",
                 url_path="variability"),
+        st.Page(VIEWS / "binary.py", title=T("이항 반응 분석", "Analyze binary response"), icon=":material/rule:",
+                url_path="binary"),
         st.Page(VIEWS / "optimal.py", title=T("최적 설계", "Optimal design"), icon=":material/filter_alt:",
                 url_path="optimal"),
     ],

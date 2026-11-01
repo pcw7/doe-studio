@@ -384,3 +384,30 @@ def test_analyze_page_with_weights():
     assert not at.exception
     a = at.session_state["analysis"]
     assert a.weighted and a.response == "Y"
+
+
+def test_binary_page():
+    """이항 반응: 사건/시행 형식 2⁴ → 분석 → 표·Pareto, 이항 열 형식도."""
+    import numpy as np
+    from tests.test_binary import _spoilage
+    ws, y, m = _spoilage()
+    at = run("binary.py", ws)
+    assert not at.exception
+    at.selectbox(key="bin_events").set_value("Spoilage").run()
+    at.selectbox(key="bin_trials").set_value("Containers").run()
+    at.button(key="bin_run").click().run()
+    assert not at.exception
+    a = at.session_state["binary"]
+    assert a.n == 16 and a.p == 11
+    assert any(c.value.startswith("P(Event) = exp(Y')") for c in at.code)
+    from doe_core.report.builders import binary_report
+    from doe_core.report import to_pdf
+    assert to_pdf(binary_report(ws, a, figures=False))[:4] == b"%PDF"
+    d = create_two_level_design(2, replicates=10, randomize=False)
+    w2 = Worksheet(d)
+    rng = np.random.default_rng(0)
+    w2.add_column("Pass", list(rng.binomial(1, 0.4, len(d.coded)).astype(float)), order="std")
+    at = run("binary.py", w2)
+    at.radio(key="bin_form").set_value("binary").run()
+    at.button(key="bin_run").click().run()
+    assert not at.exception and at.session_state["binary"].binary_format
