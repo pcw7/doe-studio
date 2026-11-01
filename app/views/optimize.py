@@ -9,7 +9,8 @@ from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
 from doe_core.designs.general_full import GeneralFullFactorialDesign
 from doe_core.designs.mixture import MixtureDesign
 from doe_core.designs.response_surface import ResponseSurfaceDesign
-from app.goals import goals_editor, nonzero_bounds, show_results
+from app import fitted_models
+from app.goals import goals_editor, model_sources_table, nonzero_bounds, show_results
 from app.i18n import T, lang
 from doe_core.optimize.optimizer import optimize
 from doe_core.optimize.predict import predict, prediction_table, settings_table
@@ -44,14 +45,23 @@ with st.container(border=True):
     if is_rs:
         ko = {"linear": "선형", "linear+squares": "선형 + 제곱", "linear+interactions": "선형 + 교호작용",
               "full quadratic": "완전 2차"}
-        model = st.selectbox(T("모든 반응에 쓸 모형", "Model for all responses"), list(RS_MODELS), index=0 if is_dsd else 3,
-                             format_func=lambda m: T(ko[m]))
+        model = st.selectbox(T("공통 모형 — 분석 화면에서 분석하지 않은 반응", "Common model — responses not analyzed on the "
+                                                                          "Analyze page"),
+                             list(RS_MODELS), index=0 if is_dsd else 3, format_func=lambda m: T(ko[m]))
         order = None
     else:
         model = "full quadratic"
-        order = st.slider(T("모든 반응에 쓸 모형 차수", "Model order for all responses"), 1, len(d.letters),
+        order = st.slider(T("공통 모형 차수 — 분석 화면에서 분석하지 않은 반응",
+                            "Common model order — responses not analyzed on the Analyze page"), 1, len(d.letters),
                           min(2, len(d.letters)))
     bc_spec, bc_rounded = boxcox_input("bc_optimize", allow_custom=False)
+    use_stored = st.checkbox(T("분석 화면에서 적합한 모형 쓰기(반응별)", "Use the models fitted on the Analyze page"),
+                             value=True, key="opt_use_stored",
+                             help=T("Minitab 처럼 반응마다 마지막으로 분석한 모형(항 선택·단계적 선택·Box-Cox·가중치 포함)을 "
+                                    "씁니다. 끄면 모든 반응을 위의 공통 모형으로 다시 적합합니다.",
+                                    "Like Minitab, each response uses its last analyzed model (term selection, stepwise, "
+                                    "Box-Cox and weights included). Turn off to refit every response with the common "
+                                    "model above."))
     st.caption(T("최적화는 요인 수준 사이를 보간하므로 중앙점 항(Ct Pt)은 넣지 않습니다.",
                  "The optimizer interpolates between factor levels, so the center point term (Ct Pt) is left out."))
     # 다른 화면에서 만든 모형(같은 설계): 산포 분석(표준편차) · 이항 반응(확률)
@@ -70,15 +80,20 @@ with st.container(border=True):
 if not responses and not extra:
     st.stop()
 
-models = {}
+models, sources = {}, []
 for r in responses:
     try:
-        models[r] = analyze_worksheet(ws, r, covariates=covariates, order=order, model=model, include_center=False,
-                                      boxcox=bc_spec, boxcox_rounded=bc_rounded)
+        a, notes = fitted_models.stored(ws, r) if use_stored else (None, [])
+        if a is None:
+            a, notes = analyze_worksheet(ws, r, covariates=covariates, order=order, model=model, include_center=False,
+                                         boxcox=bc_spec, boxcox_rounded=bc_rounded), ["common"]
+        models[r] = a
+        sources.append((r, notes, a))
     except Exception as e:  # noqa: BLE001
         st.error(T(f"{r} 모형을 적합하지 못했습니다: ", f"Could not fit the model for {r}: ") + str(e))
         st.stop()
 models.update(extra)
+model_sources_table(sources)
 names_key = list(models)
 
 goals = goals_editor(models, key=f"goals_{'_'.join(names_key)}")

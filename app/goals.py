@@ -72,6 +72,15 @@ def show_results(res, models: dict, goals: list) -> None:
                                  for r, v in res.d.items()]))
 
 
+def model_sources_table(sources: list) -> None:
+    """반응별로 어떤 모형을 쓰는지(분석 화면 모형·다시 적합·공통 모형)와 모형 항."""
+    from app.fitted_models import NOTES, model_terms
+    rows = [{T("반응", "Response"): r, T("모형", "Model"): " · ".join(T(*NOTES[n]) for n in notes),
+             T("모형 항", "Terms"): model_terms(a)} for r, notes, a in sources]
+    st.markdown(T("**반응별 모형**", "**Model for each response**"))
+    show_table(pd.DataFrame(rows))
+
+
 def nonzero_bounds(goals: list) -> dict:
     """만족도가 0 이 아닌 범위: 최대화 (하한, ∞), 최소화 (−∞, 상한), 목표값 (하한, 상한)."""
     return {g.response: (g.lower if g.lower is not None else -np.inf, g.upper if g.upper is not None else np.inf)

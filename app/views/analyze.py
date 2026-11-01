@@ -13,6 +13,7 @@ from doe_core.analysis.effects import effects
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.means import means_table
 from doe_core.analysis.model import RS_MODELS, factor_term, factorial_terms, rs_terms
+from app import fitted_models
 from app.contour_ui import contour_tab
 from app.stepwise_ui import selection_details, stepwise_input
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
@@ -136,10 +137,11 @@ with st.container(border=True):
 
 if run:
     try:
-        st.session_state["analysis"] = analyze_worksheet(
-            ws, response, covariates=covariates, order=order, terms=terms,
-            include_blocks=inc_blocks, include_center=inc_center, model=rs_model, stepwise=sw_opts,
-            boxcox=bc_spec, boxcox_rounded=bc_rounded, weights=w_col)
+        fit_kw = dict(covariates=covariates, order=order, terms=terms, include_blocks=inc_blocks,
+                      include_center=inc_center, model=rs_model, stepwise=sw_opts, boxcox=bc_spec,
+                      boxcox_rounded=bc_rounded, weights=w_col)
+        st.session_state["analysis"] = analyze_worksheet(ws, response, **fit_kw)
+        fitted_models.remember(ws, response, st.session_state["analysis"], fit_kw)
         sel = st.session_state["analysis"].selection
         st.session_state["alpha"] = sel.effects_alpha(alpha) if sel is not None else alpha
         st.session_state["confidence"] = conf_pct / 100

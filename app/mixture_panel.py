@@ -4,6 +4,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from app import fitted_models
 from app.i18n import O, T, lang
 from app.state import plot_mode, report_downloads, show_plot, show_table, ws_caption
 from app.stepwise_ui import selection_details
@@ -102,6 +103,7 @@ def render(ws) -> None:
     if run:
         try:
             st.session_state["analysis"] = analyze_worksheet(ws, response, units=units, **kw)
+            fitted_models.remember(ws, response, st.session_state["analysis"], {"units": units, **kw})
         except Exception as e:  # noqa: BLE001
             st.session_state.pop("analysis", None)
             st.error(T("분석하지 못했습니다: ", "Could not analyze: ") + str(e))
@@ -197,7 +199,7 @@ def render(ws) -> None:
 
 def render_optimizer(ws) -> None:
     """혼합물 반응 최적화(Response Optimizer) 화면."""
-    from app.goals import goals_editor, nonzero_bounds, show_results
+    from app.goals import goals_editor, model_sources_table, nonzero_bounds, show_results
 
     d = ws.design
     st.title(T("혼합물 반응 최적화", "Mixture response optimizer"))
@@ -214,7 +216,8 @@ def render_optimizer(ws) -> None:
     with st.container(border=True):
         c1, c2, c3 = st.columns(3)
         responses = c1.multiselect(T("반응 (Responses)"), numeric_cols, default=numeric_cols[:1])
-        model = c2.selectbox(T("모든 반응에 쓸 성분 모형", "Component model for all responses"), list(MIX_MODELS), index=1,
+        model = c2.selectbox(T("공통 성분 모형 — 분석하지 않은 반응", "Common component model — responses not analyzed"),
+                             list(MIX_MODELS), index=1,
                              format_func=lambda m: T(MIX_KO[m]))
         order = c3.slider(T("공정 변수 항의 차수", "Process variable order"), 0, len(d.process),
                           min(1, len(d.process))) if d.process else 0
@@ -225,13 +228,18 @@ def render_optimizer(ws) -> None:
                         " · custom design, so the range of the design points is used.") if d.kind == "custom" else ""))
     if not responses:
         st.stop()
-    models = {}
+    models, sources = {}, []
     for r in responses:
         try:
-            models[r] = analyze_worksheet(ws, r, model=model, process_order=order)
+            a, notes = fitted_models.stored(ws, r)
+            if a is None:
+                a, notes = analyze_worksheet(ws, r, model=model, process_order=order), ["common"]
+            models[r] = a
+            sources.append((r, notes, a))
         except Exception as e:  # noqa: BLE001
             st.error(T(f"{r} 모형을 적합하지 못했습니다: ", f"Could not fit the model for {r}: ") + str(e))
             st.stop()
+    model_sources_table(sources)
     goals = goals_editor(models, key=f"mixgoals_{'_'.join(responses)}_{model}_{order}")
     hold = {}
     with st.expander(T("고정 (Constraints: Hold at value)", "Constraints: hold at value")):

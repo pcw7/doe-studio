@@ -43,6 +43,7 @@ def set_ws(ws: Worksheet | None, *, new: bool = True) -> None:
     """현재 워크시트를 바꾼다. new=True(새 설계·다른 파일)면 자동 저장 칸을 새로 잡고, 설계 수정은 new=False."""
     st.session_state[KEY] = ws
     st.session_state.pop("analysis", None)
+    st.session_state.pop("fitted_models", None)
     if new:
         st.session_state["autosave_slot"] = autosave.new_slot()
         st.session_state.pop("autosave_hash", None)
