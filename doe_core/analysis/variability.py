@@ -116,8 +116,8 @@ class VariabilityAnalysis(FactorialAnalysis):
     def anova_title(self) -> str:
         return f"Analysis of Variance for {self.response_label}"
 
-    def coefficients_table(self) -> pd.DataFrame:
-        out = super().coefficients_table()
+    def coefficients_table(self, expanded: bool = False, confidence: float = 0.95) -> pd.DataFrame:
+        out = super().coefficients_table(expanded, confidence)
         if "Effect" not in out.columns:
             return out
         c = self.coefficients()

@@ -109,6 +109,9 @@ class SplitPlotAnalysis(FactorialAnalysis):
                 out[j] = self.df_wp
         return out
 
+    def coef_df(self) -> np.ndarray:
+        return np.asarray(self._col_df(), dtype=float)
+
     def coefficients(self) -> pd.DataFrame:
         c = super().coefficients()
         se = self.se_coef()

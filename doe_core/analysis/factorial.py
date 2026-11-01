@@ -201,21 +201,32 @@ class FactorialAnalysis:
         return pd.DataFrame({"Term": self.col_labels, "Effect": effect, "Coef": self.beta, "SE Coef": se,
                              "T-Value": t, "P-Value": pv, "VIF": self.vif()})
 
-    def coefficients_table(self) -> pd.DataFrame:
-        """Minitab 'Coded Coefficients' 표(문자열)."""
+    def coef_df(self) -> np.ndarray:
+        """계수별 t 검정 자유도(분할구는 전구·하위구 오차로 다르다)."""
+        return np.full(self.p, self.df_error)
+
+    def coefficients_table(self, expanded: bool = False, confidence: float = 0.95) -> pd.DataFrame:
+        """Minitab 'Coded Coefficients' 표(문자열). expanded 면 SE Coef 뒤에 신뢰구간 열(Coef ± t·SE)."""
         c = self.coefficients()
+        dfs = self.coef_df()
+        lvl = int(round(confidence * 100))
         rows = []
-        for r in c.itertuples(index=False):
+        for j, r in enumerate(c.itertuples(index=False)):
             se = r[3]
-            rows.append({
+            d = {
                 "Term": r[0],
                 "Effect": "" if np.isnan(r[1]) else fmt.by_se(r[1], se),
                 "Coef": fmt.by_se(r[2], se),
                 "SE Coef": fmt.se_text(se),
-                "T-Value": fmt.t_text(r[4]),
-                "P-Value": fmt.p_text(r[5]),
-                "VIF": "" if np.isnan(r[6]) else f"{r[6]:.2f}",
-            })
+            }
+            if expanded:
+                ok = np.isfinite(se) and dfs[j] > 0
+                t = float(stats.t.ppf(1 - (1 - confidence) / 2, dfs[j])) if ok else float("nan")
+                d[f"{lvl}% CI"] = (f"({fmt.by_se(r[2] - t * se, se)}, {fmt.by_se(r[2] + t * se, se)})" if ok
+                                   else "(*, *)")
+            d.update({"T-Value": fmt.t_text(r[4]), "P-Value": fmt.p_text(r[5]),
+                      "VIF": "" if np.isnan(r[6]) else f"{r[6]:.2f}"})
+            rows.append(d)
         out = pd.DataFrame(rows)
         if not self.two_level:
             out = out.drop(columns="Effect")

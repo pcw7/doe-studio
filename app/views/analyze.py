@@ -8,6 +8,7 @@ from app.i18n import O, T, lang
 from app.state import boxcox_input, plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
+from doe_core.analysis.storage import fits_table, store_statistics
 from doe_core.analysis.effects import effects
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.means import means_table
@@ -170,6 +171,8 @@ with st.container(border=True):
             w_col = None if w_pick == "-" else w_pick
             st.caption(T("가중 회귀: 가중치는 0 이상이고 0 인 런은 분석에서 빠집니다.",
                          "Weighted regression: weights must be ≥ 0; runs with weight 0 are left out."))
+        conf_pct = st.number_input(T("모든 구간의 신뢰수준(%) (Confidence level for all intervals)"), 80.0, 99.9, 95.0,
+                                   step=1.0, format="%.1f", key="conf_level")
     run = st.button(T("분석", "Analyze"), type="primary")
 
 if run:
@@ -180,6 +183,7 @@ if run:
             boxcox=bc_spec, boxcox_rounded=bc_rounded, weights=w_col)
         sel = st.session_state["analysis"].selection
         st.session_state["alpha"] = sel.effects_alpha(alpha) if sel is not None else alpha
+        st.session_state["confidence"] = conf_pct / 100
     except Exception as e:  # noqa: BLE001
         st.session_state.pop("analysis", None)
         st.error(T("분석하지 못했습니다: ", "Could not analyze: ") + str(e))
@@ -229,7 +233,10 @@ with tab_tbl:
             st.caption("  ".join(sel.footer_lines()))
             st.code("\n".join(sel.step_notes(en=lang() == "en")), language=None)
     st.markdown(T("**코드화된 계수 (Coded Coefficients)**"))
-    show_table(a.coefficients_table())
+    conf = st.session_state.get("confidence", 0.95)
+    coef_expanded = st.toggle(T(f"확장 계수표 ({conf:.0%} 신뢰구간)", f"Expanded table ({conf:.0%} CI)"),
+                              key="coef_expanded")
+    show_table(a.coefficients_table(expanded=coef_expanded, confidence=conf))
     st.markdown(T("**모형 요약 (Model Summary)**"))
     if is_sp:                                   # 분할구 설계는 AICc·BIC 를 보이지 않는다(문서)
         show_table(a.summary_table())
@@ -263,6 +270,23 @@ with tab_tbl:
             show_table(means_table(a))
         except Exception as err:  # noqa: BLE001
             st.info(T("평균 표를 만들 수 없습니다: ", "Means are not available: ") + str(err))
+    with st.expander(T("모든 관측치의 적합치 및 진단 (Fits and Diagnostics for All Observations)",
+                       "Fits and Diagnostics for All Observations")):
+        show_table(fits_table(a, conf), max_rows=60)
+    with st.expander(T("워크시트에 저장 (Storage)", "Storage")):
+        STORE_KO = {"fits": "적합치 (Fits)", "resid": "잔차 (Residuals)", "sres": "표준화 잔차 (Standardized residuals)",
+                    "tres": "삭제 잔차 (Deleted residuals)", "hi": "레버리지 (Leverages)", "cook": "Cook 거리 (Cook's distance)",
+                    "dfit": "DFITS (DFITS)", "bcre": "Box-Cox 변환 반응 (Box-Cox transformation of response)",
+                    "bfit": "원래 반응 단위 적합치 (Fits for original response)"}
+        keys = [k for k in STORE_KO if k not in ("bcre", "bfit") or getattr(a, "boxcox", None) is not None]
+        pick = st.multiselect(T("저장할 통계", "Statistics to store"), keys, default=["fits", "resid"],
+                              format_func=lambda k: T(STORE_KO[k]), key="store_pick")
+        if st.button(T("저장", "Store"), key="store_btn"):
+            try:
+                new = store_statistics(ws, a, pick)
+                st.success(T("저장한 열: ", "Stored columns: ") + ", ".join(new))
+            except Exception as err:  # noqa: BLE001
+                st.error(T("저장하지 못했습니다: ", "Could not store: ") + str(err))
 
 with tab_eff:
     if not a.terms:
