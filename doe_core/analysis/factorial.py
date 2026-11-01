@@ -13,6 +13,10 @@
   Ct Pt 는 그대로). 비계층이면 코드화 단위.
 
 문서에 없어 정한 것: Curvature 가 Error 아래에 있을 때 F 의 분모는 순수 오차(없으면 곡면성을 뺀 오차).
+
+가중 회귀(Options > Weights, 문서 'Weighted regression'): β = (X'WX)⁻¹X'WY, 가중 SS Error 최소화. 가중치는 0 이상이며
+0 인 관측치는 분석에서 뺀다. SS 는 모두 가중(Σw·r², SST = Σw(y − ȳ_w)²), 레버리지 h_i = w_i·x_i'(X'WX)⁻¹x_i,
+PRESS = Σw(r/(1−h))², 표준화 잔차 = √w·r / (s·√(1−h)).
 """
 from __future__ import annotations
 
@@ -32,7 +36,10 @@ from .model import Term, factorial_terms, is_hierarchical, names_by_letter, rs_t
 _EPS = 1e-10
 
 
-def _sse(X: np.ndarray, y: np.ndarray) -> float:
+def _sse(X: np.ndarray, y: np.ndarray, w: np.ndarray | None = None) -> float:
+    if w is not None:
+        sw = np.sqrt(w)
+        X, y = X * sw[:, None], y * sw
     if X.shape[1] == 0:
         return float(np.sum(y ** 2))
     beta, *_ = np.linalg.lstsq(X, y, rcond=None)
@@ -44,13 +51,13 @@ def _rank(X: np.ndarray) -> int:
     return int(np.linalg.matrix_rank(X, tol=1e-8 * max(1.0, np.abs(X).max()) * max(X.shape)))
 
 
-def info_criteria(sse: float | None, n: int, p: int) -> dict:
-    """AICc·BIC(문서 공식, p = 상수 포함 계수 수). −2lnL = n·ln(SSE/n) + n + n·ln(2π).
+def info_criteria(sse: float | None, n: int, p: int, log_w: float = 0.0) -> dict:
+    """AICc·BIC(문서 공식, p = 상수 포함 계수 수). −2lnL = n·ln(SSE/n) + n + n·ln(2π) − Σln(w_i)(가중 회귀).
     AICc = −2lnL + 2(p+1) + 2(p+1)(p+2)/(n−p−2) — n−p−2 ≤ 0 이면 None. BIC = −2lnL + (p+1)·ln n.
     SSE 가 0 이면 둘 다 None."""
     if sse is None or sse <= 0 or n <= 0:
         return {"AICc": None, "BIC": None}
-    m2ll = n * np.log(sse / n) + n + n * np.log(2 * np.pi)
+    m2ll = n * np.log(sse / n) + n + n * np.log(2 * np.pi) - log_w
     aicc = None if n - p - 2 <= 0 else float(m2ll + 2 * (p + 1) + 2 * (p + 1) * (p + 2) / (n - p - 2))
     return {"AICc": aicc, "BIC": float(m2ll + (p + 1) * np.log(n))}
 
@@ -86,14 +93,25 @@ class FactorialAnalysis:
     hat: np.ndarray = field(init=False)
     selection: object = field(default=None, repr=False)   # 단계적 선택 결과(StepwiseResult)
     boxcox: object = field(default=None, repr=False)      # Box-Cox 변환(BoxCox) — y 는 변환한 값
+    weights: object = field(default=None, repr=False)     # 가중 회귀의 가중치(None 이면 모두 1)
 
     def __post_init__(self):
         X, y = self.X, self.y
-        self.cov_unscaled = np.linalg.inv(X.T @ X)
-        self.beta = self.cov_unscaled @ X.T @ y
+        w = self.w
+        Xw = X * w[:, None]
+        self.cov_unscaled = np.linalg.inv(X.T @ Xw)
+        self.beta = self.cov_unscaled @ Xw.T @ y
         self.fitted = X @ self.beta
         self.resid = y - self.fitted
-        self.hat = np.einsum("ij,jk,ik->i", X, self.cov_unscaled, X)
+        self.hat = w * np.einsum("ij,jk,ik->i", X, self.cov_unscaled, X)
+
+    @property
+    def w(self) -> np.ndarray:
+        return np.ones(len(self.y)) if self.weights is None else np.asarray(self.weights, dtype=float)
+
+    @property
+    def weighted(self) -> bool:
+        return self.weights is not None
 
     # ------------------------------------------------------------ 기본 통계량
     @property
@@ -124,12 +142,13 @@ class FactorialAnalysis:
 
     @property
     def sse(self) -> float:
-        return float(self.resid @ self.resid)
+        return float(np.sum(self.w * self.resid ** 2))
 
     @property
     def sst(self) -> float:
-        d = self.y - self.y.mean()
-        return float(d @ d)
+        w = self.w
+        d = self.y - float(np.sum(w * self.y) / np.sum(w))
+        return float(np.sum(w * d ** 2))
 
     @property
     def mse(self) -> float | None:
@@ -163,9 +182,10 @@ class FactorialAnalysis:
 
     def vif(self) -> np.ndarray:
         out = np.full(self.p, np.nan)
+        w = self.w
         for j in range(1, self.p):
             x = self.X[:, j]
-            out[j] = self.cov_unscaled[j, j] * float(np.sum((x - x.mean()) ** 2))
+            out[j] = self.cov_unscaled[j, j] * float(np.sum(w * (x - np.sum(w * x) / np.sum(w)) ** 2))
         return out
 
     # ------------------------------------------------------------ 계수표
@@ -205,7 +225,7 @@ class FactorialAnalysis:
     def press(self) -> float | None:
         if np.any(self.hat > 1 - 1e-9):
             return None
-        return float(np.sum((self.resid / (1 - self.hat)) ** 2))
+        return float(np.sum(self.w * (self.resid / (1 - self.hat)) ** 2))
 
     def summary(self) -> dict:
         r2 = 1 - self.sse / self.sst
@@ -214,7 +234,7 @@ class FactorialAnalysis:
         press = self.press()
         pred = max(0.0, 1 - press / self.sst) if press is not None else None
         out = {"S": s, "R-sq": r2, "R-sq(adj)": adj, "R-sq(pred)": pred, "PRESS": press}
-        out.update(info_criteria(self.sse, self.n, self.p))
+        out.update(info_criteria(self.sse, self.n, self.p, float(np.sum(np.log(self.w))) if self.weighted else 0.0))
         return out
 
     def summary_table(self, expanded: bool = False) -> pd.DataFrame:
@@ -237,15 +257,15 @@ class FactorialAnalysis:
     def _adj_ss(self, term_indexes: set[int]) -> float:
         drop = set(self._cols_of(term_indexes))
         keep = [j for j in range(self.p) if j not in drop]
-        return _sse(self.X[:, keep], self.y) - self.sse
+        return _sse(self.X[:, keep], self.y, self.weights) - self.sse
 
     def _seq_ss(self) -> dict[int, float]:
         """항별 순차 제곱합(입력 순서)."""
         out = {}
-        prev = _sse(self.X[:, :1], self.y)
+        prev = _sse(self.X[:, :1], self.y, self.weights)
         for ti in range(len(self.terms)):
             cols = [0] + self._cols_of(set(range(ti + 1)))
-            cur = _sse(self.X[:, cols], self.y)
+            cur = _sse(self.X[:, cols], self.y, self.weights)
             out[ti] = prev - cur
             prev = cur
         return out
@@ -274,9 +294,10 @@ class FactorialAnalysis:
         else:
             g = key.groupby(list(key.columns), sort=False).ngroup().values
         ss, df = 0.0, 0
+        w = self.w
         for gid in np.unique(g):
-            yy = self.y[g == gid]
-            ss += float(np.sum((yy - yy.mean()) ** 2))
+            yy, ww = self.y[g == gid], w[g == gid]
+            ss += float(np.sum(ww * (yy - np.sum(ww * yy) / np.sum(ww)) ** 2))
             df += len(yy) - 1
         return ss, df
 
@@ -328,7 +349,7 @@ class FactorialAnalysis:
             ct = (coded[self.design.point_col].values == 0).astype(float)[:, None]
             Xc = np.hstack([self.X, ct])
             if _rank(Xc) == self.p + 1:
-                curv_ss, curv_df = sse - _sse(Xc, self.y), 1
+                curv_ss, curv_df = sse - _sse(Xc, self.y, self.weights), 1
         pe_ss, pe_df = self._pure_error()
         lof_df = dfe - pe_df - curv_df
         lof_ss = sse - pe_ss - curv_ss
@@ -471,7 +492,8 @@ class FactorialAnalysis:
 # ---------------------------------------------------------------- 진입점
 
 
-def _prepare(design, y, covariates):
+def _prepare(design, y, covariates, weights=None):
+    """(코드 행, 반응, 쓴 행, 공변량[, 가중치]) — 반응·공변량이 비었거나 가중치가 0·결측인 행은 뺀다."""
     covariates = {k: np.asarray(v, dtype=float) for k, v in (covariates or {}).items()}
     y = np.asarray(y, dtype=float)
     coded_all = design.coded.reset_index(drop=True)
@@ -480,12 +502,20 @@ def _prepare(design, y, covariates):
     ok = np.isfinite(y)
     for v in covariates.values():
         ok &= np.isfinite(v)
+    if weights is not None:
+        weights = np.asarray(weights, dtype=float)
+        if len(weights) != len(y):
+            raise ValueError("가중치 길이가 런 수와 다릅니다.")
+        if np.any(weights[np.isfinite(weights)] < 0):
+            raise ValueError("가중치는 0 이상이어야 합니다.")
+        ok &= np.isfinite(weights) & (weights > 0)
     used = np.where(ok)[0]
     coded = coded_all.iloc[used].reset_index(drop=True)
-    return coded, y[used], used, {k: v[used] for k, v in covariates.items()}
+    out = coded, y[used], used, {k: v[used] for k, v in covariates.items()}
+    return out if weights is None else (*out, weights[used])
 
 
-def _build(design, response, coded, yv, used, tl, cov) -> FactorialAnalysis:
+def _build(design, response, coded, yv, used, tl, cov, weights=None) -> FactorialAnalysis:
     X = np.ones((len(yv), 1))
     labels, col_term, kept, removed = ["Constant"], [-1], [], []
     for t in tl:
@@ -500,7 +530,22 @@ def _build(design, response, coded, yv, used, tl, cov) -> FactorialAnalysis:
             removed.append(t)
     if X.shape[1] > len(yv):
         raise ValueError("추정할 계수가 관측치보다 많습니다.")
-    return FactorialAnalysis(design, response, yv, used, kept, removed, X, labels, col_term, cov)
+    return FactorialAnalysis(design, response, yv, used, kept, removed, X, labels, col_term, cov, weights=weights)
+
+
+def _prepare_w(design, y, covariates, weights):
+    if weights is None:
+        return (*_prepare(design, y, covariates), None)
+    return _prepare(design, y, covariates, weights)
+
+
+def _check_weight_options(weights, stepwise, boxcox):
+    if weights is None:
+        return
+    if stepwise is not None and getattr(stepwise, "active", False):
+        raise ValueError("가중치와 단계적 선택은 아직 함께 쓸 수 없습니다.")
+    if boxcox == "optimal":
+        raise ValueError("가중치가 있으면 최적 λ 대신 λ 를 직접 지정하세요.")
 
 
 def _model_matrix(design, coded, tl, cov) -> np.ndarray | None:
@@ -538,6 +583,7 @@ def analyze_factorial(
     stepwise=None,
     boxcox=None,
     boxcox_rounded: bool = True,
+    weights=None,
 ) -> FactorialAnalysis:
     """design.coded 행 순서로 정렬된 반응 y 로 요인설계를 분석한다. 반응·공변량이 빈 행은 뺀다.
 
@@ -545,7 +591,9 @@ def analyze_factorial(
     기본은 반응표면 완전 2차, 확정적 선별설계 선형 — Minitab 'Analyze Screening Design' 예제의 Linear).
     stepwise: StepwiseOptions 를 주면 그 항들을 후보로 단계적 선택을 한다(분할구 설계는 불가).
     boxcox: None(변환 없음) / 'optimal'(최적 λ, boxcox_rounded 면 0.5 단위 반올림) / λ 숫자.
+    weights: 가중 회귀 가중치(런 순서 = design.coded 행 순서, 0 이상).
     """
+    _check_weight_options(weights, stepwise, boxcox)
     from ..designs.split_plot import SplitPlotDesign
     if stepwise is not None and not getattr(stepwise, "active", False):
         stepwise = None
@@ -554,6 +602,8 @@ def analyze_factorial(
             raise ValueError("분할구 설계에서는 단계적 선택을 쓸 수 없습니다.")
         if boxcox is not None:
             raise ValueError("분할구 설계에서는 Box-Cox 변환을 지원하지 않습니다.")
+        if weights is not None:
+            raise ValueError("분할구 설계에서는 가중치를 쓸 수 없습니다.")
         from .split_plot import SplitPlotAnalysis
         coded, yv, used, cov = _prepare(design, y, covariates)
         tl = factorial_terms(design, order=order, terms=terms, covariates=list(cov), include_blocks=include_blocks,
@@ -566,8 +616,8 @@ def analyze_factorial(
             model = "linear" if isinstance(design, DefinitiveScreeningDesign) else "full quadratic"
         return analyze_response_surface(design, y, response=response, covariates=covariates, model=model,
                                         terms=terms, include_blocks=include_blocks, stepwise=stepwise,
-                                        boxcox=boxcox, boxcox_rounded=boxcox_rounded)
-    coded, yv, used, cov = _prepare(design, y, covariates)
+                                        boxcox=boxcox, boxcox_rounded=boxcox_rounded, weights=weights)
+    coded, yv, used, cov, wv = _prepare_w(design, y, covariates, weights)
     pt = design.point_col
     tl = factorial_terms(
         design, order=order, terms=terms, covariates=list(cov), include_blocks=include_blocks,
@@ -579,7 +629,7 @@ def analyze_factorial(
         from .stepwise import select_model
         a = select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=True)
     else:
-        a = _build(design, response, coded, yv, used, tl, cov)
+        a = _build(design, response, coded, yv, used, tl, cov, weights=wv)
     a.boxcox = bc
     return a
 
@@ -596,9 +646,11 @@ def analyze_response_surface(
     stepwise=None,
     boxcox=None,
     boxcox_rounded: bool = True,
+    weights=None,
 ) -> FactorialAnalysis:
     """반응표면 설계 분석(Minitab 'Analyze Response Surface Design'). 기본 완전 2차 모형."""
-    coded, yv, used, cov = _prepare(design, y, covariates)
+    _check_weight_options(weights, stepwise, boxcox)
+    coded, yv, used, cov, wv = _prepare_w(design, y, covariates, weights)
     tl = rs_terms(design, model=model, terms=terms, covariates=list(cov), include_blocks=include_blocks,
                   blocks_present=coded["Blocks"].nunique() > 1)
     yv, bc = _apply_boxcox(boxcox, design, response, coded, yv, tl, cov, boxcox_rounded)
@@ -606,19 +658,22 @@ def analyze_response_surface(
         from .stepwise import select_model
         a = select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=False)
     else:
-        a = _build(design, response, coded, yv, used, tl, cov)
+        a = _build(design, response, coded, yv, used, tl, cov, weights=wv)
     a.boxcox = bc
     return a
 
 
-def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, ...] = (), **kwargs):
-    """워크시트의 반응 열과 공변량 열로 분석한다(혼합물 설계면 analyze_mixture)."""
+def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, ...] = (), weights: str | None = None,
+                      **kwargs):
+    """워크시트의 반응 열과 공변량 열로 분석한다(혼합물 설계면 analyze_mixture). weights: 가중치 열 이름."""
     y = ws.column(response).astype(float).values
     from ..designs.mixture import MixtureDesign
     if isinstance(ws.design, MixtureDesign):
         from .mixture import analyze_mixture
         if covariates:
             raise ValueError("혼합물 분석에는 공변량을 쓸 수 없습니다.")
+        if weights is not None:
+            raise ValueError("혼합물 분석의 가중치는 아직 지원하지 않습니다.")
         sw = kwargs.pop("stepwise", None)
         if sw is not None and getattr(sw, "active", False):
             raise ValueError("혼합물 분석의 단계적 선택은 아직 지원하지 않습니다.")
@@ -627,4 +682,6 @@ def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, .
             raise ValueError("혼합물 분석의 Box-Cox 변환은 아직 지원하지 않습니다.")
         return analyze_mixture(ws.design, y, response=response, **kwargs)
     cov = {c: ws.column(c).astype(float).values for c in covariates}
+    if weights is not None:
+        kwargs["weights"] = ws.column(weights).astype(float).values
     return analyze_factorial(ws.design, y, response=response, covariates=cov, **kwargs)

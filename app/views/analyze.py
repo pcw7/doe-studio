@@ -154,7 +154,7 @@ with st.container(border=True):
                 sw_opts = StepwiseOptions(method=method, alpha_enter=a_enter, alpha_remove=a_remove, criterion=crit,
                                           hierarchy=hier, scope=scope, extra_terms=extra, force=tuple(force),
                                           initial=tuple(initial))
-    bc_spec, bc_rounded = None, True
+    bc_spec, bc_rounded, w_col = None, True, None
     with st.expander(T("옵션 (Options)", "Options"), expanded=False):
         if is_sp:
             st.caption(T("분할구 설계에서는 Box-Cox 변환을 지원하지 않습니다.",
@@ -165,6 +165,11 @@ with st.container(border=True):
                          "예측·최적화·등고선은 원래 단위로 보입니다.",
                          "Box-Cox requires all responses to be positive. Tables use transformed units; "
                          "predictions, the optimizer and contour plots use original units."))
+            w_pick = st.selectbox(T("가중치 열 (Weights)"), ["-"] + [c for c in numeric_cols if c != response],
+                                  key="weights_col")
+            w_col = None if w_pick == "-" else w_pick
+            st.caption(T("가중 회귀: 가중치는 0 이상이고 0 인 런은 분석에서 빠집니다.",
+                         "Weighted regression: weights must be ≥ 0; runs with weight 0 are left out."))
     run = st.button(T("분석", "Analyze"), type="primary")
 
 if run:
@@ -172,7 +177,7 @@ if run:
         st.session_state["analysis"] = analyze_worksheet(
             ws, response, covariates=covariates, order=order, terms=terms,
             include_blocks=inc_blocks, include_center=inc_center, model=rs_model, stepwise=sw_opts,
-            boxcox=bc_spec, boxcox_rounded=bc_rounded)
+            boxcox=bc_spec, boxcox_rounded=bc_rounded, weights=w_col)
         sel = st.session_state["analysis"].selection
         st.session_state["alpha"] = sel.effects_alpha(alpha) if sel is not None else alpha
     except Exception as e:  # noqa: BLE001

@@ -124,15 +124,22 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
             r.table(sel.details_table(k, per), note="  ".join(sel.footer_lines()) if last else None)
         r.mono("\n".join(sel.step_notes(en=lang == "en")))
 
+    variability = getattr(a, "is_variability", False)
+    if variability:
+        r.heading(t("방법 (Method)", "Method"))
+        r.table(a.method_table())
     if mixture:
         r.heading(a.coefficients_title())
         r.table(a.coefficients_table(), note=a.coefficients_note())
+    elif variability:
+        r.heading(a.coefficients_title())
+        r.table(a.coefficients_table())
     else:
         r.heading(t("코드화된 계수 (Coded Coefficients)"))
         r.table(a.coefficients_table())
-    r.heading(t("모형 요약 (Model Summary)"))
+    r.heading(a.summary_title() if variability else t("모형 요약 (Model Summary)"))
     r.table(a.summary_table())
-    r.heading(a.anova_title() if mixture else t("분산 분석 (Analysis of Variance)"))
+    r.heading(a.anova_title() if (mixture or variability) else t("분산 분석 (Analysis of Variance)"))
     r.table(_anova_with_indent(a))
     eq = a.equation() if hasattr(a, "equation") else None
     if eq:
@@ -148,7 +155,7 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
     if not un.empty:
         r.heading(t("비정상적인 관측치에 대한 적합치 및 진단 (Fits and Diagnostics for Unusual Observations)"))
         r.table(un, note="  ".join(unusual_legend(a)))
-    if not mixture:
+    if not mixture and not variability:
         from ..analysis.means import means_table
         m = _try(means_table, a)
         if m is not None and not m.empty:
