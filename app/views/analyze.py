@@ -11,7 +11,8 @@ from doe_core.analysis.diagnostics import unusual_legend, unusual_table
 from doe_core.analysis.effects import effects
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.means import means_table
-from doe_core.analysis.model import RS_MODELS, factor_term
+from doe_core.analysis.model import RS_MODELS, factor_term, factorial_terms, rs_terms
+from doe_core.analysis.stepwise import CRITERIA, DEFAULT_ALPHA, METHOD_TITLE_KO, StepwiseOptions
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
 from doe_core.designs.general_full import GeneralFullFactorialDesign
 from doe_core.designs.mixture import MixtureDesign
@@ -96,14 +97,72 @@ with st.container(border=True):
     inc_blocks = c3.checkbox(T("모형에 블록 포함 (Include blocks)"), value=has_blocks, disabled=not has_blocks)
     inc_center = c4.checkbox(T("모형에 중앙점 포함 (Include center points)"), value=has_center, disabled=not has_center)
     alpha = c5.number_input(T("유의 수준 α"), 0.001, 0.5, 0.05, step=0.01, format="%.3f")
+    sw_opts = None
+    with st.expander(T("단계적 선택 (Stepwise)", "Stepwise"), expanded=False):
+        if is_sp:
+            st.caption(T("분할구 설계에서는 단계적 선택을 쓸 수 없습니다.",
+                         "Stepwise methods are not available for split-plot designs."))
+        else:
+            METHOD_KO = {"none": "없음 (None)", "forward_ic": "정보 기준 전진 선택 (Forward information criteria)",
+                         "stepwise": "단계적 (Stepwise)", "forward": "전진 선택 (Forward selection)",
+                         "backward": "후진 제거 (Backward elimination)"}
+            HIER_KO = {"each_step": "매 단계 계층 모형 (Require a hierarchical model at each step)",
+                       "at_end": "마지막에 항을 더해 계층 모형으로 (Add terms at the end to make the model hierarchical)",
+                       "none": "계층 모형 요구 안 함 (Do not require a hierarchical model)"}
+            s1, s2 = st.columns(2)
+            method = s1.selectbox(T("방법 (Method)"), list(METHOD_KO), format_func=lambda m: T(METHOD_KO[m]),
+                                  key="sw_method")
+            if method != "none":
+                de, dr = DEFAULT_ALPHA[method]
+                a_enter = a_remove = None
+                crit = "aicc"
+                if de is not None:
+                    a_enter = s2.number_input(T("진입 α (Alpha to enter)"), 0.001, 0.999, de, step=0.01, format="%.3f",
+                                              key=f"sw_ae_{method}")
+                if dr is not None:
+                    a_remove = s2.number_input(T("제거 α (Alpha to remove)"), 0.001, 0.999, dr, step=0.01,
+                                               format="%.3f", key=f"sw_ar_{method}")
+                if method == "forward_ic":
+                    crit = s2.selectbox(T("기준 (Criterion)"), list(CRITERIA), format_func=CRITERIA.get, key="sw_crit")
+                hier_opts = [h for h in HIER_KO if not (method == "forward_ic" and h == "at_end")]
+                hier = s1.selectbox(T("계층 (Hierarchy)"), hier_opts, format_func=lambda h: T(HIER_KO[h]), key="sw_hier")
+                scope, extra = "all", False
+                if hier != "none":
+                    scope = s1.radio(T("계층을 요구할 항 (Require hierarchy for)"), ["all", "categorical"], horizontal=True,
+                                     format_func=lambda v: T({"all": "모든 항 (All terms)",
+                                                              "categorical": "범주형 요인 항 (Terms with categorical predictors)"}[v]),
+                                     key="sw_scope")
+                if hier == "each_step":
+                    extra = s1.checkbox(T("계층 유지를 위해 하위 항도 함께 진입 (Extra terms can enter to maintain hierarchy)"),
+                                        key="sw_extra")
+                try:
+                    if is_rs:
+                        cand = rs_terms(d, model=rs_model, terms=terms, covariates=covariates, include_blocks=inc_blocks,
+                                        blocks_present=has_blocks)
+                    else:
+                        cand = factorial_terms(d, order=order, terms=terms, covariates=covariates,
+                                               include_blocks=inc_blocks, include_center=inc_center,
+                                               blocks_present=has_blocks, center_present=has_center)
+                    cand_names = [t.name for t in cand]
+                except ValueError:
+                    cand_names = []
+                force = st.multiselect(T("E = 모든 모형에 포함 (Include term in every model)"), cand_names, key="sw_force")
+                initial = []
+                if method == "stepwise":
+                    initial = st.multiselect(T("I = 시작 모형에 포함 (Include term in the initial model)"),
+                                             [n for n in cand_names if n not in force], key="sw_initial")
+                sw_opts = StepwiseOptions(method=method, alpha_enter=a_enter, alpha_remove=a_remove, criterion=crit,
+                                          hierarchy=hier, scope=scope, extra_terms=extra, force=tuple(force),
+                                          initial=tuple(initial))
     run = st.button(T("분석", "Analyze"), type="primary")
 
 if run:
     try:
         st.session_state["analysis"] = analyze_worksheet(
             ws, response, covariates=covariates, order=order, terms=terms,
-            include_blocks=inc_blocks, include_center=inc_center, model=rs_model)
-        st.session_state["alpha"] = alpha
+            include_blocks=inc_blocks, include_center=inc_center, model=rs_model, stepwise=sw_opts)
+        sel = st.session_state["analysis"].selection
+        st.session_state["alpha"] = sel.effects_alpha(alpha) if sel is not None else alpha
     except Exception as e:  # noqa: BLE001
         st.session_state.pop("analysis", None)
         st.error(T("분석하지 못했습니다: ", "Could not analyze: ") + str(e))
@@ -136,10 +195,25 @@ tab_tbl, tab_eff, tab_res, tab_fac, tab_con = st.tabs([T("결과표", "Tables"),
                                                       T("등고선·표면도", "Contour & surface")])
 
 with tab_tbl:
+    sel = a.selection
+    if sel is not None:
+        st.markdown(T(f"**{METHOD_TITLE_KO[sel.method]} ({sel.title()})**", f"**{sel.title()}**"))
+        st.code("\n".join(sel.method_lines()), language=None)
+        if not a.terms:
+            st.warning(T("어떤 항도 기준을 넘지 못해 상수만 남았습니다.", "No term met the criterion; only the constant remains."))
+        with st.expander(T("모형 선택 세부 (Model selection details)", "Model selection details")):
+            st.caption(sel.candidate_line())
+            show_table(sel.details_table())
+            st.caption("  ".join(sel.footer_lines()))
+            st.code("\n".join(sel.step_notes(en=lang() == "en")), language=None)
     st.markdown(T("**코드화된 계수 (Coded Coefficients)**"))
     show_table(a.coefficients_table())
     st.markdown(T("**모형 요약 (Model Summary)**"))
-    show_table(a.summary_table())
+    if is_sp:                                   # 분할구 설계는 AICc·BIC 를 보이지 않는다(문서)
+        show_table(a.summary_table())
+    else:
+        expanded = st.toggle(T("확장 표 (PRESS·AICc·BIC)", "Expanded table (PRESS, AICc, BIC)"), key="summary_expanded")
+        show_table(a.summary_table(expanded=expanded))
     st.markdown(T("**분산 분석 (Analysis of Variance)**"))
     tbl = a.anova_table()
     levels = [r.level for r in a.anova_rows()]
@@ -169,7 +243,9 @@ with tab_tbl:
             st.info(T("평균 표를 만들 수 없습니다: ", "Means are not available: ") + str(err))
 
 with tab_eff:
-    if not (a.two_level or a.is_rs):
+    if not a.terms:
+        st.info(T("모형에 항이 없어 효과도를 그리지 않습니다.", "The model has no terms, so there are no effects plots."))
+    elif not (a.two_level or a.is_rs):
         st.info(T("효과도는 2수준 설계와 반응표면 설계에서 그립니다.",
                   "Effects plots are available for 2-level and response surface designs."))
     else:

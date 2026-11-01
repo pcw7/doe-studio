@@ -292,3 +292,35 @@ def test_taguchi_create_and_analyze_pages():
     res = at.session_state["taguchi"][1]
     assert set(res) == {"sn", "mean"}
     assert any("Response Table for Signal to Noise Ratios" in m.value for m in at.markdown)
+
+
+def test_analyze_page_stepwise():
+    """단계적 선택: 여과율 2⁴ 무반복 실험, 4차까지 후보, 후진 제거(포화 모형 선제거) → 결과·세부 표·보고서."""
+    import numpy as np
+    from doe_core.analysis.stepwise import StepwiseOptions
+    d = create_two_level_design(4, randomize=False)
+    ws = Worksheet(d)
+    y = [45, 71, 48, 65, 68, 60, 80, 65, 43, 100, 45, 104, 75, 86, 70, 96]
+    ws.add_column("Filtration", np.array(y, dtype=float), order="std")
+    at = run("analyze.py", ws)
+    assert not at.exception
+    at.slider[0].set_value(4).run()
+    at.selectbox(key="sw_method").set_value("stepwise").run()
+    assert not at.exception
+    assert at.number_input(key="sw_ae_stepwise").value == 0.15
+    at.button[0].click().run()
+    assert not at.exception
+    a = at.session_state["analysis"]
+    assert [t.name for t in a.terms] == ["A", "C", "D", "A*C", "A*D"]
+    assert at.session_state["alpha"] == 0.15
+    assert any("α to enter = 0.15, α to remove = 0.15" in c.value for c in at.code)
+    assert any("1단계: A 추가" in c.value for c in at.code)
+    at.selectbox(key="sw_method").set_value("backward").run()
+    at.button[0].click().run()
+    assert not at.exception
+    sel = at.session_state["analysis"].selection
+    assert sel.method == "backward" and len(sel.pre_removed) == 4
+    from doe_core.report import analysis_report
+    rep = analysis_report(ws, at.session_state["analysis"], figures=False)
+    assert StepwiseOptions(method="backward").alphas()[1] == 0.1
+    assert rep is not None

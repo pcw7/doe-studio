@@ -124,3 +124,19 @@ def test_taguchi_analyze_english():
     at = run_en("analyze.py", ws)
     at.button[0].click().run()
     assert not at.exception and korean_left(at) == []
+
+
+@pytest.mark.parametrize("method", ["stepwise", "forward_ic", "backward"])
+def test_stepwise_analyze_english(method):
+    from doe_core.designs.factorial import create_two_level_design
+    from doe_core.io.worksheet import Worksheet
+    ws = Worksheet(create_two_level_design(4, randomize=False))
+    y = [45, 71, 48, 65, 68, 60, 80, 65, 43, 100, 45, 104, 75, 86, 70, 96]
+    ws.add_column("Filtration", np.array(y, dtype=float), order="std")
+    at = run_en("analyze.py", ws)
+    at.slider[0].set_value(4).run()
+    at.selectbox(key="sw_method").set_value(method).run()
+    assert not at.exception and korean_left(at) == []
+    at.button[0].click().run()
+    assert not at.exception and korean_left(at) == []
+    assert any(c.value.startswith("Step 1:") for c in at.code)

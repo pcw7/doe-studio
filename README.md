@@ -61,3 +61,4 @@ streamlit run app/main.py          # 화면: http://localhost:8501
   - [x] 보고서 내보내기: Excel(.xlsx, 의존성 없음)·HTML(그래프 포함, 한 파일)·PDF(reportlab, 한글 글꼴 내장) — 설계·분석·최적화·최적 설계 화면
   - [x] 한/영 화면 전환(사이드바), 그래프·보고서도 선택한 언어로
   - [x] Taguchi 설계(직교배열 21종, S/N 비·평균 분석, 반응표, 주효과도, 예측)
+  - [x] 단계적 모형 선택(Stepwise·Forward·Backward·AICc/BIC 정보 기준, 계층 규칙, 단계별 표)
