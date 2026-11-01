@@ -92,3 +92,16 @@ def test_summary_on_page_and_report():
     rep_en = analysis_report(ws, at.session_state["analysis"], figures=False, lang="en")
     assert "Key results" in [b.content for b in rep_en.blocks if b.kind == "heading"]
     assert any("Curvature is significant" in str(b.content) for b in rep_en.blocks)
+
+
+def test_report_marks_render_in_korean_pdf_fonts():
+    """보고서의 요약 기호는 한글 PDF 글꼴에 있는 글자여야 한다(✓ 는 맑은 고딕에 없어 네모로 깨졌다)."""
+    from pathlib import Path
+    from doe_core.report.builders import KEY_MARKS
+    for ch in KEY_MARKS.values():
+        ch.encode("cp949")                                       # KS X 1001 에 있는 기호(한글 글꼴 공통)
+    font = Path("C:/Windows/Fonts/malgun.ttf")
+    if font.exists():
+        from reportlab.pdfbase.ttfonts import TTFont
+        cmap = TTFont("MalgunCheck", str(font)).face.charToGlyph
+        assert all(ord(ch) in cmap for ch in KEY_MARKS.values())

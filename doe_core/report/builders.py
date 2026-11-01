@@ -28,6 +28,11 @@ KIND_EN = {
 }
 
 
+# 주요 결과 요약의 표시 기호. PDF 한글 글꼴(맑은 고딕·나눔고딕·HYGothic)에 모두 있는 KS X 1001 기호만 쓴다
+# (✓ 는 글꼴에 없어 PDF 에서 네모로 깨졌다).
+KEY_MARKS = {"good": "○", "warn": "△", "info": "·"}
+
+
 def kind_ko(design, lang: str = "ko") -> str:
     name = type(design).__name__
     return (KIND_EN if lang == "en" else KIND_KO).get(name, name)
@@ -123,9 +128,8 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
     from ..analysis.summary import key_findings, supports
     if supports(a):
         r.heading(t("주요 결과 요약", "Key results"))
-        mark = {"good": "✓", "warn": "!", "info": "·"}
         for f in key_findings(a, alpha):
-            r.text(f"{mark[f.level]} {t(f.ko, f.en)}")
+            r.text(f"{KEY_MARKS[f.level]} {t(f.ko, f.en)}")
     if a.removed_terms:
         r.text(t("완전 별칭(선형 종속)이라 뺀 항: ", "Removed (completely aliased) terms: ")
                + ", ".join(x.name for x in a.removed_terms))
