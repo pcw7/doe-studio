@@ -26,6 +26,18 @@ MARKER = 9
 BAR_MAX = 24
 
 
+KEEP = "keep"          # 이 이름의 주석은 사용자 글자(요인 이름 등)라 영어 전환에서 바꾸지 않는다
+
+
+def lift_legend(fig: go.Figure, px: int) -> go.Figure:
+    """범례를 그림 영역 위로 px 픽셀 더 올리고 위 여백을 늘린다(그림 바로 위의 기준선 값·소제목과 겹치지 않게)."""
+    m = fig.layout.margin
+    top, bottom = (m.t or 0) + px, (m.b or 0)
+    plot_h = max((fig.layout.height or 450) - top - bottom, 60)
+    fig.update_layout(margin=dict(t=top), legend=dict(y=1.02 + px / plot_h))
+    return fig
+
+
 def tokens(mode: str = "light") -> dict:
     return DARK if mode == "dark" else LIGHT
 
