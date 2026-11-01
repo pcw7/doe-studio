@@ -14,6 +14,7 @@ from doe_core.designs.modify import (
 )
 from doe_core.designs.plackett_burman import PlackettBurmanDesign
 from doe_core.designs.response_surface import add_axial_points, axial_alpha, axial_preview
+from doe_core.io.worksheet import NAME_MAX, clean_name, file_stem
 
 st.title(T("워크시트", "Worksheet"))
 ws = require_ws()
@@ -127,11 +128,23 @@ if len(ws.columns.columns):
             st.session_state["ws_notice"] = (f"'{target}' 열을 지웠습니다.", f"Deleted column '{target}'.")
             st.rerun()
 
+n1, _ = st.columns([2, 3])
+new_name = n1.text_input(T("작업 이름", "Work name"), value=ws.name, max_chars=NAME_MAX,
+                         key=f"ws_name_{st.session_state.get('autosave_slot', '')}",
+                         placeholder=T("예: 촉매 선별 1차", "e.g. Catalyst screening, round 1"),
+                         help=T("시작 화면의 자동 저장 목록과 내려받는 파일 이름에 쓰입니다. 비우면 이름이 없습니다.",
+                                "Shown in the autosave list on the Home page and used for downloaded file names. "
+                                "Leave empty for no name."))
+if clean_name(new_name) != ws.name:
+    ws.name = clean_name(new_name)
+    st.rerun()
+stem = file_stem(ws.name, "doe_worksheet")
 c1, c2, c3, _ = st.columns([1, 1, 1, 2])
-c1.download_button(T("워크시트 저장 (.json)", "Save worksheet (.json)"), worksheet_json(ws), "doe_worksheet.json",
+c1.download_button(T("워크시트 저장 (.json)", "Save worksheet (.json)"), worksheet_json(ws), f"{stem}.json",
                    "application/json")
-c2.download_button(T("CSV 내보내기"), worksheet_csv(ws), "doe_worksheet.csv", "text/csv")
-c3.download_button(T("Excel 내보내기", "Export Excel"), worksheet_xlsx(ws), "doe_worksheet.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+c2.download_button(T("CSV 내보내기"), worksheet_csv(ws), f"{stem}.csv", "text/csv")
+c3.download_button(T("Excel 내보내기", "Export Excel"), worksheet_xlsx(ws), f"{stem}.xlsx",
+                   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 st.divider()
 st.subheader(T("설계 수정 (Modify Design)"))

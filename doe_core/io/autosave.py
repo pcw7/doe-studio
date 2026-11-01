@@ -3,6 +3,7 @@
 워크시트가 바뀔 때마다 '작업 칸(slot)' 하나에 DOE Studio 워크시트 JSON 을 덮어쓴다. 새 설계를 만들거나 다른 파일을
 불러오면 새 칸을 쓰고, 설계 수정(접기·반복·축점 등)과 값 입력은 같은 칸을 이어 쓴다. 가장 최근 KEEP 개만 남긴다.
 저장 파일은 보통 워크시트 파일과 같은 형식이라 시작 화면의 파일 불러오기로도 열 수 있다('autosave' 키만 더 있다).
+작업 이름은 워크시트의 'name' 키에 들어 있다. 목록에서 이름 바꾸기(rename)·지우기(delete)를 할 수 있다.
 
 위치: 환경 변수 DOE_STUDIO_AUTOSAVE_DIR, 없으면 ~/.doe_studio/autosave.
 끄기: DOE_STUDIO_AUTOSAVE=0 (여러 사람이 함께 쓰는 서버에 올릴 때 — 저장 폴더가 컴퓨터 하나에 하나라서다).
@@ -18,7 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from .worksheet import Worksheet, worksheet_from_dict, worksheet_to_dict
+from .worksheet import Worksheet, clean_name, worksheet_from_dict, worksheet_to_dict
 
 ENV_DIR = "DOE_STUDIO_AUTOSAVE_DIR"
 ENV_SWITCH = "DOE_STUDIO_AUTOSAVE"
@@ -61,6 +62,7 @@ class AutosaveEntry:
     factors: list[str]
     n_runs: int
     columns: list[str]         # 비설계 열(반응·공변량)
+    name: str = ""              # 사용자가 붙인 작업 이름
 
 
 def save(slot: str, ws: Worksheet, *, now: datetime | None = None) -> Path | None:
@@ -98,7 +100,7 @@ def _entry(path: Path) -> AutosaveEntry:
     cols = [c for c in doc.get("columns", {}) if c != "StdOrder"]
     runs = len(next(iter(doc["coded"].values()), []))
     when = datetime.fromisoformat(meta["saved_at"]) if "saved_at" in meta else datetime.fromtimestamp(path.stat().st_mtime)
-    return AutosaveEntry(path.stem, when, design.get("type", "?"), factors, runs, cols)
+    return AutosaveEntry(path.stem, when, design.get("type", "?"), factors, runs, cols, clean_name(doc.get("name")))
 
 
 def recent(limit: int = 5) -> list[AutosaveEntry]:
@@ -125,7 +127,26 @@ def load(slot: str) -> Worksheet:
     return worksheet_from_dict(json.loads(path.read_text(encoding="utf-8")))
 
 
+def rename(slot: str, name: str) -> str:
+    """저장된 작업의 이름을 바꾼다(빈 이름이면 이름을 지운다). 저장 시각은 그대로 둬 목록 순서가 바뀌지 않는다.
+    다듬은 이름을 돌려준다."""
+    path = _path(slot)
+    if path is None:
+        raise ValueError("자동 저장이 꺼져 있습니다.")
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    name = clean_name(name)
+    if name:
+        doc["name"] = name
+    else:
+        doc.pop("name", None)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp, path)
+    return name
+
+
 def delete(slot: str) -> None:
+    """저장된 작업을 지운다(되살릴 수 없다). 없으면 아무 일도 하지 않는다."""
     path = _path(slot)
     if path is not None and path.exists():
         path.unlink()
