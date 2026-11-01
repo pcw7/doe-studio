@@ -120,6 +120,12 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
                  f"{kind_ko(d, 'en')} · {a.n} of {len(d.coded)} runs used"), lang=lang)
     terms = ", ".join(getattr(t_, "short", None) or t_.name for t_ in a.terms)
     r.text(t("모형 항: ", "Model terms: ") + terms)
+    from ..analysis.summary import key_findings, supports
+    if supports(a):
+        r.heading(t("주요 결과 요약", "Key results"))
+        mark = {"good": "✓", "warn": "!", "info": "·"}
+        for f in key_findings(a, alpha):
+            r.text(f"{mark[f.level]} {t(f.ko, f.en)}")
     if a.removed_terms:
         r.text(t("완전 별칭(선형 종속)이라 뺀 항: ", "Removed (completely aliased) terms: ")
                + ", ".join(x.name for x in a.removed_terms))
