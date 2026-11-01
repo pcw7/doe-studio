@@ -7,7 +7,8 @@ from app.state import plot_mode, report_downloads, require_ws, show_plot, show_t
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.binary import analyze_binary
 from doe_core.analysis.effects import effects
-from doe_core.analysis.model import RS_MODELS
+from app.stepwise_ui import selection_details, stepwise_input
+from doe_core.analysis.model import RS_MODELS, factorial_terms, rs_terms
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
 from doe_core.designs.mixture import MixtureDesign
 from doe_core.designs.response_surface import ResponseSurfaceDesign
@@ -66,6 +67,15 @@ with st.container(border=True):
         order = st.slider(T("모형에 포함되는 항의 최대 차수 (Include terms up through order)"), 1, len(d.letters),
                           min(2, len(d.letters)), key="bin_order")
     alpha = st.number_input(T("유의 수준 α"), 0.001, 0.5, 0.05, step=0.01, format="%.3f", key="bin_alpha")
+
+    def _cands():
+        blocks = d.coded["Blocks"].nunique() > 1
+        if is_rs:
+            return [t.name for t in rs_terms(d, model=model, blocks_present=blocks)]
+        return [t.name for t in factorial_terms(d, order=order, include_center=False, blocks_present=blocks)]
+
+    with st.expander(T("단계적 선택 (Stepwise) — 카이제곱 검정", "Stepwise — chi-square tests"), expanded=False):
+        sw_opts = stepwise_input(_cands, "bsw")
     run = st.button(T("분석", "Analyze"), type="primary", key="bin_run")
 if run:
     try:
@@ -74,14 +84,17 @@ if run:
             ev = float(ev)
         except (TypeError, ValueError):
             pass
-        st.session_state["binary"] = analyze_binary(ws, events=events, trials=trials, event_name=event_name or "Event",
-                                                    event_value=ev, order=order, model=model)
+        ba = analyze_binary(ws, events=events, trials=trials, event_name=event_name or "Event",
+                            event_value=ev, order=order, model=model, stepwise=sw_opts)
+        st.session_state["binary"] = ba
+        st.session_state["bin_alpha_used"] = ba.selection.effects_alpha(alpha) if ba.selection is not None else alpha
     except Exception as e:  # noqa: BLE001
         st.session_state.pop("binary", None)
         st.error(T("분석하지 못했습니다: ", "Could not analyze: ") + str(e))
 a = st.session_state.get("binary")
 if a is None:
     st.stop()
+alpha = st.session_state.get("bin_alpha_used", alpha)       # 단계적 선택이면 α to remove/enter
 
 from doe_core.report.builders import binary_report  # noqa: E402
 report_downloads(lambda figs: binary_report(ws, a, alpha=alpha, figures=figs, lang=lang()),
@@ -92,6 +105,7 @@ if a.removed_terms:
                + ", ".join(t.name for t in a.removed_terms))
 tab_tbl, tab_eff = st.tabs([T("결과표", "Tables"), T("효과도", "Effects")])
 with tab_tbl:
+    selection_details(a, lang() == "en")
     c1, c2 = st.columns(2)
     with c1:
         st.markdown(T("**방법 (Method)**"))

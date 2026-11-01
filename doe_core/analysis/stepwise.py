@@ -132,6 +132,14 @@ class StepFit:
         return {"S": math.sqrt(mse) if mse is not None else None, "R-sq": r2, "R-sq(adj)": adj, "R-sq(pred)": pred,
                 "Mallows' Cp": cp, "AICc": ic["AICc"], "BIC": ic["BIC"]}
 
+    def stat_rows(self) -> list[tuple[str, str]]:
+        """단계 표 아래쪽 통계 행(이름, 글자)."""
+        st = self.stats()
+        return [("S", fmt.sig_text(st["S"]) if st["S"] is not None else fmt.MISSING),
+                ("R-sq", fmt.pct_text(st["R-sq"])), ("R-sq(adj)", fmt.pct_text(st["R-sq(adj)"])),
+                ("R-sq(pred)", fmt.pct_text(st["R-sq(pred)"])), ("Mallows' Cp", fmt.fixed(st["Mallows' Cp"], 2)),
+                ("AICc", fmt.fixed(st["AICc"], 2)), ("BIC", fmt.fixed(st["BIC"], 2))]
+
 
 @dataclass
 class Step:
@@ -286,6 +294,13 @@ class _Engine:
                 best = (key, i, group, p)
         return None if best is None else (best[1], best[2], best[3])
 
+    family = "normal"
+
+    def criterion(self, model, crit: str) -> float:
+        """정보 기준(AICc/BIC) — 계산할 수 없으면 inf."""
+        ic = info_criteria(self.sse(model), self.n, self.ncoef(model), self.log_w)[crit]
+        return math.inf if ic is None else ic
+
     def hierarchy_closure(self, model: set[int]) -> set[int]:
         out = set(model)
         for i in model:
@@ -382,6 +397,7 @@ class StepwiseResult:
             label_rows += [(i, k, lab) for k, lab in enumerate(labs)]
         rows = [{"Term": "Constant"}] + [{"Term": lab} for _, _, lab in label_rows]
         stat_names = ["S", "R-sq", "R-sq(adj)", "R-sq(pred)", "Mallows' Cp", "AICc", "BIC"]
+        stat_names = [nm for nm, _ in chosen_steps[0][1].fit.stat_rows()] if chosen_steps else stat_names
         rows += [{"Term": s} for s in stat_names]
         for k, s in chosen_steps:
             ccol, pcol = f"Step {k} Coef", f"Step {k} P"
@@ -400,11 +416,8 @@ class StepwiseResult:
                         fmt.MISSING if kk == 0 else "")
                 else:
                     rows[r][ccol] = rows[r][pcol] = ""
-            st = fit.stats()
             base = 1 + len(label_rows)
-            vals = [fmt.sig_text(st["S"]) if st["S"] is not None else fmt.MISSING,
-                    fmt.pct_text(st["R-sq"]), fmt.pct_text(st["R-sq(adj)"]), fmt.pct_text(st["R-sq(pred)"]),
-                    fmt.fixed(st["Mallows' Cp"], 2), fmt.fixed(st["AICc"], 2), fmt.fixed(st["BIC"], 2)]
+            vals = [v for _, v in fit.stat_rows()]
             for r, v in enumerate(vals):
                 rows[base + r][ccol] = ""
                 rows[base + r][pcol] = v
@@ -486,10 +499,16 @@ def _candidates(design, coded, cov, tl: list[Term], factorial: bool):
 
 
 def select_model(design, response, coded, yv, used, tl: list[Term], cov, opts: StepwiseOptions,
-                 *, factorial: bool, weights: np.ndarray | None = None) -> FactorialAnalysis:
-    """단계적 선택으로 고른 모형의 분석 결과(.selection 에 단계 정보). weights 가 있으면 가중 회귀."""
+                 *, factorial: bool, weights: np.ndarray | None = None, engine_factory=None, builder=None):
+    """단계적 선택으로 고른 모형의 분석 결과(.selection 에 단계 정보). weights 가 있으면 가중 회귀.
+
+    engine_factory(cands, mats, labels, categorical, opts) 로 다른 가족(이항)의 엔진을, builder(항 목록) 로 최종 분석을
+    바꿔 끼울 수 있다."""
     cands, mats, labels, aliased = _candidates(design, coded, cov, tl, factorial)
-    eng = _Engine(cands, mats, labels, yv, _categorical_letters(design), opts, weights)
+    if engine_factory is None:
+        eng = _Engine(cands, mats, labels, yv, _categorical_letters(design), opts, weights)
+    else:
+        eng = engine_factory(cands, mats, labels, _categorical_letters(design), opts)
     ae, ar = opts.alphas()
     forced = _resolve(opts.force, cands, "모든 모형에 포함할")
     initial = _resolve(opts.initial, cands, "시작 모형에 포함할") if opts.method == "stepwise" else set()
@@ -504,7 +523,7 @@ def select_model(design, response, coded, yv, used, tl: list[Term], cov, opts: S
     pre_removed: list[int] = []
     full_ok = eng.sse(all_idx) is not None
     if opts.method in ("stepwise", "backward") and full_ok and eng.df_error(all_idx) == 0:
-        if not factorial:
+        if not factorial or eng.family != "normal":
             if opts.method == "backward":
                 raise ValueError("시작 모형이 자유도를 모두 써서 Backward elimination 을 진행할 수 없습니다.")
         else:
@@ -597,8 +616,7 @@ def select_model(design, response, coded, yv, used, tl: list[Term], cov, opts: S
         crit = CRITERIA[opts.criterion]
 
         def score(m):
-            ic = info_criteria(eng.sse(m), eng.n, eng.ncoef(m))[crit]
-            return math.inf if ic is None else ic
+            return eng.criterion(m, crit)
 
         best = score(model)
         while True:
@@ -625,7 +643,10 @@ def select_model(design, response, coded, yv, used, tl: list[Term], cov, opts: S
     result = StepwiseResult(opts, cands, [cands[i] for i in pre_removed], steps, chosen, ae, ar,
                             full_estimable=full_ok, notes=notes)
     final = [cands[i] for i in steps[chosen].terms]
-    a = _build(design, response, coded, yv, used, final, cov, weights=weights)
+    if builder is not None:
+        a = builder(final)
+    else:
+        a = _build(design, response, coded, yv, used, final, cov, weights=weights)
     a.removed_terms = list(aliased) + a.removed_terms
     a.selection = result
     return a

@@ -319,10 +319,35 @@ class BinaryAnalysis(FactorialAnalysis):
         return title, f"P({self.event_name}) = exp(Y')/(1 + exp(Y'))\n{text}"
 
 
+def _binary_build(d, coded, y, m, used, tl, *, events, trials, event_name, binary, event_value) -> BinaryAnalysis:
+    """항 목록으로 로짓 모형을 적합한 분석 결과(앞 항과 종속인 항은 뺀다)."""
+    X = np.ones((len(y), 1))
+    labels, col_term, kept, removed = ["Constant"], [-1], [], []
+    for t in tl:
+        M, labs = term_matrix(t, d, coded, {})
+        cand = np.hstack([X, M])
+        if _rank(cand) == cand.shape[1]:
+            X = cand
+            labels += labs
+            col_term += [len(kept)] * M.shape[1]
+            kept.append(t)
+        else:
+            removed.append(t)
+    if X.shape[1] > len(y):
+        raise ValueError("추정할 계수가 행 수보다 많습니다.")
+    beta, p = fit_logit(X, y, m)
+    w = m * p * (1 - p)
+    z = X @ beta + (y - m * p) / w
+    return BinaryAnalysis(d, events, z, used, kept, removed, X, labels, col_term, {}, weights=w, events=y, trials=m,
+                          event_name=event_name, events_label=events, trials_label=trials or "", binary_format=binary,
+                          event_value=str(event_value))
+
+
 def analyze_binary(ws, *, events: str, trials: str | None = None, event_name: str = "Event", event_value=1,
                    order: int | None = 2, model: str | None = None, terms: list[str] | None = None,
-                   include_blocks: bool | None = None) -> BinaryAnalysis:
-    """사건/시행 형식(events + trials) 또는 이항 열 형식(events 열의 값 == event_value 이면 사건, 시행 1)."""
+                   include_blocks: bool | None = None, stepwise=None) -> BinaryAnalysis:
+    """사건/시행 형식(events + trials) 또는 이항 열 형식(events 열의 값 == event_value 이면 사건, 시행 1).
+    stepwise: StepwiseOptions 를 주면 우도비 카이제곱 검정으로 단계적 선택."""
     from ..designs.definitive_screening import DefinitiveScreeningDesign
     from ..designs.mixture import MixtureDesign
     from ..designs.response_surface import ResponseSurfaceDesign
@@ -349,34 +374,133 @@ def analyze_binary(ws, *, events: str, trials: str | None = None, event_name: st
     coded = d.coded.reset_index(drop=True).iloc[used].reset_index(drop=True)
     y, m = y[used], m[used]
     blocks_present = coded["Blocks"].nunique() > 1
-    if isinstance(d, (ResponseSurfaceDesign, DefinitiveScreeningDesign)):
+    rs_like = isinstance(d, (ResponseSurfaceDesign, DefinitiveScreeningDesign))
+    if rs_like:
         tl = rs_terms(d, model=model or ("linear" if isinstance(d, DefinitiveScreeningDesign) else "full quadratic"),
                       terms=terms, include_blocks=include_blocks, blocks_present=blocks_present)
     else:
         tl = factorial_terms(d, order=order, terms=terms, include_blocks=include_blocks, include_center=False,
                              blocks_present=blocks_present, center_present=False)
-    X = np.ones((len(y), 1))
-    labels, col_term, kept, removed = ["Constant"], [-1], [], []
-    for t in tl:
-        M, labs = term_matrix(t, d, coded, {})
-        cand = np.hstack([X, M])
-        if _rank(cand) == cand.shape[1]:
-            X = cand
-            labels += labs
-            col_term += [len(kept)] * M.shape[1]
-            kept.append(t)
-        else:
-            removed.append(t)
-    if X.shape[1] > len(y):
-        raise ValueError("추정할 계수가 행 수보다 많습니다.")
-    beta, p = fit_logit(X, y, m)
-    w = m * p * (1 - p)
-    z = X @ beta + (y - m * p) / w
     if binary and event_name == "Event":
         event_name = str(event_value)                    # 이항 열 형식: P(사건 값)
-    return BinaryAnalysis(d, events, z, used, kept, removed, X, labels, col_term, {}, weights=w, events=y, trials=m,
-                          event_name=event_name, events_label=events, trials_label=trials or "", binary_format=binary,
-                          event_value=str(event_value))
+    kw = dict(events=events, trials=trials, event_name=event_name, binary=binary, event_value=event_value)
+    if stepwise is not None and getattr(stepwise, "active", False):
+        from .stepwise import select_model
+
+        def factory(cands, mats, labels, categorical, opts):
+            return _BinaryEngine(cands, mats, labels, categorical, opts, y, m)
+
+        return select_model(d, events, coded, y / m, used, tl, {}, stepwise, factorial=not rs_like,
+                            engine_factory=factory,
+                            builder=lambda final: _binary_build(d, coded, y, m, used, final, **kw))
+    return _binary_build(d, coded, y, m, used, tl, **kw)
+
+
+# ---------------------------------------------------------------- 단계적 선택(이항)
+
+
+@dataclass
+class BinaryStepFit:
+    """단계 하나의 로짓 적합(단계 표용)."""
+    terms: tuple
+    labels: list
+    col_term: list
+    beta: np.ndarray
+    se: np.ndarray
+    term_p: dict
+    deviance: float
+    null_deviance: float
+    n: int
+    loglik: float
+
+    @property
+    def p(self) -> int:
+        return len(self.beta)
+
+    def stat_rows(self) -> list:
+        D, D0, n, p = self.deviance, self.null_deviance, self.n, self.p
+        aic = -2 * self.loglik + 2 * p
+        aicc = aic + 2 * p * (p + 1) / (n - p - 1) if n - p - 1 > 0 else None
+        r2 = (D0 - D) / D0 if D0 > 0 else None
+        adj = max(0.0, (D0 - D - (p - 1)) / D0) if D0 > 0 else None
+        return [("Deviance R-Sq", fmt.pct_text(r2)), ("Deviance R-Sq(adj)", fmt.pct_text(adj)),
+                ("AIC", fmt.fixed(aic, 2)), ("AICc", fmt.fixed(aicc, 2)),
+                ("BIC", fmt.fixed(-2 * self.loglik + p * math.log(n), 2))]
+
+
+from .stepwise import _Engine  # noqa: E402  (stepwise 는 binary 를 가져오지 않는다)
+
+
+class _BinaryEngine(_Engine):
+    """이항(로짓) 단계적 선택: 목적함수 = 이탈도, 검정 = 우도비 카이제곱(문서: chi-square test)."""
+    family = "binary"
+
+    def __init__(self, cands, mats, labels, categorical, opts, events, trials):
+        super().__init__(cands, mats, labels, events / trials, categorical, opts)
+        self.events, self.trials = events, trials
+        self._fits = {}
+        self.null_dev = _deviance(events, trials, np.full(len(events), float(np.sum(events) / np.sum(trials))))
+
+    def _fitted(self, idx):
+        key = tuple(sorted(idx))
+        if key not in self._fits:
+            X = self.X(key)
+            res = None
+            if X.shape[1] <= self.n and _rank(X) == X.shape[1]:
+                try:
+                    res = fit_logit(X, self.events, self.trials)
+                except ValueError:
+                    res = None
+            self._fits[key] = res
+        return self._fits[key]
+
+    def sse(self, idx):
+        """이탈도(적합할 수 없으면 None)."""
+        f = self._fitted(idx)
+        return None if f is None else _deviance(self.events, self.trials, f[1])
+
+    def _chi(self, small, big, df):
+        d_small, d_big = self.sse(small), self.sse(big)
+        if d_small is None or d_big is None:
+            return None
+        chi = max(d_small - d_big, 0.0)
+        return chi, float(stats.chi2.sf(chi, df))
+
+    def removal_test(self, model, i):
+        return self._chi(model - {i}, model, self.df_of(i))
+
+    def addition_test(self, model, i):
+        return self._chi(model, model | {i}, self.df_of(i))
+
+    def _loglik(self, idx):
+        f = self._fitted(idx)
+        return None if f is None else float(np.sum(stats.binom.logpmf(self.events, self.trials, f[1])))
+
+    def criterion(self, model, crit: str) -> float:
+        ll = self._loglik(model)
+        if ll is None:
+            return math.inf
+        p, n = self.ncoef(model), self.n
+        if crit == "AICc":
+            return (-2 * ll + 2 * p + 2 * p * (p + 1) / (n - p - 1)) if n - p - 1 > 0 else math.inf
+        return -2 * ll + p * math.log(n)
+
+    def fit(self, idx, mse_full=None) -> BinaryStepFit:
+        key = tuple(sorted(idx))
+        X = self.X(key)
+        beta, prob = self._fitted(key)
+        W = self.trials * prob * (1 - prob)
+        cov = np.linalg.inv(X.T @ (X * W[:, None]))
+        labels, col_term = ["Constant"], [-1]
+        for i in key:
+            labels += self.labels[i]
+            col_term += [i] * self.df_of(i)
+        term_p = {}
+        for i in key:
+            t = self.removal_test(set(key), i)
+            term_p[i] = None if t is None else t[1]
+        return BinaryStepFit(key, labels, col_term, beta, np.sqrt(np.diag(cov)), term_p, self.sse(key),
+                             self.null_dev, self.n, self._loglik(key))
 
 
 def _num(v):
