@@ -128,8 +128,8 @@ with tab_tbl:
     st.caption(T("Ratio Effect = exp(Effect): 높은 수준의 표준편차가 낮은 수준의 몇 배인지.",
                  "Ratio Effect = exp(Effect): the ratio of the standard deviation at the high level to the low level."))
     if getattr(a, "is_ml", False):
-        st.caption(T("최대우도 추정에서는 모형 요약과 분산분석표를 표시하지 않습니다(Minitab 과 같음). 유의성은 Z 값으로 봅니다.",
-                     "With maximum likelihood, the model summary and ANOVA table are not shown (as in Minitab); use the "
+        st.caption(T("최대우도 추정에서는 모형 요약과 분산분석표를 표시하지 않습니다. 유의성은 Z 값으로 봅니다.",
+                     "With maximum likelihood, the model summary and ANOVA table are not shown; use the "
                      "Z-values for significance."))
     else:
         st.markdown(f"**{a.summary_title()}**")

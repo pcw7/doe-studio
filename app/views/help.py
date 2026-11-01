@@ -135,11 +135,11 @@ with tab_terms:
     st.markdown(head + "\n".join(T(f"| {ko} | {en} | {d_ko} |", f"| {en} | {d_en} |") for ko, en, d_ko, d_en in TERMS))
 
 FAQ = [
-    ("Minitab 과 결과가 같은가요?", "Do the results match Minitab?",
-     "공식 문서 예제의 출력표와 글자 단위로 대조해 검증했습니다. 문서에 없는 표시 규칙 몇 가지는 예제로 추정했습니다.",
-     "Outputs were checked character by character against the examples in Minitab's documentation. A few display rules "
+    ("상용 통계 프로그램과 결과가 같은가요?", "Do the results match commercial statistics software?",
+     "상용 통계 프로그램 공식 문서 예제의 출력표와 글자 단위로 대조해 검증했습니다. 문서에 없는 표시 규칙 몇 가지는 예제로 추정했습니다.",
+     "Outputs were checked character by character against the examples in commercial software documentation. A few display rules "
      "not stated in the documentation were inferred from the examples."),
-    ("가지고 있는 데이터(Excel·CSV·Minitab)를 분석할 수 있나요?", "Can I analyze data I already have (Excel, CSV, Minitab)?",
+    ("가지고 있는 데이터(Excel·CSV·.mwx)를 분석할 수 있나요?", "Can I analyze data I already have (Excel, CSV, .mwx)?",
      "시작 화면에서 파일을 불러와 요인 열을 고르면 설계 종류를 알아보고 정의합니다(사용자 설계 정의).",
      "Open the file on the Home page and pick the factor columns; the design type is detected and defined (custom design)."),
     ("실패한 런이 있으면?", "What if some runs failed?",

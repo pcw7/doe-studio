@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "doe-studio"
 version = "0.0.1"
-description = "화학기업 연구원을 위한 실험계획법(DOE) 도구. Minitab DOE 메뉴와 같은 워크플로·같은 통계 결과를 목표로 한다."
+description = "화학기업 연구원을 위한 실험계획법(DOE) 도구. 상용 통계 프로그램의 DOE 메뉴와 같은 워크플로·같은 통계 결과를 목표로 한다."
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",

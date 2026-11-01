@@ -206,10 +206,10 @@ class VariabilityMLAnalysis(VariabilityAnalysis):
         return super().coefficients_table(expanded, confidence).rename(columns={"T-Value": "Z-Value"})
 
     def summary_table(self, expanded: bool = False):
-        raise ValueError("최대우도 추정에서는 모형 요약을 표시하지 않습니다(Minitab 과 같음).")
+        raise ValueError("최대우도 추정에서는 모형 요약을 표시하지 않습니다.")
 
     def anova_table(self, seq_ss: bool = False):
-        raise ValueError("최대우도 추정에서는 분산분석표를 표시하지 않습니다(Minitab 과 같음).")
+        raise ValueError("최대우도 추정에서는 분산분석표를 표시하지 않습니다.")
 
 
 def analyze_variability(ws, std_column: str, counts_column: str | None = None, *, order: int | None = 2,
