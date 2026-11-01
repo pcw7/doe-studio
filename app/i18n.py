@@ -50,6 +50,32 @@ def T(ko: str, en: str | None = None) -> str:
     return english_of(ko) or OPTIONS.get(ko) or ko
 
 
+def install_placeholders() -> None:
+    """Streamlit 다중 선택의 기본 영어 안내('Choose options'·'No options to select')를 화면 언어로 바꾼다.
+
+    Streamlit 에 안내 글자 언어 설정이 없어, placeholder 를 주지 않은 호출에 화면 언어의 안내를 넣는다(한 번만 설치).
+    """
+    from streamlit.delta_generator import DeltaGenerator
+    if getattr(DeltaGenerator.multiselect, "_doe_placeholder", False):
+        return
+    original = DeltaGenerator.multiselect
+
+    def multiselect(self, label, *args, **kwargs):
+        if kwargs.get("placeholder") is None:
+            options = args[0] if args else kwargs.get("options", ())
+            try:
+                empty = len(options) == 0
+            except TypeError:
+                empty = False
+            kwargs["placeholder"] = (T("고를 항목이 없습니다", "No options to select") if empty
+                                     else T("선택하세요", "Choose options"))
+        return original(self, label, *args, **kwargs)
+
+    multiselect._doe_placeholder = True
+    DeltaGenerator.multiselect = multiselect
+    st.multiselect = st._main.multiselect
+
+
 def O(value) -> str:
     """선택지 표시 글자."""
     s = str(value)
