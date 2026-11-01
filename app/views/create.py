@@ -99,7 +99,7 @@ if kind == "2수준 요인설계":
         fdf = factor_editor(int(k), "f2")
         st.write(T("**사용 가능한 설계 (Display Available Designs)**"))
         full = T("완전", "Full")
-        show_table(pd.DataFrame([{T("런", "Runs"): e.n_runs, T("부분", "Fraction"): e.fraction,
+        show_table(pd.DataFrame([{T("런", "Runs"): e.n_runs, T("부분", "Fraction"): full if e.fraction == "full" else e.fraction,
                                   T("해상도", "Resolution"): ROMAN.get(e.resolution, full) if e.resolution else full,
                                   T("가능한 블록", "Blocks"): ", ".join(map(str, [1, *sorted(e.blocks)]))} for e in entries]))
     if st.button(T("설계 생성", "Create design"), type="primary"):

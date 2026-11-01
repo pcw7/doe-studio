@@ -8,6 +8,7 @@ from app.i18n import O, T
 from app.state import (
     DESIGN_KIND_KO, SAMPLES, SAVED_TYPE_CLASS, get_ws, restore_autosave, set_ws, worksheet_from_json, ws_caption,
 )
+from doe_core.examples import EXAMPLES
 from doe_core.io import autosave
 from doe_core.io.csvfile import read_csv_bytes
 from doe_core.io.mwx import read_mwx
@@ -144,6 +145,15 @@ with c2:
                 st.rerun()
             except Exception as e:  # noqa: BLE001
                 st.error(T("설계로 정의하지 못했습니다: ", "Could not define the design: ") + str(e))
+
+    st.divider()
+    st.write(T("**내장 예제** — 화학 반응·배합 가상 데이터(계산으로 만든 값, 실제 실험 결과 아님)",
+               "**Built-in examples** — simulated chemistry data (computed values, not real experiments)"))
+    for ex in EXAMPLES:
+        if st.button(T(f"{ex.title_ko} 예제 불러오기", f"Load the {ex.title_en} example"), help=T(ex.desc_ko, ex.desc_en),
+                     key=f"builtin_{ex.key}"):
+            set_ws(ex.build())
+            st.rerun()
 
     examples = [
         ("InsulationProperties.MWX", T("단열재 강도 — 4요인 2수준 완전요인 16런", "Insulation strength — 4-factor 2-level full factorial, 16 runs"),

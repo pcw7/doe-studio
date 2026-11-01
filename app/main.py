@@ -10,9 +10,10 @@ import streamlit as st  # noqa: E402
 
 st.set_page_config(page_title="DOE Studio", page_icon="🧪", layout="wide")
 
-from app.i18n import LANGS, T  # noqa: E402
+from app.i18n import LANGS, T, install_placeholders  # noqa: E402
 from app.state import autosave_current  # noqa: E402
 
+install_placeholders()
 if st.session_state.get("lang") not in LANGS:
     st.session_state["lang"] = "ko"
 with st.sidebar:
