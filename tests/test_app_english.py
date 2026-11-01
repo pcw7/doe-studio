@@ -189,3 +189,8 @@ def test_power_page_english():
         at.segmented_control(key="pw_kind").set_value(kind).run()
         at.button(key="pw_run").click().run()
         assert not at.exception and korean_left(at) == []
+
+
+def test_help_page_english():
+    at = run_en("help.py")
+    assert not at.exception and korean_left(at) == []

@@ -21,6 +21,7 @@ VIEWS = Path(__file__).parent / "views"
 pages = {
     "DOE Studio": [
         st.Page(VIEWS / "home.py", title=T("시작", "Home"), icon=":material/home:", default=True),
+        st.Page(VIEWS / "help.py", title=T("도움말", "Help"), icon=":material/help:", url_path="help"),
     ],
     T("실험계획 (DOE)", "Design of Experiments"): [
         st.Page(VIEWS / "create.py", title=T("설계 생성", "Create design"), icon=":material/grid_on:", url_path="create"),
