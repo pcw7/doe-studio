@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import io
-import tempfile
+import json
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -10,7 +11,8 @@ import streamlit as st
 
 from app.i18n import O, T
 from app.i18n import figure as _figure_lang
-from doe_core.io.worksheet import Worksheet, load_worksheet, save_worksheet
+from doe_core.io import autosave
+from doe_core.io.worksheet import Worksheet, worksheet_from_dict, worksheet_to_dict
 
 KEY = "worksheet"
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,15 +28,50 @@ DESIGN_KIND_KO = {
     "SplitPlotDesign": "2수준 분할구 설계",
     "TaguchiDesign": "Taguchi 설계",
 }
+# 저장 형식의 design.type → 클래스 이름(자동 저장 목록 표시용)
+SAVED_TYPE_CLASS = {"two_level": "TwoLevelDesign", "plackett_burman": "PlackettBurmanDesign",
+                    "general_full": "GeneralFullFactorialDesign", "response_surface": "ResponseSurfaceDesign",
+                    "mixture": "MixtureDesign", "definitive_screening": "DefinitiveScreeningDesign",
+                    "split_plot": "SplitPlotDesign", "taguchi": "TaguchiDesign"}
 
 
 def get_ws() -> Worksheet | None:
     return st.session_state.get(KEY)
 
 
-def set_ws(ws: Worksheet | None) -> None:
+def set_ws(ws: Worksheet | None, *, new: bool = True) -> None:
+    """현재 워크시트를 바꾼다. new=True(새 설계·다른 파일)면 자동 저장 칸을 새로 잡고, 설계 수정은 new=False."""
     st.session_state[KEY] = ws
     st.session_state.pop("analysis", None)
+    if new:
+        st.session_state["autosave_slot"] = autosave.new_slot()
+        st.session_state.pop("autosave_hash", None)
+
+
+def autosave_current() -> None:
+    """화면을 다 그린 뒤(main.py) 워크시트가 바뀌었으면 이 컴퓨터에 저장한다. 실패해도 화면은 막지 않는다."""
+    ws = get_ws()
+    if ws is None or autosave.autosave_dir() is None:
+        return
+    try:
+        h = autosave.fingerprint(ws)
+        if st.session_state.get("autosave_hash") == h:
+            return
+        if "autosave_slot" not in st.session_state:
+            st.session_state["autosave_slot"] = autosave.new_slot()
+        autosave.save(st.session_state["autosave_slot"], ws)
+        st.session_state["autosave_hash"] = h
+        st.session_state["autosave_time"] = datetime.now()
+    except Exception as e:  # noqa: BLE001
+        st.session_state["autosave_error"] = f"{type(e).__name__}: {e}"
+
+
+def restore_autosave(slot: str) -> None:
+    """자동 저장한 작업을 현재 워크시트로 되살리고 같은 칸에 이어서 저장한다."""
+    ws = autosave.load(slot)
+    set_ws(ws, new=False)
+    st.session_state["autosave_slot"] = slot
+    st.session_state["autosave_hash"] = autosave.fingerprint(ws)
 
 
 def plot_mode() -> str:
@@ -96,16 +133,11 @@ def kind_ko(design) -> str:
 
 
 def worksheet_json(ws: Worksheet) -> bytes:
-    with tempfile.TemporaryDirectory() as d:
-        p = save_worksheet(ws, Path(d) / "w.json")
-        return p.read_bytes()
+    return json.dumps(worksheet_to_dict(ws), ensure_ascii=False, indent=1).encode("utf-8")
 
 
 def worksheet_from_json(data: bytes) -> Worksheet:
-    with tempfile.TemporaryDirectory() as d:
-        p = Path(d) / "w.json"
-        p.write_bytes(data)
-        return load_worksheet(p)
+    return worksheet_from_dict(json.loads(data.decode("utf-8-sig")))
 
 
 def worksheet_xlsx(ws: Worksheet) -> bytes:

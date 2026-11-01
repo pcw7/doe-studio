@@ -11,11 +11,17 @@ import streamlit as st  # noqa: E402
 st.set_page_config(page_title="DOE Studio", page_icon="🧪", layout="wide")
 
 from app.i18n import LANGS, T  # noqa: E402
+from app.state import autosave_current  # noqa: E402
 
 if st.session_state.get("lang") not in LANGS:
     st.session_state["lang"] = "ko"
 with st.sidebar:
     st.segmented_control("언어 · Language", list(LANGS), key="lang", format_func=LANGS.get, required=True)
+    if st.session_state.get("autosave_time") is not None:
+        st.caption(T(f"작업 자동 저장 {st.session_state['autosave_time']:%H:%M:%S} · 이 컴퓨터",
+                     f"Work autosaved {st.session_state['autosave_time']:%H:%M:%S} · this computer"),
+                   help=T("새로 고치거나 창을 닫아도 시작 화면의 '이전 작업 이어서 하기' 로 되살릴 수 있습니다.",
+                          "After a reload or closing the window, restore it with 'Continue previous work' on the Home page."))
 
 VIEWS = Path(__file__).parent / "views"
 pages = {
@@ -41,4 +47,7 @@ pages = {
                 url_path="power"),
     ],
 }
-st.navigation(pages).run()
+try:
+    st.navigation(pages).run()
+finally:                     # st.rerun()·st.stop() 으로 끝나도 바뀐 워크시트를 저장한다
+    autosave_current()
