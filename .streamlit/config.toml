@@ -1,8 +1,24 @@
 [server]
 headless = true
+# app/static/ 의 글꼴을 app/static/... 주소로 내보낸다(내장 Pretendard)
+enableStaticServing = true
 
 [browser]
 gatherUsageStats = false
 
 [theme]
 primaryColor = "#2a78d6"
+# 한글·영문·숫자가 한 모양인 Pretendard(OFL, app/static/fonts). 못 불러오면 시스템 한글 글꼴
+font = "Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif"
+headingFont = "Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif"
+# 앱 화면 크기(taste-skill 무채색 장부): 본문 15(작은 글자 13 이상), 제목 24 · 소제목 18 · 절 16
+baseFontSize = 15
+headingFontSizes = ["24px", "18px", "16px", "15px", "15px", "13px"]
+headingFontWeights = [700, 600, 600, 600, 600, 600]
+metricValueFontSize = "28px"
+
+[[theme.fontFaces]]
+family = "Pretendard"
+url = "app/static/fonts/PretendardVariable.woff2"
+weight = "45 920"
+style = "normal"

@@ -121,12 +121,21 @@ def boxcox_input(key: str, *, allow_custom: bool = True):
     return float(choice), True
 
 
+# 표 행 높이(px). 글자 크기(본문 14px)에 맞춰 행·머리 높이를 정하고 표 높이를 행 수로 계산한다
+# — 기본 행 높이를 가정하면 글자 크기를 바꿀 때 표 아래에 빈 행이 남는다.
+ROW_HEIGHT = 34
+
+
+def table_height(rows: int) -> int:
+    return ROW_HEIGHT * (rows + 1) + 1
+
+
 def show_table(df: pd.DataFrame, *, max_rows: int = 40, **kw) -> None:
     """표를 행 수만큼 펼쳐(최대 max_rows 행) 보여 준다. 숫자로 읽히는 열은 오른쪽 정렬."""
     cfg = {c: st.column_config.Column(alignment="right") for c in df.columns if _numeric_like(df[c])}
     cfg.update(kw.pop("column_config", {}) or {})
-    height = 35 * (min(len(df), max_rows) + 1) + 3
-    st.dataframe(df, hide_index=True, width="stretch", height=height, column_config=cfg, **kw)
+    st.dataframe(df, hide_index=True, width="stretch", height=table_height(min(len(df), max_rows)),
+                 row_height=ROW_HEIGHT, column_config=cfg, **kw)
 
 
 def kind_ko(design) -> str:
@@ -161,6 +170,45 @@ def require_ws() -> Worksheet:
         st.page_link("views/create.py", label=T("설계 생성으로 가기"), icon=":material/grid_on:")
         st.stop()
     return ws
+
+
+def run_states(ws: Worksheet) -> pd.DataFrame:
+    """런 순서별 결과 입력 상태: RunOrder·StdOrder·Blocks·state(done = 숫자 열 모두 입력, part = 일부, none = 없음)."""
+    t = ws.table("run")
+    cols = [c for c in ws.columns.columns if pd.api.types.is_numeric_dtype(ws.columns[c])]
+    if cols:
+        have = t[cols].notna()
+        state = ["done" if a else ("part" if b else "none") for a, b in zip(have.all(axis=1), have.any(axis=1))]
+    else:
+        state = ["none"] * len(t)
+    return pd.DataFrame({"RunOrder": t["RunOrder"].astype(int), "StdOrder": t["StdOrder"].astype(int),
+                         "Blocks": t["Blocks"].astype(int), "state": state})
+
+
+def run_progress(ws: Worksheet) -> None:
+    """실험 진행 표시: 런 순서대로 칸 하나씩(결과 다 입력 = 채움, 일부 = 옅게, 아직 = 빈 칸), 블록마다 띄운다."""
+    r = run_states(ws)
+    n, done, part = len(r), int((r["state"] == "done").sum()), int((r["state"] == "part").sum())
+    names = {"done": T("결과 있음", "results in"), "part": T("일부 입력", "partly entered"), "none": T("아직", "not yet")}
+    style = {"done": "background:#2a78d6",
+             "part": "background:rgba(42,120,214,.35)",
+             "none": "box-shadow:inset 0 0 0 1px rgba(128,128,128,.6)"}
+    cells, last = [], None
+    for row in r.itertuples(index=False):
+        gap = "margin-left:10px;" if last is not None and row.Blocks != last else ""
+        last = row.Blocks
+        tip = T(f"런 {row.RunOrder} · 표준 순서 {row.StdOrder} · 블록 {row.Blocks} · {names[row.state]}",
+                f"Run {row.RunOrder} · std order {row.StdOrder} · block {row.Blocks} · {names[row.state]}")
+        cells.append(f'<span title="{tip}" style="{gap}display:inline-block;width:10px;height:16px;border-radius:2px;'
+                     f'{style[row.state]}"></span>')
+    summary = T(f"결과 입력 {done} / {n}런", f"Results entered for {done} of {n} runs")
+    if part:
+        summary += T(f" · 일부 입력 {part}런", f" · {part} partly entered")
+    st.html(f'<div style="margin:2px 0 8px 0">'
+            f'<div style="font-size:13px;display:flex;gap:10px;align-items:baseline">'
+            f'<span style="font-weight:600">{T("실험 진행", "Progress")}</span>'
+            f'<span style="font-variant-numeric:tabular-nums;opacity:.75">{summary}</span></div>'
+            f'<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px">{"".join(cells)}</div></div>')
 
 
 def ws_caption(ws: Worksheet) -> str:
