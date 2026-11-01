@@ -97,6 +97,15 @@ def _anova_with_indent(a) -> pd.DataFrame:
     return tbl
 
 
+def _key_results_section(r, a, alpha, t) -> None:
+    """주요 결과 요약(요약을 만들 수 있는 분석일 때만)."""
+    from ..analysis.summary import key_findings, supports
+    if supports(a):
+        r.heading(t("주요 결과 요약", "Key results"))
+        for f in key_findings(a, alpha):
+            r.text(f"{KEY_MARKS[f.level]} {t(f.ko, f.en)}")
+
+
 def _selection_section(r, a, t, lang) -> None:
     """단계적 선택 과정(방법·후보·단계 표 5단계씩·단계 설명)."""
     sel = getattr(a, "selection", None)
@@ -125,11 +134,7 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
                  f"{kind_ko(d, 'en')} · {a.n} of {len(d.coded)} runs used"), lang=lang)
     terms = ", ".join(getattr(t_, "short", None) or t_.name for t_ in a.terms)
     r.text(t("모형 항: ", "Model terms: ") + terms)
-    from ..analysis.summary import key_findings, supports
-    if supports(a):
-        r.heading(t("주요 결과 요약", "Key results"))
-        for f in key_findings(a, alpha):
-            r.text(f"{KEY_MARKS[f.level]} {t(f.ko, f.en)}")
+    _key_results_section(r, a, alpha, t)
     if a.removed_terms:
         r.text(t("완전 별칭(선형 종속)이라 뺀 항: ", "Removed (completely aliased) terms: ")
                + ", ".join(x.name for x in a.removed_terms))
@@ -222,6 +227,7 @@ def binary_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: str
     r = Report(t(f"{a.response} 이항 반응 분석 보고서", f"Binary response report — {a.response}"),
                t(f"{kind_ko(d)} · 로짓 · 행 {a.n}개", f"{kind_ko(d, 'en')} · logit · {a.n} rows"), lang=lang)
     r.text(t("모형 항: ", "Model terms: ") + ", ".join(x.name for x in a.terms))
+    _key_results_section(r, a, alpha, t)
     if a.removed_terms:
         r.text(t("완전 별칭(선형 종속)이라 뺀 항: ", "Removed (completely aliased) terms: ")
                + ", ".join(x.name for x in a.removed_terms))

@@ -6,7 +6,7 @@ import streamlit as st
 
 from app import fitted_models
 from app.i18n import O, T, lang
-from app.state import plot_mode, report_downloads, run_progress, show_plot, show_table
+from app.state import key_results, plot_mode, report_downloads, run_progress, show_plot, show_table
 from app.stepwise_ui import selection_details
 from doe_core.analysis.stepwise import DEFAULT_ALPHA, StepwiseOptions
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
@@ -116,6 +116,7 @@ def render(ws) -> None:
         st.warning(T("다음 항은 앞의 항과 선형 종속이라 모형에서 뺐습니다: ",
                      "These terms are linearly dependent on earlier terms and were removed: ")
                    + ", ".join(t.name for t in a.removed_terms))
+    key_results(a)
     from doe_core.report import analysis_report
     report_downloads(lambda figs: analysis_report(ws, a, figures=figs, lang=lang()), f"rep_mix_{id(a)}_{lang()}",
                      T(f"{a.response}_분석보고서", f"{a.response}_analysis_report"))

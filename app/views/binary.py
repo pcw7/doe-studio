@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import T, lang
-from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table
+from app.state import key_results, plot_mode, report_downloads, require_ws, show_plot, show_table
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.binary import analyze_binary
 from doe_core.analysis.effects import effects
@@ -95,6 +95,7 @@ a = st.session_state.get("binary")
 if a is None:
     st.stop()
 alpha = st.session_state.get("bin_alpha_used", alpha)       # 단계적 선택이면 α to remove/enter
+key_results(a, alpha)
 
 from doe_core.report.builders import binary_report  # noqa: E402
 report_downloads(lambda figs: binary_report(ws, a, alpha=alpha, figures=figs, lang=lang()),
