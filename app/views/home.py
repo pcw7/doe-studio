@@ -6,14 +6,15 @@ import streamlit as st
 
 from app.i18n import O, T
 from app.state import (
-    DESIGN_KIND_KO, SAMPLES, SAVED_TYPE_CLASS, get_ws, restore_autosave, set_ws, worksheet_from_json, ws_caption,
+    DESIGN_KIND_KO, SAMPLES, SAVED_TYPE_CLASS, get_ws, md_text, restore_autosave, set_ws, worksheet_from_json,
+    ws_caption,
 )
 from doe_core.examples import EXAMPLES
 from doe_core.io import autosave
 from doe_core.io.csvfile import read_csv_bytes
 from doe_core.io.mwx import read_mwx
 from doe_core.io.xlsx import read_xlsx_sheets
-from doe_core.io.worksheet import define_custom_design, design_kind_of, load_mwx_worksheet
+from doe_core.io.worksheet import NAME_MAX, define_custom_design, design_kind_of, load_mwx_worksheet
 
 st.title("DOE Studio")
 st.caption(T("화학 연구원을 위한 실험계획법 도구 · Minitab 의 DOE 메뉴와 같은 순서와 같은 통계 결과를 목표로 합니다.",
@@ -29,37 +30,97 @@ else:
               "No current worksheet. Create a new design or open a file."))
 
 
+def _rename_row(e) -> None:
+    """목록의 한 줄 아래에 이름 입력 칸."""
+    f1, f2, f3 = st.columns([4, 1, 1], vertical_alignment="bottom")
+    new = f1.text_input(T("작업 이름", "Work name"), value=e.name, max_chars=NAME_MAX, key=f"as_name_in_{e.slot}",
+                        placeholder=T("비워 두고 저장하면 이름을 지웁니다", "Save empty to remove the name"))
+    if f2.button(T("저장", "Save"), key=f"as_name_ok_{e.slot}", type="primary", width="stretch"):
+        try:
+            name = autosave.rename(e.slot, new)
+            shown = md_text(name)
+            st.session_state["as_msg"] = ((f"이름을 '{shown}'(으)로 바꿨습니다.", f"Renamed to '{shown}'.") if name
+                                          else ("이름을 지웠습니다.", "Removed the name."))
+        except (OSError, ValueError, KeyError) as err:
+            st.session_state["as_msg"] = ("이름을 바꾸지 못했습니다: " + str(err), "Could not rename: " + str(err))
+        st.session_state.pop("as_edit", None)
+        st.rerun()
+    if f3.button(T("취소", "Cancel"), key=f"as_name_no_{e.slot}", width="stretch"):
+        st.session_state.pop("as_edit", None)
+        st.rerun()
+
+
+def _delete_row(e) -> None:
+    """목록의 한 줄 아래에 지우기 확인."""
+    d1, d2, d3 = st.columns([4, 1, 1], vertical_alignment="center")
+    d1.warning(T("이 작업을 지울까요? 지우면 되살릴 수 없습니다.", "Delete this work? It cannot be restored."))
+    if d2.button(T("지우기", "Delete"), key=f"as_del_ok_{e.slot}", type="primary", width="stretch"):
+        try:
+            autosave.delete(e.slot)
+            st.session_state["as_msg"] = ("작업을 지웠습니다.", "Deleted.")
+        except (OSError, ValueError) as err:
+            st.session_state["as_msg"] = ("지우지 못했습니다: " + str(err), "Could not delete: " + str(err))
+        st.session_state.pop("as_del", None)
+        st.rerun()
+    if d3.button(T("취소", "Cancel"), key=f"as_del_no_{e.slot}", width="stretch"):
+        st.session_state.pop("as_del", None)
+        st.rerun()
+
+
 def _recent_rows(entries) -> None:
     today = datetime.now().date()
     for e in entries:
         when = (T("오늘 ", "Today ") if e.saved_at.date() == today else f"{e.saved_at:%Y-%m-%d} ") + f"{e.saved_at:%H:%M}"
         kind = O(DESIGN_KIND_KO.get(SAVED_TYPE_CLASS.get(e.design_type, ""), e.design_type))
         facs = ", ".join(e.factors[:4]) + (" …" if len(e.factors) > 4 else "")
-        text = T(f"**{when}** · {kind} · 요인 {len(e.factors)}개({facs}) · 런 {e.n_runs}개",
-                 f"**{when}** · {kind} · {len(e.factors)} factors ({facs}) · {e.n_runs} runs")
+        head = f"**{md_text(e.name)}** · {when}" if e.name else f"**{when}**"
+        text = T(f"{head} · {kind} · 요인 {len(e.factors)}개({facs}) · 런 {e.n_runs}개",
+                 f"{head} · {kind} · {len(e.factors)} factors ({facs}) · {e.n_runs} runs")
         if e.columns:
             text += T(" · 열: ", " · columns: ") + ", ".join(e.columns)
-        c_text, c_btn = st.columns([5, 1], vertical_alignment="center")
+        c_text, c_act = st.columns([3.3, 1.4], vertical_alignment="center")
         c_text.markdown(text)
-        if c_btn.button(T("이어서 하기", "Continue"), key=f"restore_{e.slot}"):
+        with c_act, st.container(horizontal=True, horizontal_alignment="right", vertical_alignment="center",
+                                 gap="small"):
+            go = st.button(T("이어서 하기", "Continue"), key=f"restore_{e.slot}")
+            if st.button(T("이름", "Name"), key=f"as_name_{e.slot}", type="tertiary", icon=":material/edit:",
+                         help=T("이름 붙이기·바꾸기", "Name or rename")):
+                st.session_state["as_edit"] = e.slot
+                st.session_state.pop("as_del", None)
+                st.rerun()
+            if st.button(T("지우기", "Delete"), key=f"as_del_{e.slot}", type="tertiary", icon=":material/delete:",
+                         help=T("이 자동 저장을 지웁니다", "Delete this autosave")):
+                st.session_state["as_del"] = e.slot
+                st.session_state.pop("as_edit", None)
+                st.rerun()
+        if go:
             try:
                 restore_autosave(e.slot)
                 st.rerun()
             except (OSError, ValueError, KeyError) as err:
                 st.error(T("되살리지 못했습니다: ", "Could not restore: ") + str(err))
+        if st.session_state.get("as_edit") == e.slot:
+            _rename_row(e)
+        elif st.session_state.get("as_del") == e.slot:
+            _delete_row(e)
 
 
+msg = st.session_state.pop("as_msg", None)
+if msg:
+    st.toast(T(*msg))
 recent = [e for e in autosave.recent(6) if e.slot != st.session_state.get("autosave_slot")][:5]
 if recent:
     if ws is None:
         with st.container(border=True):
             st.subheader(T("이전 작업 이어서 하기", "Continue previous work"))
-            st.caption(T("작업은 바뀔 때마다 이 컴퓨터에 자동 저장됩니다. 새로 고치거나 창을 닫았다면 여기서 되살리세요.",
+            st.caption(T("작업은 바뀔 때마다 이 컴퓨터에 자동 저장됩니다. 새로 고치거나 창을 닫았다면 여기서 되살리세요. "
+                         "지금 작업의 이름은 워크시트 화면에서 붙입니다.",
                          "Work is saved on this computer whenever it changes. After a reload or closing the window, "
-                         "restore it here."))
+                         "restore it here. Name the current work on the Worksheet page."))
             _recent_rows(recent)
     else:
-        with st.expander(T("최근 작업 (자동 저장)", "Recent work (autosaved)")):
+        with st.expander(T("최근 작업 (자동 저장)", "Recent work (autosaved)"),
+                         expanded=bool(st.session_state.get("as_edit") or st.session_state.get("as_del"))):
             _recent_rows(recent)
 
 c1, c2 = st.columns(2)

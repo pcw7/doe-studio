@@ -12,7 +12,7 @@ import streamlit as st
 from app.i18n import O, T
 from app.i18n import figure as _figure_lang
 from doe_core.io import autosave
-from doe_core.io.worksheet import Worksheet, worksheet_from_dict, worksheet_to_dict
+from doe_core.io.worksheet import Worksheet, file_stem, worksheet_from_dict, worksheet_to_dict
 
 KEY = "worksheet"
 ROOT = Path(__file__).resolve().parents[1]
@@ -211,11 +211,25 @@ def run_progress(ws: Worksheet) -> None:
             f'<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px">{"".join(cells)}</div></div>')
 
 
+def download_stem(default: str) -> str:
+    """내려받을 파일 이름(확장자 앞). 현재 작업에 이름이 있으면 '이름_기본이름', 없으면 기본이름."""
+    ws = get_ws()
+    name = ws.name if ws is not None else ""
+    return file_stem(f"{name}_{default}" if name else default, "doe_studio")
+
+
+def md_text(text: str) -> str:
+    """사용자가 쓴 글자를 마크다운 안에 그대로 보이게(기호 앞에 역슬래시)."""
+    return "".join("\\" + ch if ch in "\\`*_{}[]<>()#+-.!|~$" else ch for ch in text)
+
+
 def ws_caption(ws: Worksheet) -> str:
+    """화면 위 설명 줄(마크다운). 작업 이름이 있으면 맨 앞에 굵게."""
     d = ws.design
     extra = [c for c in ws.columns.columns]
-    return (T(f"{kind_ko(d)} · 요인 {len(d.factors)}개 · 런 {d.n_runs}개",
-              f"{kind_ko(d)} · {len(d.factors)} factors · {d.n_runs} runs")
+    return ((f"**{md_text(ws.name)}** · " if ws.name else "")
+            + T(f"{kind_ko(d)} · 요인 {len(d.factors)}개 · 런 {d.n_runs}개",
+                f"{kind_ko(d)} · {len(d.factors)} factors · {d.n_runs} runs")
             + (T(f" · 비설계 열: {', '.join(extra)}", f" · other columns: {', '.join(extra)}") if extra else ""))
 
 
@@ -244,6 +258,7 @@ def report_downloads(make_report, key: str, fname: str) -> None:
             st.caption(T("Excel 에는 결과표와 원자료(워크시트·적합치)가, HTML·PDF 에는 표와 그래프가 들어갑니다.",
                          "Excel holds the result tables and raw data (worksheet, fits); HTML and PDF hold tables and graphs."))
             return
+        fname = download_stem(fname)
         c1.download_button("Excel (.xlsx)", files["xlsx"], f"{fname}.xlsx",
                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"{key}_x")
         c2.download_button("HTML", files["html"], f"{fname}.html", "text/html", key=f"{key}_h")

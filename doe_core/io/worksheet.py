@@ -8,6 +8,7 @@ Minitab 은 설계 정보를 워크시트와 함께 저장해 'Analyze' 가 설�
   design : 설계 종류와 재구성에 필요한 정보(요인, 생성자, 정의관계, 블록 생성자, 반복, 중앙점, 접기, 시드)
   coded  : 설계 코드값 워크시트({열: 값 목록})
   columns: 비설계 열({열: 값 목록}, StdOrder 순)
+  name   : 사용자가 붙인 작업 이름(있을 때만)
 
 사용자 설계 정의(Minitab 'Define Custom 2-Level Factorial Design')
 - 필수: 요인 열. 저/고 수준은 숫자면 최솟값/최댓값, 텍스트면 정렬 순서 첫/둘째 값(직접 지정 가능).
@@ -19,6 +20,7 @@ Minitab 은 설계 정보를 워크시트와 함께 저장해 'Analyze' 가 설�
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -42,6 +44,22 @@ VERSION = 1
 DESIGN_COLS = ("StdOrder", "RunOrder", "CenterPt", "PtType", "Blocks")
 
 
+NAME_MAX = 60
+_FILE_BAD = re.compile(r'[\\/:*?"<>|\x00-\x1f\x7f]+')
+
+
+def clean_name(name) -> str:
+    """작업 이름 다듬기: 앞뒤 공백·줄바꿈을 지우고 공백을 하나로, 최대 NAME_MAX 글자."""
+    return " ".join(str(name or "").split())[:NAME_MAX].strip()
+
+
+def file_stem(name: str, default: str) -> str:
+    """내려받을 파일 이름(확장자 앞, 최대 120 글자). Windows 에서 못 쓰는 글자(\\ / : * ? " < > |)는 '_' 로 바꾸고,
+    앞뒤의 점·공백·'_' 를 지운다. 남는 글자가 없으면 default."""
+    stem = _FILE_BAD.sub("_", " ".join(str(name or "").split()))[:120].strip(" ._")
+    return stem or default
+
+
 # ---------------------------------------------------------------- 워크시트
 
 
@@ -51,11 +69,13 @@ class Worksheet:
              | DefinitiveScreeningDesign | SplitPlotDesign | TaguchiDesign)
     columns: pd.DataFrame = field(default_factory=pd.DataFrame)   # index = StdOrder
     nonregular: bool = False                                       # 사용자 정의 설계가 정규 부분요인이 아님
+    name: str = ""                                                 # 사용자가 붙인 작업 이름(없으면 빈 글자)
 
     def __post_init__(self):
         if self.columns.empty and not len(self.columns.columns):
             self.columns = pd.DataFrame(index=pd.Index(self.design.coded["StdOrder"].values, name="StdOrder"))
         self.columns.index.name = "StdOrder"
+        self.name = clean_name(self.name)
 
     def table(self, order: str = "run") -> pd.DataFrame:
         """설계 열 + 비설계 열. order="run" 은 RunOrder 순, "std" 는 StdOrder 순, "worksheet" 는 현재 행 순서."""
@@ -105,7 +125,7 @@ class Worksheet:
         """설계를 바꾼(재랜덤화·반복·접기 등) 새 워크시트. 비설계 열은 StdOrder 로 이어 붙이고 새 런은 빈 값."""
         cols = self.columns.reindex(design.coded["StdOrder"].values)
         cols.index.name = "StdOrder"
-        return Worksheet(design, cols, self.nonregular)
+        return Worksheet(design, cols, self.nonregular, self.name)
 
 
 # ---------------------------------------------------------------- 직렬화
@@ -232,14 +252,17 @@ def design_from_dict(meta: dict, coded: pd.DataFrame):
 
 
 def worksheet_to_dict(ws: Worksheet) -> dict:
-    """저장 형식(JSON 으로 바꿀 수 있는 사전)."""
-    return {
+    """저장 형식(JSON 으로 바꿀 수 있는 사전). 이름이 있을 때만 'name' 키를 넣는다(이름 없는 파일은 예전과 같다)."""
+    doc = {
         "format": FORMAT, "version": VERSION,
         "design": design_to_dict(ws.design),
         "nonregular": ws.nonregular,
         "coded": _frame_to_dict(ws.design.coded),
         "columns": {"StdOrder": [int(v) for v in ws.columns.index], **_frame_to_dict(ws.columns)},
     }
+    if ws.name:
+        doc["name"] = ws.name
+    return doc
 
 
 def save_worksheet(ws: Worksheet, path: str | Path) -> Path:
@@ -260,7 +283,7 @@ def worksheet_from_dict(doc: dict) -> Worksheet:
     coded = pd.DataFrame(doc["coded"])
     design = design_from_dict(doc["design"], coded)
     cols = pd.DataFrame(doc["columns"]).set_index("StdOrder")
-    return Worksheet(design, cols, doc.get("nonregular", False))
+    return Worksheet(design, cols, doc.get("nonregular", False), doc.get("name") or "")
 
 
 def export_csv(ws: Worksheet, path: str | Path, order: str = "run") -> Path:
