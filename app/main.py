@@ -36,6 +36,8 @@ pages = {
                 url_path="binary"),
         st.Page(VIEWS / "optimal.py", title=T("최적 설계", "Optimal design"), icon=":material/filter_alt:",
                 url_path="optimal"),
+        st.Page(VIEWS / "power.py", title=T("검정력·표본 크기", "Power & sample size"), icon=":material/speed:",
+                url_path="power"),
     ],
 }
 st.navigation(pages).run()
