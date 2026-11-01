@@ -13,6 +13,8 @@ from doe_core.io.worksheet import define_custom_design, design_kind_of, load_mwx
 st.title("DOE Studio")
 st.caption(T("화학 연구원을 위한 실험계획법 도구 · Minitab 의 DOE 메뉴와 같은 순서와 같은 통계 결과를 목표로 합니다.",
              "Design of experiments for chemical researchers · same workflow and statistics as Minitab's DOE menu."))
+st.page_link("views/help.py", label=T("처음이라면: 실험 흐름·설계 고르기·용어 도움말", "New here? Workflow, choosing a design "
+                                                                                   "and glossary"), icon=":material/help:")
 
 ws = get_ws()
 if ws is not None:

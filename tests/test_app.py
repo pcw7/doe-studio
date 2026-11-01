@@ -488,3 +488,10 @@ def test_variability_page_with_stepwise():
     a = at.session_state["variability"]
     assert a.selection is not None and a.selection.method == "backward"
     assert any("Backward Elimination of Terms" in m.value for m in at.markdown)
+
+
+def test_help_page():
+    at = run("help.py")
+    assert not at.exception
+    assert any("도움말" in t.value for t in at.title)
+    assert len(at.tabs) == 5 and len(at.expander) >= 5
