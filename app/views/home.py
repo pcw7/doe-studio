@@ -1,11 +1,11 @@
 """시작 화면: 소개, 현재 워크시트, 파일 불러오기(DOE Studio JSON, Minitab .MWX, CSV, Excel .xlsx)."""
 import io
 
-import pandas as pd
 import streamlit as st
 
 from app.i18n import O, T
 from app.state import SAMPLES, get_ws, set_ws, worksheet_from_json, ws_caption
+from doe_core.io.csvfile import read_csv_bytes
 from doe_core.io.mwx import read_mwx
 from doe_core.io.xlsx import read_xlsx_sheets
 from doe_core.io.worksheet import define_custom_design, design_kind_of, load_mwx_worksheet
@@ -34,9 +34,9 @@ with c1:
 
 with c2:
     st.subheader(T("파일 불러오기", "Open a file"))
-    up = st.file_uploader(T("DOE Studio 워크시트(.json), Minitab 워크시트(.mwx), CSV, Excel(.xlsx)",
-                            "DOE Studio worksheet (.json), Minitab worksheet (.mwx), CSV, Excel (.xlsx)"),
-                          type=["json", "mwx", "csv", "xlsx"])
+    up = st.file_uploader(T("DOE Studio 워크시트(.json), Minitab 워크시트(.mwx), CSV·텍스트(한글 엑셀 저장본 포함), Excel(.xlsx)",
+                            "DOE Studio worksheet (.json), Minitab worksheet (.mwx), CSV or text, Excel (.xlsx)"),
+                          type=["json", "mwx", "csv", "txt", "tsv", "xlsx"])
     if up is not None:
         name = up.name.lower()
         if name.endswith(".json"):
@@ -58,7 +58,7 @@ with c2:
                 elif name.endswith(".mwx"):
                     df = read_mwx(io.BytesIO(up.getvalue()))
                 else:
-                    df = pd.read_csv(up)
+                    df = read_csv_bytes(up.getvalue())
             except Exception as e:  # noqa: BLE001
                 st.error(T("파일을 읽지 못했습니다: ", "Could not read the file: ") + str(e))
                 st.stop()
