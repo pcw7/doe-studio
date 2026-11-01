@@ -4,6 +4,8 @@ import streamlit as st
 
 from app.i18n import T, lang
 from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
+from app.stepwise_ui import selection_details, stepwise_input
+from doe_core.analysis.model import factorial_terms
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.effects import effects
 from doe_core.analysis.variability import analyze_variability, repeat_std, replicate_std, store_preprocessed
@@ -81,17 +83,22 @@ with st.container(border=True):
     k = len(d.letters)
     order = st.slider(T("모형에 포함되는 항의 최대 차수 (Include terms up through order)"), 1, k, min(2, k), key="var_order")
     alpha = st.number_input(T("유의 수준 α"), 0.001, 0.5, 0.05, step=0.01, format="%.3f", key="var_alpha")
+    with st.expander(T("단계적 선택 (Stepwise)", "Stepwise"), expanded=False):
+        sw_opts = stepwise_input(lambda: [t.name for t in factorial_terms(
+            d, order=order, include_center=False, blocks_present=d.coded["Blocks"].nunique() > 1)], "vsw")
     run = st.button(T("분석", "Analyze"), type="primary", key="var_run")
 if run:
     try:
-        st.session_state["variability"] = analyze_variability(ws, std_col, None if cnt_col == "-" else cnt_col,
-                                                              order=order)
+        va = analyze_variability(ws, std_col, None if cnt_col == "-" else cnt_col, order=order, stepwise=sw_opts)
+        st.session_state["variability"] = va
+        st.session_state["var_alpha_used"] = va.selection.effects_alpha(alpha) if va.selection is not None else alpha
     except Exception as e:  # noqa: BLE001
         st.session_state.pop("variability", None)
         st.error(T("분석하지 못했습니다: ", "Could not analyze: ") + str(e))
 a = st.session_state.get("variability")
 if a is None:
     st.stop()
+alpha = st.session_state.get("var_alpha_used", alpha)       # 단계적 선택이면 α to remove/enter
 
 from doe_core.report import analysis_report  # noqa: E402
 report_downloads(lambda figs: analysis_report(ws, a, alpha=alpha, figures=figs, lang=lang()),
@@ -101,6 +108,7 @@ mode_plot = plot_mode()
 with tab_tbl:
     st.markdown(T("**방법 (Method)**"))
     show_table(a.method_table())
+    selection_details(a, lang() == "en")
     st.markdown(f"**{a.coefficients_title()}**")
     show_table(a.coefficients_table())
     st.caption(T("Ratio Effect = exp(Effect): 높은 수준의 표준편차가 낮은 수준의 몇 배인지.",

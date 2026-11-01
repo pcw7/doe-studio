@@ -70,3 +70,4 @@ streamlit run app/main.py          # 화면: http://localhost:8501
   - [x] 검정력·표본 크기(2수준·Plackett-Burman·일반 완전요인, 검정력 곡선)
   - [x] Excel(.xlsx) 불러오기(사용자 설계 정의)·워크시트 Excel 내보내기
   - [x] 사용자 일반 완전요인·Taguchi 설계 정의(다수준 데이터)
+  - [x] 가중 회귀·산포 분석에서도 단계적 모형 선택

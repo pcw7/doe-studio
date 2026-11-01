@@ -553,8 +553,6 @@ def _prepare_w(design, y, covariates, weights):
 def _check_weight_options(weights, stepwise, boxcox):
     if weights is None:
         return
-    if stepwise is not None and getattr(stepwise, "active", False):
-        raise ValueError("가중치와 단계적 선택은 아직 함께 쓸 수 없습니다.")
     if boxcox == "optimal":
         raise ValueError("가중치가 있으면 최적 λ 대신 λ 를 직접 지정하세요.")
 
@@ -638,7 +636,7 @@ def analyze_factorial(
     yv, bc = _apply_boxcox(boxcox, design, response, coded, yv, tl, cov, boxcox_rounded)
     if stepwise is not None:
         from .stepwise import select_model
-        a = select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=True)
+        a = select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=True, weights=wv)
     else:
         a = _build(design, response, coded, yv, used, tl, cov, weights=wv)
     a.boxcox = bc
@@ -667,7 +665,7 @@ def analyze_response_surface(
     yv, bc = _apply_boxcox(boxcox, design, response, coded, yv, tl, cov, boxcox_rounded)
     if stepwise is not None and getattr(stepwise, "active", False):
         from .stepwise import select_model
-        a = select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=False)
+        a = select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=False, weights=wv)
     else:
         a = _build(design, response, coded, yv, used, tl, cov, weights=wv)
     a.boxcox = bc
