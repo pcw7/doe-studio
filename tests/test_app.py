@@ -554,3 +554,19 @@ def test_variability_page_maximum_likelihood():
     assert not at.exception
     a = at.session_state["variability"]
     assert getattr(a, "is_ml", False) and "Z-Value" in a.coefficients_table().columns
+
+
+def test_mixture_page_with_stepwise():
+    p = SAMPLES / "FondueRecipe.MWX"
+    if not p.exists():
+        pytest.skip("FondueRecipe.MWX 없음")
+    from doe_core.io.worksheet import load_mwx_worksheet
+    ws = load_mwx_worksheet(p, ["Emmenthaler", "Gruyere", "Broth"], process=["Temperature"])
+    at = run("analyze.py", ws)
+    at.selectbox[0].set_value("Quantity").run()
+    at.selectbox(key="mix_sw_method").set_value("stepwise").run()
+    at.button[0].click().run()
+    assert not at.exception
+    a = at.session_state["analysis"]
+    assert a.selection is not None and {"A", "B", "C"} <= {t.short for t in a.terms}
+    assert any("Stepwise Selection of Terms" in m.value for m in at.markdown)
