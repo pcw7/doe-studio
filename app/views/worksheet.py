@@ -21,16 +21,46 @@ if notice:
 
 
 def _modified(new_design, ko: str, en: str) -> None:
-    """설계 수정 결과를 적용하고, 다음 화면에서 무엇이 바뀌었는지 알린다."""
+    """설계 수정 결과를 적용하고, 다음 화면에서 무엇이 바뀌었는지 알린다.
+
+    축점·반복 추가로 새 블록이 생기면 Minitab 처럼 그 런은 섞지 않고 붙인다(축점은 표준 순서, 반복은 원래 블록과
+    같은 순서. 문서: 추가한 뒤 'Randomize just block'). 대신 새 블록만 섞는 버튼을 바로 보여 준다.
+    """
     n0, n1 = ws.design.n_runs, new_design.n_runs
+    old_blocks = set(ws.design.coded["Blocks"].astype(int))
+    new_blocks = sorted(set(new_design.coded["Blocks"].astype(int)) - old_blocks)
     set_ws(ws.with_design(new_design), new=False)
     grew = n1 > n0 and len(ws.columns.columns) > 0
+    bl = ", ".join(map(str, new_blocks))
     st.session_state["ws_notice"] = (
         ko + (f" 런 {n0}개 → {n1}개." if n1 != n0 else "")
-        + (" 표 아래쪽 새 런의 반응 칸이 비어 있으니 실험 결과를 입력하세요." if grew else ""),
+        + (" 표 아래쪽 새 런의 반응 칸이 비어 있으니 실험 결과를 입력하세요." if grew else "")
+        + (f" 새로 붙은 블록 {bl}의 런은 아직 섞이지 않았습니다 — 실험 전에 아래 버튼으로 섞으세요." if new_blocks else ""),
         en + (f" Runs {n0} → {n1}." if n1 != n0 else "")
-        + (" Enter results for the new runs (blank cells at the bottom of the table)." if grew else ""))
+        + (" Enter results for the new runs (blank cells at the bottom of the table)." if grew else "")
+        + (f" The runs of the new block {bl} are not randomized yet — randomize them with the button below before "
+           "running the experiment." if new_blocks else ""))
+    if new_blocks:
+        st.session_state["ws_randomize_offer"] = {"design": new_design, "blocks": new_blocks}
     st.rerun()
+
+
+offer = st.session_state.get("ws_randomize_offer")
+if offer and offer["design"] is ws.design:
+    bl = ", ".join(map(str, offer["blocks"]))
+    c1, c2 = st.columns([1, 3], vertical_alignment="center")
+    if c1.button(T(f"블록 {bl}만 랜덤화", f"Randomize block {bl} only"), type="primary", key="offer_randomize"):
+        st.session_state.pop("ws_randomize_offer", None)
+        d_new = ws.design
+        for b in offer["blocks"]:
+            d_new = randomize_design(d_new, block=b)
+        _modified(d_new, f"블록 {bl}의 런 순서를 섞었습니다. 실험은 런 순서(RunOrder)대로 하세요.",
+                  f"Randomized the run order of block {bl}. Run the experiment in RunOrder.")
+    c2.caption(T("이미 결과를 넣은 블록은 그대로 두고, 새로 붙은 블록 안에서만 순서를 섞습니다(Randomize just block).",
+                 "Blocks that already have results stay as they are; only the runs inside the new block are shuffled "
+                 "(Randomize just block)."))
+elif offer:
+    st.session_state.pop("ws_randomize_offer", None)
 
 order = st.segmented_control(T("표시 순서", "Display order"), ["런 순서", "표준 순서"], default="런 순서", required=True,
                              format_func=O)
@@ -122,7 +152,9 @@ with t1:
             except Exception as e:  # noqa: BLE001
                 st.error(str(e))
             else:
-                _modified(folded, "설계를 접었습니다.", "Folded the design.")
+                _modified(folded, "설계를 접었습니다. 새 런은 같은 블록에 표준 순서로 붙었으니, 실험은 새 런끼리 순서를 섞어 "
+                                  "진행하세요.", "Folded the design. The new runs were appended in standard order in "
+                                  "the same block; run them in a shuffled order.")
 with t2:
     n_add = st.number_input(T("추가할 반복 수", "Replicates to add"), 1, 10, 1)
     st.write(T("중앙점을 포함한 모든 런을 복제해 새 블록으로 붙입니다. 이후 랜덤화하세요.",

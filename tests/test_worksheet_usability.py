@@ -86,3 +86,38 @@ def test_rename_and_delete_on_page():
     d.click().run()
     assert not at.exception
     assert list(at.session_state["worksheet"].columns.columns) == []
+
+
+def test_offer_randomize_new_block_after_axial_points():
+    """축점은 Minitab 처럼 표준 순서로 붙고(문서 예제), 바로 '블록 2만 랜덤화' 버튼으로 새 블록만 섞는다."""
+    at = run("worksheet.py", _ws())
+    [b] = [b for b in at.button if b.label == "축점 추가"]
+    b.click().run()
+    assert not at.exception
+    d = at.session_state["worksheet"].design
+    blk2 = d.coded[d.coded["Blocks"] == 2].sort_values("RunOrder")
+    assert list(blk2["StdOrder"]) == sorted(blk2["StdOrder"])                     # 표준 순서(Minitab 과 같음)
+    assert any("아직 섞이지 않았습니다" in s.value for s in at.success)
+    [r] = [b for b in at.button if b.label == "블록 2만 랜덤화"]
+    before1 = d.coded[d.coded["Blocks"] == 1].sort_values("StdOrder")["RunOrder"].tolist()
+    r.click().run()
+    assert not at.exception
+    d2 = at.session_state["worksheet"].design
+    assert d2.coded[d2.coded["Blocks"] == 1].sort_values("StdOrder")["RunOrder"].tolist() == before1   # 1블록 그대로
+    b2 = d2.coded[d2.coded["Blocks"] == 2]
+    assert sorted(b2["RunOrder"]) == sorted(blk2["RunOrder"])                     # 2블록 안에서만 섞임
+    assert any("블록 2의 런 순서를 섞었습니다" in s.value for s in at.success)
+    assert not [b for b in at.button if b.label == "블록 2만 랜덤화"]              # 버튼은 한 번만
+    assert at.session_state["worksheet"].column("수율").notna().sum() == 11      # 입력한 결과는 그대로
+
+
+def test_offer_randomize_after_replicates_cleared_on_new_worksheet():
+    at = run("worksheet.py", _ws())
+    [b] = [b for b in at.button if b.label == "반복 추가"]
+    b.click().run()
+    assert not at.exception
+    assert [b for b in at.button if b.label == "블록 2만 랜덤화"]
+    # 다른 설계로 바뀌면(새 워크시트) 버튼은 사라진다
+    at.session_state["worksheet"] = _ws()
+    at.run()
+    assert not [b for b in at.button if b.label.startswith("블록 ") and b.label.endswith("만 랜덤화")]
