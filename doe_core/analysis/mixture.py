@@ -313,6 +313,7 @@ class MixtureAnalysis:
     fitted: np.ndarray = field(init=False)
     resid: np.ndarray = field(init=False)
     hat: np.ndarray = field(init=False)
+    selection: object = field(default=None, repr=False)   # 단계적 선택 결과
 
     two_level = False
     is_rs = False
@@ -571,8 +572,10 @@ def analyze_mixture(
     inverse: bool = False,
     terms: list[str] | None = None,
     include_blocks: bool | None = None,
+    stepwise=None,
 ) -> MixtureAnalysis:
-    """design.coded 행 순서로 정렬된 반응 y 로 혼합물 설계를 분석한다(혼합물 회귀). 반응이 빈 행은 뺀다."""
+    """design.coded 행 순서로 정렬된 반응 y 로 혼합물 설계를 분석한다(혼합물 회귀). 반응이 빈 행은 뺀다.
+    stepwise: StepwiseOptions(Stepwise·Forward·Backward) — 성분 선형 항은 늘 모형에 두고 나머지 항을 고른다."""
     if not isinstance(design, MixtureDesign):
         raise TypeError("혼합물 설계가 아닙니다.")
     y = np.asarray(y, dtype=float)
@@ -590,6 +593,13 @@ def analyze_mixture(
         if any(c.lower <= 0 for c in design.components):
             raise ValueError("역항은 모든 성분의 하한이 0 보다 클 때만 쓸 수 있습니다.")
     P = component_values(design, coded, units)
+    if stepwise is not None and getattr(stepwise, "active", False):
+        return _mixture_stepwise(design, response, coded, yv, used, tl, P, units, stepwise)
+    return _mixture_build(design, response, coded, yv, used, tl, P, units)
+
+
+def _mixture_build(design, response, coded, yv, used, tl, P, units) -> MixtureAnalysis:
+    """항 목록으로 혼합물 회귀(앞 항과 종속인 항은 뺀다)."""
     X = np.empty((len(yv), 0))
     labels, col_term, kept, removed = [], [], [], []
     for t in tl:
@@ -607,6 +617,31 @@ def analyze_mixture(
     if X.shape[1] > len(yv):
         raise ValueError("추정할 계수가 관측치보다 많습니다.")
     return MixtureAnalysis(design, response, yv, used, kept, removed, X, labels, col_term, units)
+
+
+def _mixture_stepwise(design, response, coded, yv, used, tl, P, units, opts) -> MixtureAnalysis:
+    """혼합물 단계적 선택(문서: Stepwise·Forward selection·Backward elimination, Forced Terms, α).
+    정한 것: 성분 선형 항은 상수항 역할이라 늘 모형에 둔다(강제), 계층 조건 없음, F 검정은 정규 분석과 같음."""
+    import dataclasses
+    from .stepwise import select_model
+    if opts.method not in ("stepwise", "forward", "backward"):
+        raise ValueError("혼합물 분석의 단계적 선택은 Stepwise·Forward selection·Backward elimination 입니다.")
+    full = _mixture_build(design, response, coded, yv, used, tl, P, units)
+    mats, labels = [], []
+    for t in full.terms:
+        M, labs = term_matrix(t, design, coded, P)
+        mats.append(M)
+        labels.append(labs)
+    linear = tuple(t.short for t in full.terms if t.is_component_linear)
+    opts2 = dataclasses.replace(opts, force=tuple(dict.fromkeys(linear + tuple(opts.force))), hierarchy="none",
+                                initial=())
+
+    def factory(cands, ms, labs, categorical, o):
+        return _MixEngine(cands, ms, labs, yv, categorical, o)
+
+    return select_model(design, response, coded, yv, used, full.terms, {}, opts2, factorial=False,
+                        candidates=(full.terms, mats, labels, list(full.removed_terms)), engine_factory=factory,
+                        builder=lambda final: _mixture_build(design, response, coded, yv, used, final, P, units))
 
 
 def analyze_mixture_worksheet(ws, response: str, **kwargs) -> MixtureAnalysis:
@@ -751,3 +786,46 @@ def fast_rows(a: "MixtureAnalysis"):
             cols.append(col[:, None])
         return np.hstack(cols)
     return rows
+
+
+# ---------------------------------------------------------------- 단계적 선택 엔진(상수항 없음)
+
+from .stepwise import StepFit, _Engine  # noqa: E402  (stepwise 는 mixture 를 가져오지 않는다)
+
+
+class _MixEngine(_Engine):
+    """혼합물 모형용: 설계행렬에 상수 열이 없고(성분 선형 항이 대신함) 계수 수 = 항 열 수의 합."""
+
+    def X(self, idx) -> np.ndarray:
+        key = sorted(idx)
+        return np.hstack([self.mats[i] for i in key]) if key else np.empty((self.n, 0))
+
+    def ncoef(self, idx) -> int:
+        return sum(self.df_of(i) for i in idx)
+
+    def fit(self, idx, mse_full=None) -> StepFit:
+        key = tuple(sorted(idx))
+        X = self.X(key)
+        labels, col_term = [], []
+        for i in key:
+            labels += self.labels[i]
+            col_term += [i] * self.df_of(i)
+        XtX_inv = np.linalg.inv(X.T @ X)
+        beta = XtX_inv @ X.T @ self.y
+        r = self.y - X @ beta
+        sse = float(r @ r)
+        if sse <= 1e-14 * max(self.sst, 1e-300):     # 완전 적합: 수치 잡음을 0 으로, SE 는 '*'
+            sse = 0.0
+        dfe = self.n - X.shape[1]
+        se = np.sqrt(np.diag(XtX_inv) * sse / dfe) if dfe > 0 and sse > 0 else np.full(X.shape[1], np.nan)
+        hat = np.einsum("ij,jk,ik->i", X, XtX_inv, X)
+        press = None if np.any(hat > 1 - 1e-9) else float(np.sum((r / (1 - hat)) ** 2))
+        term_p = {}
+        for i in key:
+            if self.cands[i].is_component_linear:
+                term_p[i] = ""                         # 성분 선형 항은 P 를 보이지 않는다(문서)
+            else:
+                t = self.removal_test(set(key), i)
+                term_p[i] = None if t is None else t[1]
+        return StepFit(key, labels, col_term, beta, se, term_p, sse, self.sst, self.n, press, mse_full,
+                       has_constant=False)

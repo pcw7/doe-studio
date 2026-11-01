@@ -109,6 +109,7 @@ class StepFit:
     press: float | None
     mse_full: float | None
     log_w: float = 0.0
+    has_constant: bool = True                 # 혼합물 모형은 상수항이 없다
 
     @property
     def p(self) -> int:
@@ -127,7 +128,8 @@ class StepFit:
         r2 = 1 - self.sse / self.sst if self.sst > 0 else None
         adj = max(0.0, 1 - mse / (self.sst / (self.n - 1))) if mse is not None and self.sst > 0 else None
         pred = max(0.0, 1 - self.press / self.sst) if self.press is not None and self.sst > 0 else None
-        cp = (self.sse / self.mse_full - (self.n - 2 * self.p)) if self.mse_full else None
+        tiny = 1e-14 * max(self.sst, 1e-300)
+        cp = (self.sse / self.mse_full - (self.n - 2 * self.p)) if self.mse_full and self.mse_full > tiny else None
         ic = info_criteria(self.sse, self.n, self.p, self.log_w)
         return {"S": math.sqrt(mse) if mse is not None else None, "R-sq": r2, "R-sq(adj)": adj, "R-sq(pred)": pred,
                 "Mallows' Cp": cp, "AICc": ic["AICc"], "BIC": ic["BIC"]}
@@ -320,8 +322,10 @@ class _Engine:
         beta = XtX_inv @ Xw.T @ self.y
         r = self.y - X @ beta
         sse = float(np.sum(self.w * r ** 2))
+        if sse <= 1e-14 * max(self.sst, 1e-300):     # 완전 적합: 수치 잡음을 0 으로, SE 는 '*'
+            sse = 0.0
         dfe = self.n - X.shape[1]
-        se = np.sqrt(np.diag(XtX_inv) * sse / dfe) if dfe > 0 else np.full(X.shape[1], np.nan)
+        se = np.sqrt(np.diag(XtX_inv) * sse / dfe) if dfe > 0 and sse > 0 else np.full(X.shape[1], np.nan)
         hat = self.w * np.einsum("ij,jk,ik->i", X, XtX_inv, X)
         press = None if np.any(hat > 1 - 1e-9) else float(np.sum(self.w * (r / (1 - hat)) ** 2))
         term_p: dict[int, float | None] = {}
@@ -395,28 +399,34 @@ class StepwiseResult:
             fit = next(s.fit for _, s in chosen_steps if i in s.terms)
             labs = [lab for lab, ti in zip(fit.labels, fit.col_term) if ti == i]
             label_rows += [(i, k, lab) for k, lab in enumerate(labs)]
-        rows = [{"Term": "Constant"}] + [{"Term": lab} for _, _, lab in label_rows]
+        const = getattr(chosen_steps[0][1].fit, "has_constant", True) if chosen_steps else True
+        off = 1 if const else 0
+        rows = ([{"Term": "Constant"}] if const else []) + [{"Term": lab} for _, _, lab in label_rows]
         stat_names = ["S", "R-sq", "R-sq(adj)", "R-sq(pred)", "Mallows' Cp", "AICc", "BIC"]
         stat_names = [nm for nm, _ in chosen_steps[0][1].fit.stat_rows()] if chosen_steps else stat_names
         rows += [{"Term": s} for s in stat_names]
         for k, s in chosen_steps:
             ccol, pcol = f"Step {k} Coef", f"Step {k} P"
             fit = s.fit
-            rows[0][ccol] = fmt.by_se(fit.beta[0], fit.se[0])
-            rows[0][pcol] = ""
+            if const:
+                rows[0][ccol] = fmt.by_se(fit.beta[0], fit.se[0])
+                rows[0][pcol] = ""
             pos = {}
             for j, ti in enumerate(fit.col_term):
                 if ti >= 0:
                     pos.setdefault(ti, []).append(j)
-            for r, (i, kk, _) in enumerate(label_rows, start=1):
+            for r, (i, kk, _) in enumerate(label_rows, start=off):
                 if i in pos:
                     j = pos[i][kk]
                     rows[r][ccol] = fmt.by_se(fit.beta[j], fit.se[j])
-                    rows[r][pcol] = fmt.p_text(fit.term_p[i]) if kk == 0 and fit.term_p[i] is not None else (
-                        fmt.MISSING if kk == 0 else "")
+                    pv = fit.term_p[i]
+                    if kk or pv == "":
+                        rows[r][pcol] = ""                    # 혼합물 성분 선형 항은 P 를 보이지 않는다
+                    else:
+                        rows[r][pcol] = fmt.p_text(pv) if pv is not None else fmt.MISSING
                 else:
                     rows[r][ccol] = rows[r][pcol] = ""
-            base = 1 + len(label_rows)
+            base = off + len(label_rows)
             vals = [v for _, v in fit.stat_rows()]
             for r, v in enumerate(vals):
                 rows[base + r][ccol] = ""
@@ -468,7 +478,8 @@ def _categorical_letters(design) -> set[str]:
 def _resolve(names, cands: list[Term], what: str) -> set[int]:
     out = set()
     for nm in names:
-        hit = [i for i, t in enumerate(cands) if nm in (t.name, t.word) or nm.replace(" ", "") == t.name.replace(" ", "")]
+        keys = lambda t: {t.name, getattr(t, "word", t.name), getattr(t, "short", t.name)}  # noqa: E731
+        hit = [i for i, t in enumerate(cands) if nm in keys(t) or nm.replace(" ", "") == t.name.replace(" ", "")]
         if not hit:
             raise ValueError(f"{what} 항 '{nm}' 이 후보 항에 없습니다.")
         out.add(hit[0])
@@ -499,16 +510,24 @@ def _candidates(design, coded, cov, tl: list[Term], factorial: bool):
 
 
 def select_model(design, response, coded, yv, used, tl: list[Term], cov, opts: StepwiseOptions,
-                 *, factorial: bool, weights: np.ndarray | None = None, engine_factory=None, builder=None):
+                 *, factorial: bool, weights: np.ndarray | None = None, engine_factory=None, builder=None,
+                 candidates=None):
     """단계적 선택으로 고른 모형의 분석 결과(.selection 에 단계 정보). weights 가 있으면 가중 회귀.
 
     engine_factory(cands, mats, labels, categorical, opts) 로 다른 가족(이항)의 엔진을, builder(항 목록) 로 최종 분석을
     바꿔 끼울 수 있다."""
-    cands, mats, labels, aliased = _candidates(design, coded, cov, tl, factorial)
-    if engine_factory is None:
-        eng = _Engine(cands, mats, labels, yv, _categorical_letters(design), opts, weights)
+    if candidates is not None:                # (항, 열, 이름, 별칭으로 뺀 항) — 혼합물 등 다른 항 체계
+        cands, mats, labels, aliased = candidates
     else:
-        eng = engine_factory(cands, mats, labels, _categorical_letters(design), opts)
+        cands, mats, labels, aliased = _candidates(design, coded, cov, tl, factorial)
+    try:
+        categorical = _categorical_letters(design)
+    except AttributeError:
+        categorical = set()
+    if engine_factory is None:
+        eng = _Engine(cands, mats, labels, yv, categorical, opts, weights)
+    else:
+        eng = engine_factory(cands, mats, labels, categorical, opts)
     ae, ar = opts.alphas()
     forced = _resolve(opts.force, cands, "모든 모형에 포함할")
     initial = _resolve(opts.initial, cands, "시작 모형에 포함할") if opts.method == "stepwise" else set()

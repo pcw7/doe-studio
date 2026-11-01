@@ -6,6 +6,8 @@ import streamlit as st
 
 from app.i18n import O, T, lang
 from app.state import plot_mode, report_downloads, show_plot, show_table, ws_caption
+from app.stepwise_ui import selection_details
+from doe_core.analysis.stepwise import DEFAULT_ALPHA, StepwiseOptions
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.mixture import (
@@ -93,6 +95,8 @@ def render(ws) -> None:
         has_blocks = d.coded["Blocks"].nunique() > 1
         kw["include_blocks"] = st.checkbox(T("모형에 블록 포함 (Include blocks in the model)"), value=has_blocks,
                                            disabled=not has_blocks)
+        with st.expander(T("단계적 선택 (Model fitting method)", "Model fitting method"), expanded=False):
+            kw["stepwise"] = _stepwise_input(d, kw)
         run = st.button(T("분석", "Analyze"), type="primary")
 
     if run:
@@ -120,6 +124,7 @@ def render(ws) -> None:
     names = [c.name for c in d.components]
     ref = reference_blend(d)
     with tab_tbl:
+        selection_details(a, lang() == "en")
         st.markdown(f"**{a.coefficients_title()}**")
         show_table(a.coefficients_table())
         if a.coefficients_note():
@@ -271,3 +276,30 @@ def render_optimizer(ws) -> None:
                          "components are held at the optimal solution."))
         except ValueError as err:
             st.info(str(err))
+
+
+def _stepwise_input(d, kw) -> StepwiseOptions | None:
+    """혼합물 단계적 선택(문서: Mixture regression · Stepwise · Forward selection · Backward elimination, Forced Terms, α).
+    성분 선형 항은 늘 모형에 둔다."""
+    METHODS = {"none": ("혼합물 회귀 — 지정한 항 모두 (Mixture regression)", "Mixture regression"),
+               "stepwise": ("단계적 (Stepwise)", "Stepwise"), "forward": ("전진 선택 (Forward selection)", "Forward selection"),
+               "backward": ("후진 제거 (Backward elimination)", "Backward elimination")}
+    c1, c2 = st.columns(2)
+    method = c1.selectbox(T("방법", "Method"), list(METHODS), format_func=lambda m: T(*METHODS[m]), key="mix_sw_method")
+    if method == "none":
+        return None
+    de, dr = DEFAULT_ALPHA[method]
+    ae = c2.number_input(T("진입 α (Alpha to enter)"), 0.001, 0.999, de, step=0.01, format="%.3f",
+                         key=f"mix_sw_ae_{method}") if de is not None else None
+    ar = c2.number_input(T("제거 α (Alpha to remove)"), 0.001, 0.999, dr, step=0.01, format="%.3f",
+                         key=f"mix_sw_ar_{method}") if dr is not None else None
+    try:
+        cands = [t.short for t in mixture_terms(d, model=kw.get("model", "quadratic"),
+                                                 process_order=kw.get("process_order"), inverse=kw.get("inverse", False),
+                                                 terms=kw.get("terms")) if not t.is_component_linear]
+    except ValueError:
+        cands = []
+    force = st.multiselect(T("강제 포함 항 (Forced Terms)", "Forced terms"), cands, key="mix_sw_force")
+    st.caption(T("성분 선형 항은 상수항 역할을 하므로 늘 모형에 둡니다.",
+                 "Linear component terms act as the constant and always stay in the model."))
+    return StepwiseOptions(method=method, alpha_enter=ae, alpha_remove=ar, hierarchy="none", force=tuple(force))

@@ -683,9 +683,6 @@ def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, .
             raise ValueError("혼합물 분석에는 공변량을 쓸 수 없습니다.")
         if weights is not None:
             raise ValueError("혼합물 분석의 가중치는 아직 지원하지 않습니다.")
-        sw = kwargs.pop("stepwise", None)
-        if sw is not None and getattr(sw, "active", False):
-            raise ValueError("혼합물 분석의 단계적 선택은 아직 지원하지 않습니다.")
         kwargs.pop("boxcox_rounded", None)
         if kwargs.pop("boxcox", None) is not None:
             raise ValueError("혼합물 분석의 Box-Cox 변환은 아직 지원하지 않습니다.")
