@@ -11,8 +11,9 @@
   완전 우도) — 문서 예제 값(97.95%, 76.75%, 105.98, 171.98, 114.48)의 관계로 확인.
 - Goodness-of-Fit Tests: Deviance(DF = n − p), Pearson(Σ(y − mπ)²/(mπ(1 − π))), Hosmer-Lemeshow
   Ĉ = Σ(o_k − n'_k·π̄_k)²/(n'_k·π̄_k(1 − π̄_k)), DF = g − 2. 확률 순으로 10개 같은 크기 그룹을 시도.
-- 오즈비: 연속 요인은 Unit of Change(코드화 단위 1 = 반폭)당 exp(계수), 범주형은 Level A 대 Level B. 교호작용·제곱 항에
-  들어 있는 요인은 '*'.
+- 오즈비: 연속 요인은 Unit of Change(코드화 단위 1 = 반폭)당 exp(계수), 범주형은 Level A 대 Level B(요인 이름은
+  Level A 열의 묶음 행). 교호작용·제곱 항에 들어 있는 요인은 '*'. 응답 정보 표 열: Variable | Value | Count | Event Name.
+- 검증: 문서 예제 원자료(FoodSpoilage.MWX)로 모든 표가 글자 단위 일치(Hosmer-Lemeshow 그룹 규칙 포함).
 - 회귀식: P(Event) = exp(Y')/(1 + exp(Y')), Y' = 비코드화 선형식.
 
 문서에 없어 정한 것
@@ -136,13 +137,12 @@ class BinaryAnalysis(FactorialAnalysis):
 
     def response_table(self) -> pd.DataFrame:
         e, N = int(round(np.sum(self.events))), int(round(np.sum(self.trials)))
+        cols = ["Variable", "Value", "Count", "Event Name"]
         if self.binary_format:
-            return pd.DataFrame([{"Variable": self.events_label, "Value": f"{self.event_value} (Event)", "Count": str(e)},
-                                 {"Variable": "", "Value": "Other", "Count": str(N - e)},
-                                 {"Variable": "", "Value": "Total", "Count": str(N)}])
-        return pd.DataFrame([{"Variable": self.events_label, "Value": "Event", "Count": str(e)},
-                             {"Variable": "", "Value": "Non-event", "Count": str(N - e)},
-                             {"Variable": self.trials_label, "Value": "Total", "Count": str(N)}])
+            return pd.DataFrame([[self.events_label, str(self.event_value), str(e), "Event"],
+                                 ["", "Other", str(N - e), ""], ["", "Total", str(N), ""]], columns=cols)
+        return pd.DataFrame([[self.events_label, "Event", str(e), self.event_name],
+                             ["", "Non-event", str(N - e), ""], [self.trials_label, "Total", str(N), ""]], columns=cols)
 
     def coefficients_table(self, expanded: bool = False) -> pd.DataFrame:
         c = self.coefficients()
@@ -266,12 +266,12 @@ class BinaryAnalysis(FactorialAnalysis):
             unit = (float(f.high) - float(f.low)) / 2
             unit_txt = f"{unit:.1f}" if abs(unit * 10 - round(unit * 10)) < 1e-9 else f"{unit:g}"
             if self._in_higher_terms(L):
-                rows.append({"Term": f.name, "Unit of Change": unit_txt, "Odds Ratio": fmt.MISSING, "95% CI": "(*, *)"})
+                rows.append({"": f.name, "Unit of Change": unit_txt, "Odds Ratio": fmt.MISSING, "95% CI": "(*, *)"})
                 continue
             b, se = float(self.beta[idx[0]]), float(math.sqrt(cov[idx[0], idx[0]]))
-            rows.append({"Term": f.name, "Unit of Change": unit_txt, "Odds Ratio": f"{math.exp(b):.4f}",
+            rows.append({"": f.name, "Unit of Change": unit_txt, "Odds Ratio": f"{math.exp(b):.4f}",
                          "95% CI": f"({math.exp(b - Z95 * se):.4f}, {math.exp(b + Z95 * se):.4f})"})
-        return pd.DataFrame(rows, columns=["Term", "Unit of Change", "Odds Ratio", "95% CI"])
+        return pd.DataFrame(rows, columns=["", "Unit of Change", "Odds Ratio", "95% CI"])
 
     def odds_categorical(self) -> pd.DataFrame:
         """Level A 대 Level B 오즈비(범주형 = 텍스트 요인·일반 완전요인 요인)."""
@@ -286,9 +286,9 @@ class BinaryAnalysis(FactorialAnalysis):
             idx = [j for j, ti in enumerate(self.col_term) if ti >= 0 and self.terms[ti].letters == (L,)]
             if not idx:
                 continue
-            rows.append({"Term": f.name, "Level A": "", "Level B": "", "Odds Ratio": "", "95% CI": ""})
+            rows.append({"Level A": f.name, "Level B": "", "Odds Ratio": "", "95% CI": ""})        # 요인 묶음 행
             if self._in_higher_terms(L):
-                rows.append({"Term": "", "Level A": "Any level", "Level B": "Any level", "Odds Ratio": fmt.MISSING,
+                rows.append({"Level A": "Any level", "Level B": "Any level", "Odds Ratio": fmt.MISSING,
                              "95% CI": "(*, *)"})
                 continue
             levels = list(f.levels) if gff else [f.low, f.high]
@@ -306,10 +306,10 @@ class BinaryAnalysis(FactorialAnalysis):
                     vec = code[a] - code[b]
                     est = float(vec @ self.beta[idx])
                     se = float(math.sqrt(vec @ cov[np.ix_(idx, idx)] @ vec))
-                    rows.append({"Term": "", "Level A": str(levels[a]), "Level B": str(levels[b]),
+                    rows.append({"Level A": str(levels[a]), "Level B": str(levels[b]),
                                  "Odds Ratio": f"{math.exp(est):.4f}",
                                  "95% CI": f"({math.exp(est - Z95 * se):.4f}, {math.exp(est + Z95 * se):.4f})"})
-        return pd.DataFrame(rows, columns=["Term", "Level A", "Level B", "Odds Ratio", "95% CI"])
+        return pd.DataFrame(rows, columns=["Level A", "Level B", "Odds Ratio", "95% CI"])
 
     def equation(self) -> tuple[str, str] | None:
         base = super().equation()

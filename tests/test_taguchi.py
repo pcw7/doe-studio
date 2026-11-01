@@ -3,9 +3,8 @@
 정답 출처(Minitab 문서)
 - 'Catalogue of Taguchi designs': 직교배열 21종(문서 표의 옮겨 적기 오류 4건을 직교성으로 고침).
 - 'Example of creating a static design': L8, 4요인 → 'L8(2^4)', 'Columns of L8(2^7) array: 1 2 4 7', 설계표.
-- 'Example of analyzing a static design'(GolfBall, Larger is better, 항 A B C D AB): 원자료(GolfBall.MWX)가 없어
-  문서 분산분석표의 SS·MS 와 S 로부터 같은 표가 나오는 런별 S/N·평균 값을 거꾸로 만든 뒤,
-  계수표·모형 요약·분산분석표·반응표를 글자 단위로 비교한다(표 계산과 표시 형식 검증).
+- 'Example of analyzing a static design'(GolfBall, Larger is better, 항 A B C D AB): 원자료 GolfBall.MWX 로
+  8개 표 글자 단위 비교(파일이 있을 때). 파일 없이도 돌도록, 문서 SS·MS·S 로 같은 표가 나오는 값을 거꾸로 만든 비교도 둔다.
 """
 from collections import Counter
 from itertools import combinations
@@ -17,7 +16,7 @@ from doe_core.analysis.taguchi import analyze_characteristic, analyze_taguchi, r
 from doe_core.designs.general_full import GeneralFactor
 from doe_core.designs.taguchi import ARRAYS, available_taguchi, create_taguchi_design, default_columns
 from doe_core.io.worksheet import Worksheet, load_worksheet, save_worksheet
-from tests.helpers import load_fixture
+from tests.helpers import SAMPLES, load_fixture
 
 
 def fx(name):
@@ -154,3 +153,24 @@ def test_taguchi_interaction_and_save(tmp_path):
     ws.add_column("Driver", rng.normal(200, 5, 8), order="worksheet")
     back = load_worksheet(save_worksheet(ws, tmp_path / "tg.json"))
     assert back.design.columns == [1, 2, 4, 7] and back.design.design_table().equals(d.design_table())
+
+
+@pytest.mark.skipif(not (SAMPLES / "GolfBall.MWX").exists(), reason="GolfBall.MWX 없음")
+def test_golfball_raw_data_matches_minitab():
+    """문서 예제 원자료(GolfBall.MWX: L8 + 잡음 조건 Driver·Iron)로 8개 표가 모두 글자 단위 일치.
+    (평균 분산분석의 Dimples Adj SS 4324.5 → Minitab 표시 4325: 정확히 반이면 올림)"""
+    from doe_core.analysis.taguchi import analyze_taguchi_worksheet
+    from doe_core.io.custom_designs import define_custom_taguchi
+    from doe_core.io.mwx import read_mwx
+    t = fx("analyze-taguchi-design__example-of-analyzing-a-static-design")["tables"]
+    ws, orth = define_custom_taguchi(read_mwx(SAMPLES / "GolfBall.MWX"), ["Material", "Diameter", "Dimples", "Thickness"])
+    assert orth and ws.design.array.name == "L8(2^7)"
+    res = analyze_taguchi_worksheet(ws, ["Driver", "Iron"], characteristics=("sn", "mean"), sn_type="larger",
+                                    terms=["A", "B", "C", "D", "AB"])
+    sn, m = res["sn"], res["mean"]
+    pairs = [(sn.coefficients_table(), t[0]), (sn.summary_table(), t[1]), (sn.anova_table(), t[2]),
+             (m.coefficients_table(), t[3]), (m.summary_table(), t[4]), (m.anova_table(), t[5]),
+             (sn.response_table(), t[6]), (m.response_table(), t[7])]
+    for mine, want in pairs:
+        assert list(mine.columns) == want["header"], want["heading"]
+        assert mine.values.tolist() == want["rows"], want["heading"]

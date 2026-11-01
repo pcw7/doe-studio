@@ -1,7 +1,8 @@
 """산포 분석·가중 회귀 검증.
 
 정답 출처: Minitab 문서 예제 'Analyze Variability'(InsulationStrength.MWX, Std·N = 6, 2차까지, 최소제곱).
-원자료(InsulationStrength.MWX)가 없어, 문서 표의 숫자로부터 같은 표가 나오는 런별 ln(Std) 를 만든다.
+원자료 InsulationStrength.MWX 로 비교하고(파일이 있을 때), 파일 없이도 돌도록 문서 표 숫자로 같은 표가 나오는
+런별 ln(Std) 를 거꾸로 만든 비교도 둔다.
 - 설계: InsulationProperties 와 같은 2⁴(Material 텍스트, InjPress 75–150, InjTemp 85–100, CoolTemp 25–45) — 문서 회귀식의
   비코드화 계수 비(−0.4959/−0.01322 = 37.5 등)로 범위를 확인.
 - 가중치 w = 4/ψ'((6−1)/2) = 8.157… 로 모든 런이 같다 → Adj SS = 16·w·Coef² (문서 표에서 비가 일정한 것으로 확인).
@@ -22,8 +23,8 @@ from doe_core.analysis.variability import (analyze_variability, repeat_std, repl
                                            weights_from_counts)
 from doe_core.designs.common import Factor
 from doe_core.designs.factorial import create_two_level_design
-from doe_core.io.worksheet import Worksheet
-from tests.helpers import load_fixture, table
+from doe_core.io.worksheet import Worksheet, define_custom_design
+from tests.helpers import SAMPLES, load_fixture, table
 
 FACTORS = [Factor("Material", "Formula1", "Formula2"), Factor("InjPress", 75, 150), Factor("InjTemp", 85, 100),
            Factor("CoolTemp", 25, 45)]
@@ -207,3 +208,23 @@ def test_variability_rejects_other_designs_and_bad_values():
     # 가중치 열 이름으로 워크시트 분석
     a = analyze_worksheet(ws, "Std", order=1, weights="N")
     assert a.weighted and np.allclose(a.w, 6)
+
+
+@pytest.mark.skipif(not (SAMPLES / "InsulationStrength.MWX").exists(), reason="InsulationStrength.MWX 없음")
+def test_insulation_strength_raw_data_matches_minitab():
+    """문서 예제 원자료(InsulationStrength.MWX, Std·N 열)로 모든 표가 글자 단위 일치."""
+    from doe_core.io.mwx import read_mwx
+    fx = load_fixture("analyze-variability__example")
+    ws = define_custom_design(read_mwx(SAMPLES / "InsulationStrength.MWX"),
+                              ["Material", "InjPress", "InjTemp", "CoolTemp"])
+    a = analyze_variability(ws, "Std", "N", order=2)
+    for heading, mine in [("Coded Coefficients", a.coefficients_table()), ("Model Summary", a.summary_table()),
+                          ("Analysis of Variance", a.anova_table())]:
+        want = table(fx, heading)
+        assert list(mine.columns) == want["header"] and rows(mine) == want["rows"], heading
+    want = "".join(table(fx, "Regression Equation")["header"])
+    assert a.equation()[1].replace(" ", "") == want.replace(" ", "")
+    # 반복 측정 열(Strength_1~6)로 직접 전처리해도 같은 결과(Std 는 소수 5자리로 저장돼 있어 SS 마지막 자리까지는 비교 안 함)
+    from doe_core.analysis.variability import repeat_std, store_preprocessed
+    sd, cnt = repeat_std(ws, [f"Strength_{k}" for k in range(1, 7)])
+    assert np.allclose(sd, ws.column("Std").values, atol=6e-6) and set(cnt) == {6}
