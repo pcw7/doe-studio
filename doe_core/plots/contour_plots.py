@@ -70,8 +70,8 @@ def grid(a, x: str, y: str, hold: dict | None = None, n: int = 60, covariates: d
             s = dict(h)
             s[names[Lx]], s[names[Ly]] = xv, yv
             Z[i, j] = float(design_row(a, s, covariates) @ a.beta)
-    if getattr(a, "boxcox", None) is not None:
-        Z = a.boxcox.inverse(Z)                                  # 원래 단위로
+    if hasattr(a, "to_original"):
+        Z = np.asarray(a.to_original(Z), dtype=float)            # Box-Cox·산포(exp)·이항(확률) → 원래 단위
     return xs, ys, Z
 
 

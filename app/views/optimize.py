@@ -54,8 +54,20 @@ with st.container(border=True):
     bc_spec, bc_rounded = boxcox_input("bc_optimize", allow_custom=False)
     st.caption(T("최적화는 요인 수준 사이를 보간하므로 중앙점 항(Ct Pt)은 넣지 않습니다.",
                  "The optimizer interpolates between factor levels, so the center point term (Ct Pt) is left out."))
+    # 다른 화면에서 만든 모형(같은 설계): 산포 분석(표준편차) · 이항 반응(확률)
+    extra = {}
+    for skey, lab_ko, lab_en in [("variability", "산포 분석 모형 포함 — 표준편차", "Include variability model — standard deviation"),
+                                 ("binary", "이항 반응 모형 포함 — 사건 확률", "Include binary response model — event probability")]:
+        ea = st.session_state.get(skey)
+        if ea is not None and ea.design is d and ea.response not in responses:
+            if st.checkbox(T(f"{lab_ko}: {ea.response}", f"{lab_en}: {ea.response}"), key=f"opt_extra_{skey}"):
+                extra[ea.response] = ea
+    if st.session_state.get("variability") is not None or st.session_state.get("binary") is not None:
+        st.caption(T("산포·이항 모형은 각 분석 화면에서 만든 모형을 그대로 씁니다(표준편차·확률의 원래 단위로 최적화).",
+                     "Variability and binary models are taken as fitted on their own pages (optimized in standard "
+                     "deviation and probability units)."))
 
-if not responses:
+if not responses and not extra:
     st.stop()
 
 models = {}
@@ -66,8 +78,10 @@ for r in responses:
     except Exception as e:  # noqa: BLE001
         st.error(T(f"{r} 모형을 적합하지 못했습니다: ", f"Could not fit the model for {r}: ") + str(e))
         st.stop()
+models.update(extra)
+names_key = list(models)
 
-goals = goals_editor(models, key=f"goals_{'_'.join(responses)}")
+goals = goals_editor(models, key=f"goals_{'_'.join(names_key)}")
 
 hold = {}
 with st.expander(T("요인 고정 (Constraints: Hold at value)", "Constraints: hold factors at a value")):
@@ -84,12 +98,12 @@ with st.expander(T("요인 고정 (Constraints: Hold at value)", "Constraints: h
 
 if st.button(T("최적화", "Optimize"), type="primary"):
     try:
-        st.session_state["opt"] = (responses, optimize(list(models.values()), goals, hold=hold))
+        st.session_state["opt"] = (names_key, optimize(list(models.values()), goals, hold=hold))
     except Exception as e:  # noqa: BLE001
         st.error(T("최적화하지 못했습니다: ", "Could not optimize: ") + str(e))
 
 opt = st.session_state.get("opt")
-if opt and opt[0] == responses:
+if opt and opt[0] == names_key:
     res = opt[1]
     show_results(res, models, goals)
     from doe_core.report import optimization_report
@@ -97,7 +111,7 @@ if opt and opt[0] == responses:
                      T("최적화보고서", "optimization_report"))
 
     cont = [L for L, f in zip(d.letters, d.factors) if getattr(f, "is_numeric", False) and hasattr(f, "low")]
-    if len(responses) >= 2 and len(cont) >= 2:
+    if len(models) >= 2 and len(cont) >= 2:
         st.subheader(T("중첩 등고선도 (Overlaid Contour Plot)"))
         names = dict(zip(d.letters, [f.name for f in d.factors]))
         c1, c2 = st.columns(2)
@@ -116,7 +130,7 @@ if opt and opt[0] == responses:
 
 st.divider()
 st.subheader(T("예측 (Predict)"))
-base = opt[1].settings if opt and opt[0] == responses else {}
+base = opt[1].settings if opt and opt[0] == names_key else {}
 if base and st.button(T("최적 해로 채우기", "Fill in the optimal solution")):
     for L, f in zip(d.letters, d.factors):
         st.session_state[f"pred_{L}"] = base[f.name]
@@ -137,6 +151,10 @@ for i, (L, f) in enumerate(zip(d.letters, d.factors)):
                                           key=f"pred_{L}")
 for r, a in models.items():
     st.markdown(f"**{r}**")
+    if getattr(a, "is_binary", False):
+        st.caption(T("Fit = 사건 확률(로지스틱), SE Fit 은 델타 방법.", "Fit = event probability (logistic); SE Fit by the delta method."))
+    elif getattr(a, "is_variability", False):
+        st.caption(T("Fit = 표준편차(exp(Ln 모형)).", "Fit = standard deviation (exp of the Ln model)."))
     if a.equation():
         st.code(a.equation()[1], language=None, wrap_lines=True)
     c1, c2 = st.columns([1, 2])

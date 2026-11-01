@@ -105,6 +105,15 @@ class BinaryAnalysis(FactorialAnalysis):
     def response_label(self) -> str:
         return "Y'"
 
+    @property
+    def y_original(self) -> np.ndarray:
+        """관측 비율(사건/시행)."""
+        return self.events / self.trials
+
+    def to_original(self, z):
+        """선형 예측 → 사건 확률."""
+        return special.expit(z)
+
     def deviance(self) -> float:
         return _deviance(self.events, self.trials, self.prob)
 

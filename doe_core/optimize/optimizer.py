@@ -136,8 +136,8 @@ def evaluate(analyses: list, goals: list[ResponseGoal], settings: dict, covariat
     fits, ds = {}, {}
     for a, g in zip(analyses, goals):
         y = float(design_row(a, settings, covariates) @ a.beta)
-        if getattr(a, "boxcox", None) is not None:
-            y = float(a.boxcox.inverse(y))                       # 원래 단위로
+        if hasattr(a, "to_original"):
+            y = float(a.to_original(y))                          # Box-Cox·산포(exp)·이항(확률) → 원래 단위
         fits[g.response] = y
         ds[g.response] = desirability(y, g) if math.isfinite(y) else 0.0
     return composite(list(ds.values()), goals), ds, fits

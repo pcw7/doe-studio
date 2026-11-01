@@ -411,3 +411,25 @@ def test_binary_page():
     at.radio(key="bin_form").set_value("binary").run()
     at.button(key="bin_run").click().run()
     assert not at.exception and at.session_state["binary"].binary_format
+
+
+def test_optimize_page_with_variability_and_binary_models():
+    """강건 설계: 평균(Y) 목표값 + 산포 모형(SdY) 최소화를 최적화 화면에서 함께."""
+    from doe_core.analysis.variability import analyze_variability
+    from tests.test_optimizer_models import _robust_ws
+    ws = _robust_ws()
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file(str(MAIN), default_timeout=90)
+    at.session_state["worksheet"] = ws
+    at.session_state["variability"] = analyze_variability(ws, "SdY", "NY", order=1)
+    at.run()
+    at.switch_page("views/optimize.py")
+    at.run()
+    assert not at.exception
+    at.multiselect[0].set_value(["Y"]).run()
+    at.checkbox(key="opt_extra_variability").check().run()
+    assert not at.exception
+    at.button[0].click().run()
+    assert not at.exception
+    names, res = at.session_state["opt"]
+    assert names == ["Y", "SdY"] and "SdY" in res.fits
