@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import math
+from decimal import ROUND_HALF_UP, Decimal, localcontext
 
 MISSING = "*"
 
@@ -24,10 +25,14 @@ def decimals_for_sig(x: float, sig: int) -> int:
 
 
 def fixed(x: float | None, d: int) -> str:
+    """소수 d 자리. 정확히 반(이진 값 그대로)이면 0 에서 먼 쪽으로 올린다 — Minitab 표시와 같다
+    (GolfBall 예제: Adj SS 4324.5 → 4325. 파이썬 기본 형식은 짝수 쪽 4324)."""
     if x is None or (isinstance(x, float) and not math.isfinite(x)):
         return MISSING
-    s = f"{x:.{d}f}"
-    return s
+    with localcontext() as ctx:
+        ctx.prec = 80
+        q = Decimal(float(x)).quantize(Decimal(1).scaleb(-d), rounding=ROUND_HALF_UP)
+    return f"{q:f}"
 
 
 def by_se(value: float, se: float, sig: int = 3) -> str:
@@ -65,4 +70,4 @@ def p_text(p: float | None) -> str:
 def pct_text(r: float | None) -> str:
     if r is None or not math.isfinite(r):
         return MISSING
-    return f"{100 * r:.2f}%"
+    return fixed(100 * r, 2) + "%"

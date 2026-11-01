@@ -3,7 +3,8 @@
 - 독립 구현 대조: statsmodels GLM(Binomial, logit) 과 계수·SE·이탈도·귀무 이탈도·Pearson·로그우도(이항 계수 포함) 일치,
   항별 Adj Dev = 그 항을 뺀 GLM 의 이탈도 차.
 - 이항 열 형식(시행 1) 과 사건/시행 형식의 최대우도 계수가 같아야 한다.
-- 문서 예제(FoodSpoilage, 원자료 없음)의 숫자 관계: D₀ = 47.1804, D = 0.9674, p = 11, n = 16, −2lnL = 83.98 일 때
+- 문서 예제 원자료(FoodSpoilage.MWX, 파일이 있을 때): 모든 출력표·회귀식 글자 단위 일치.
+- 파일 없이도: D₀ = 47.1804, D = 0.9674, p = 11, n = 16, −2lnL = 83.98 일 때
   Model Summary 97.95% | 76.75% | 105.98 | 171.98 | 114.48, Deviance 검정 5 | 0.97 | 0.965, 분산분석표 표시 자리.
 """
 import math
@@ -18,6 +19,7 @@ from doe_core.analysis.effects import effects
 from doe_core.designs.common import Factor
 from doe_core.designs.factorial import create_two_level_design
 from doe_core.io.worksheet import Worksheet
+from tests.helpers import SAMPLES
 
 FACTORS = [Factor("Preservative", "No", "Yes"), Factor("VacuumPress", 20, 40), Factor("ContaminationLevel", 15, 60),
            Factor("CoolTemp", 0, 10)]
@@ -85,7 +87,7 @@ def test_binary_format_equals_event_trial_format():
     ws1.add_column("N", [float(reps)] * 8, order="std")
     a = analyze_binary(ws1, events="E", trials="N", order=1)
     assert np.allclose(a.beta, b.beta, atol=1e-8)
-    assert b.binary_format and b.response_table()["Value"].tolist()[0] == "1 (Event)"
+    assert b.binary_format and b.response_table().values.tolist()[0] == ["Pass", "1", str(int(yb.sum())), "Event"]
 
 
 def test_document_example_relations():
@@ -144,18 +146,19 @@ def test_odds_ratios_without_interactions():
     cont = a.odds_continuous()
     se = a.se_coef()
     j = a.col_labels.index("VacuumPress")
-    row = cont[cont["Term"] == "VacuumPress"].iloc[0]
+    row = cont[cont[""] == "VacuumPress"].iloc[0]
     assert row["Unit of Change"] == "10.0" and row["Odds Ratio"] == f"{math.exp(a.beta[j]):.4f}"
     lo, hi = math.exp(a.beta[j] - 1.959963984540054 * se[j]), math.exp(a.beta[j] + 1.959963984540054 * se[j])
     assert row["95% CI"] == f"({lo:.4f}, {hi:.4f})"
     cat = a.odds_categorical()
     jp = a.col_labels.index("Preservative")
-    assert cat.values.tolist()[1][1:3] == ["Yes", "No"]
-    assert cat.values.tolist()[1][3] == f"{math.exp(2 * a.beta[jp]):.4f}"
+    assert cat.values.tolist()[0] == ["Preservative", "", "", ""]
+    assert cat.values.tolist()[1][:2] == ["Yes", "No"]
+    assert cat.values.tolist()[1][2] == f"{math.exp(2 * a.beta[jp]):.4f}"
     # 교호작용이 있으면 '*'
     b = analyze_binary(ws, events="Spoilage", trials="Containers", order=2)
     assert set(b.odds_continuous()["Odds Ratio"]) == {"*"}
-    assert b.odds_categorical().values.tolist()[1] == ["", "Any level", "Any level", "*", "(*, *)"]
+    assert b.odds_categorical().values.tolist()[1] == ["Any level", "Any level", "*", "(*, *)"]
 
 
 def test_equation_effects_and_errors():
@@ -177,3 +180,27 @@ def test_equation_effects_and_errors():
                   order="std")
     with pytest.raises(ValueError):
         analyze_binary(w2, events="Y", event_value=1, order=1)
+
+
+@pytest.mark.skipif(not (SAMPLES / "FoodSpoilage.MWX").exists(), reason="FoodSpoilage.MWX 없음")
+def test_food_spoilage_example_matches_minitab():
+    """문서 예제 원자료(FoodSpoilage.MWX): 모든 출력표가 글자 단위로 같다."""
+    from doe_core.io.mwx import read_mwx
+    from doe_core.io.worksheet import define_custom_design
+    from tests.helpers import load_fixture, table
+    fx = load_fixture("analyze-binary-response__example")
+    ws = define_custom_design(read_mwx(SAMPLES / "FoodSpoilage.MWX"),
+                              ["Preservative", "VacuumPress", "ContaminationLevel", "CoolTemp"])
+    a = analyze_binary(ws, events="Spoilage", trials="Containers", order=2)
+    assert a.method_table().values.tolist() == [table(fx, "Method")["header"]] + table(fx, "Method")["rows"]
+    for heading, mine in [("Response Information", a.response_table()), ("Coded Coefficients", a.coefficients_table()),
+                          ("Odds Ratios for Continuous Predictors", a.odds_continuous()),
+                          ("Odds Ratios for Categorical Predictors", a.odds_categorical()),
+                          ("Model Summary", a.summary_table()), ("Goodness-of-Fit Tests", a.gof_table()),
+                          ("Analysis of Variance", a.anova_table())]:
+        want = table(fx, heading)
+        assert list(mine.columns) == want["header"], heading
+        assert mine.astype(str).values.tolist() == want["rows"], heading
+    first, second = a.equation()[1].split("\n")
+    assert first.replace(" ", "") == "".join(table(fx, ": P(Event)")["header"]).replace(" ", "")
+    assert second.replace(" ", "") == "".join(table(fx, ": Y'")["header"]).replace(" ", "")
