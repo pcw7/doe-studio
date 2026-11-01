@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import O, T, is_en
-from app.state import report_downloads, set_ws, show_table, worksheet_csv, worksheet_json
+from app.state import report_downloads, set_ws, show_table, worksheet_csv, worksheet_json, worksheet_xlsx
 from doe_core.designs.catalog import ROMAN, available_designs
 from doe_core.designs.common import Factor, factor_letters
 from doe_core.designs.definitive_screening import MAX_FACTORS as DSD_MAX, base_runs_for, create_definitive_screening
@@ -440,10 +440,12 @@ if ws is not None and st.session_state.get("created_notice"):
             show_table(d.design_table())
     st.subheader(T("실험 순서표 (Worksheet, 런 순서)", "Worksheet (run order)"))
     show_table(d.runs)
-    c1, c2, _ = st.columns([1, 1, 3])
+    c1, c2, c3, _ = st.columns([1, 1, 1, 2])
     c1.download_button(T("워크시트 저장 (.json)", "Save worksheet (.json)"), worksheet_json(ws), "doe_worksheet.json",
                        "application/json")
     c2.download_button(T("CSV 내보내기"), worksheet_csv(ws), "doe_worksheet.csv", "text/csv")
+    c3.download_button(T("Excel 내보내기", "Export Excel"), worksheet_xlsx(ws), "doe_worksheet.xlsx",
+                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     st.page_link("views/worksheet.py", label=T("워크시트에서 결과 입력하기", "Enter results in the worksheet"),
                  icon=":material/table:")
     from doe_core.report import design_report

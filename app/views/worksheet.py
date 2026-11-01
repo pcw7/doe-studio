@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import O, T
-from app.state import require_ws, set_ws, show_table, worksheet_csv, worksheet_json, ws_caption
+from app.state import require_ws, set_ws, show_table, worksheet_csv, worksheet_json, worksheet_xlsx, ws_caption
 from doe_core.designs.factorial import TwoLevelDesign
 from doe_core.designs.modify import (
     display_design, fold_design, randomize_design, renumber_design, replicate_design,
@@ -54,10 +54,11 @@ if extra and not edited[extra].equals(table[extra]):
         ws.add_column(c, _clean(edited[c]).tolist(), order="run" if order == "런 순서" else "std")
     st.toast(T("입력한 값을 저장했습니다.", "Saved your entries."))
 
-c1, c2, _ = st.columns([1, 1, 3])
+c1, c2, c3, _ = st.columns([1, 1, 1, 2])
 c1.download_button(T("워크시트 저장 (.json)", "Save worksheet (.json)"), worksheet_json(ws), "doe_worksheet.json",
                    "application/json")
 c2.download_button(T("CSV 내보내기"), worksheet_csv(ws), "doe_worksheet.csv", "text/csv")
+c3.download_button(T("Excel 내보내기", "Export Excel"), worksheet_xlsx(ws), "doe_worksheet.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 st.divider()
 st.subheader(T("설계 수정 (Modify Design)"))

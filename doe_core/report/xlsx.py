@@ -64,7 +64,7 @@ def col_name(i: int) -> str:
 
 def _cell(row: int, col: int, value, style: int = NORMAL) -> str:
     ref = f"{col_name(col)}{row}"
-    if value is None or (isinstance(value, float) and math.isnan(value)):
+    if value is None or value is pd.NA or value is pd.NaT or (isinstance(value, float) and math.isnan(value)):
         return f'<c r="{ref}" s="{style}"/>' if style else ""
     if isinstance(value, (bool, np.bool_)):
         value = str(bool(value))
@@ -166,7 +166,11 @@ def _data_sheet(name: str, df: pd.DataFrame) -> _Sheet:
 
 def to_xlsx(report: Report) -> bytes:
     """보고서를 .xlsx 바이트로."""
-    sheets = [_report_sheet(report)] + [_data_sheet(n, df) for n, df in report.data_sheets.items()]
+    return write_book([_report_sheet(report)] + [_data_sheet(n, df) for n, df in report.data_sheets.items()])
+
+
+def write_book(sheets: list[_Sheet]) -> bytes:
+    """시트 목록을 .xlsx 바이트로."""
     used: set = set()
     names = [_sheet_name(s.name, used) for s in sheets]
     buf = io.BytesIO()
