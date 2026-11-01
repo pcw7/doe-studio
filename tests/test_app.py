@@ -433,3 +433,19 @@ def test_optimize_page_with_variability_and_binary_models():
     assert not at.exception
     names, res = at.session_state["opt"]
     assert names == ["Y", "SdY"] and "SdY" in res.fits
+
+
+def test_analyze_page_expanded_tables_and_storage():
+    from tests.test_storage import _ws
+    ws = _ws()
+    at = run("analyze.py", ws)
+    at.number_input(key="conf_level").set_value(90.0).run()
+    at.button[0].click().run()
+    assert not at.exception and at.session_state["confidence"] == pytest.approx(0.90)
+    at.toggle(key="coef_expanded").set_value(True).run()
+    assert not at.exception
+    assert any("90% CI" in list(df.value.columns) for df in at.dataframe)
+    at.multiselect(key="store_pick").set_value(["fits", "sres"]).run()
+    at.button(key="store_btn").click().run()
+    assert not at.exception
+    assert {"FITS1", "SRES1"} <= set(at.session_state["worksheet"].columns.columns)
