@@ -540,3 +540,17 @@ def test_contour_tabs_binary_and_variability():
     at.button(key="var_pre").click().run()
     at.button(key="var_run").click().run()
     assert not at.exception
+
+
+def test_variability_page_maximum_likelihood():
+    import numpy as np
+    d = create_two_level_design(3, replicates=3, seed=2)
+    ws = Worksheet(d)
+    ws.add_column("Strength", list(30 + np.random.default_rng(3).normal(0, 1, len(d.coded))))
+    at = run("variability.py", ws)
+    at.button(key="var_pre").click().run()
+    at.radio(key="var_est").set_value("ml").run()
+    at.button(key="var_run").click().run()
+    assert not at.exception
+    a = at.session_state["variability"]
+    assert getattr(a, "is_ml", False) and "Z-Value" in a.coefficients_table().columns
