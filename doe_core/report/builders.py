@@ -143,10 +143,11 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
     else:
         r.heading(t("코드화된 계수 (Coded Coefficients)"))
         r.table(a.coefficients_table())
-    r.heading(a.summary_title() if variability else t("모형 요약 (Model Summary)"))
-    r.table(a.summary_table())
-    r.heading(a.anova_title() if (mixture or variability) else t("분산 분석 (Analysis of Variance)"))
-    r.table(_anova_with_indent(a))
+    if not getattr(a, "is_ml", False):           # 최대우도: 모형 요약·분산분석표 없음
+        r.heading(a.summary_title() if variability else t("모형 요약 (Model Summary)"))
+        r.table(a.summary_table())
+        r.heading(a.anova_title() if (mixture or variability) else t("분산 분석 (Analysis of Variance)"))
+        r.table(_anova_with_indent(a))
     eq = a.equation() if hasattr(a, "equation") else None
     if eq:
         r.heading(t("회귀 방정식 (" + eq[0] + ")"))
@@ -157,8 +158,9 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
             r.heading(t("별칭 구조 (" + alias_title(a) + ")"))
             r.table(factor_name_table(a))
             r.mono("\n".join(alias_lines(a)))
-    un = unusual_table(a)
-    if not un.empty:
+    is_ml = getattr(a, "is_ml", False)
+    un = unusual_table(a) if not is_ml else None
+    if un is not None and not un.empty:
         r.heading(t("비정상적인 관측치에 대한 적합치 및 진단 (Fits and Diagnostics for Unusual Observations)"))
         r.table(un, note="  ".join(unusual_legend(a)))
     if not mixture and not variability:
@@ -171,7 +173,7 @@ def analysis_report(ws, a, *, alpha: float = 0.05, figures: bool = True, mode: s
     if figures:
         from ..plots.residual_plots import four_in_one
         r.heading(t("그래프", "Graphs"))
-        fig = _try(four_in_one, a, "regular", mode)
+        fig = _try(four_in_one, a, "regular", mode) if not is_ml else None
         if fig is not None:
             r.figure(fig, t("잔차 그림 (Residual Plots)"))
         if mixture:

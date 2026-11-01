@@ -16,18 +16,25 @@
 문서에 없어 정한 것
 - 반복 런의 '첫 행' 은 런 순서가 가장 앞선 행. 개수가 1 이하라 표준편차를 구할 수 없으면 결측.
 - Ratio Effect 는 Effect 와 같은 소수 자리(문서 예제 0.3830 / −0.9598).
-- 최대우도(Maximum likelihood) 추정은 아직 지원하지 않는다. 단계적 선택은 가중 회귀로 같은 규칙(포화 모형 ¼ 선제거 포함).
+- 단계적 선택은 가중 회귀로 같은 규칙(포화 모형 ¼ 선제거 포함). 최대우도와 함께는 쓸 수 없다.
+
+최대우도(Maximum likelihood, 문서 'Specify the options', 'Coded coefficients table', 'Model summary table', 우도식 이미지)
+- 원자료가 정규분포라고 보고 s² 가 σ²·χ²_ν/ν 를 따른다. −2lnL = Σ[2lnΓ(ν/2) + ν·ln2 − (ν−2)·ln(νs²) + 2ν·x'β + νs²·e^(−2x'β)].
+- 계수표는 T 대신 Z-Value, 모형 요약·분산분석표는 표시하지 않는다. 포화 모형에서는 최소제곱과 같은 계수.
+- 표준편차가 0 인 런도 쓸 수 있다(최소제곱은 ln 0 이라 불가).
+문서에 없어 정한 것: 뉴턴법(관측 정보, 안 되면 기대 정보 Σ2ν·xx' 의 Fisher scoring, 목적함수가 줄 때까지 보폭 반감), SE = √diag((X'·diag(2ν)·X)⁻¹)(포화 모형에서는 관측 정보와 같음),
+시작값은 s > 0 인 런의 ln s 가중 최소제곱. 개수(count) 열이 있어야 한다.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
 from scipy import special
 
 from . import fmt
-from .factorial import FactorialAnalysis, _build, _prepare_w
+from .factorial import FactorialAnalysis, _build, _prepare, _prepare_w
 from .model import factorial_terms
 
 
@@ -126,10 +133,95 @@ class VariabilityAnalysis(FactorialAnalysis):
         return out
 
 
+def fit_variability_ml(X: np.ndarray, s: np.ndarray, nu: np.ndarray, *, max_iter: int = 200, tol: float = 1e-12):
+    """ln σ = Xβ 의 최대우도(Fisher scoring). (β, 작업 반응 z, 가중치 2ν)."""
+    W = 2.0 * nu
+    pos = s > 0
+    if not np.any(pos):
+        raise ValueError("표준편차가 모두 0 이라 추정할 수 없습니다.")
+    start = np.where(pos, np.log(np.where(pos, s, 1.0)), np.log(np.min(s[pos])) - 1.0)
+    sw = np.sqrt(W)
+    beta, *_ = np.linalg.lstsq(X * sw[:, None], start * sw, rcond=None)
+    s2 = s ** 2
+    XtW = X.T * W
+
+    def objective(b):                               # −2lnL 에서 β 에 달린 부분: Σ ν(2η + s²e^(−2η))
+        eta = X @ b
+        return float(np.sum(nu * (2 * eta + s2 * np.exp(-2 * eta))))
+
+    f = objective(beta)
+    for _ in range(max_iter):
+        eta = X @ beta
+        r = s2 * np.exp(-2 * eta)
+        grad = X.T @ (nu * (r - 1))                 # lnL 의 기울기
+        H = (X.T * (2 * nu * r)) @ X                # 관측 정보(뉴턴); 특이하면 기대 정보(Fisher scoring)
+        try:
+            step = np.linalg.solve(H, grad)
+            if not np.all(np.isfinite(step)) or float(step @ grad) <= 0:
+                raise np.linalg.LinAlgError
+        except np.linalg.LinAlgError:
+            step = np.linalg.solve(XtW @ X, grad)
+        t = 1.0
+        while t > 1e-10:                            # 목적함수가 줄어들 때까지 보폭을 반으로
+            cand = beta + t * step
+            fc = objective(cand)
+            if np.isfinite(fc) and fc <= f + 1e-12 * abs(f):
+                break
+            t /= 2
+        else:
+            raise ValueError("최대우도 추정이 수렴하지 않았습니다.")
+        done = np.max(np.abs(cand - beta)) < tol
+        beta, f = cand, fc
+        if done:
+            break
+    else:
+        raise ValueError("최대우도 추정이 수렴하지 않았습니다.")
+    eta = X @ beta
+    return beta, eta + (s2 * np.exp(-2 * eta) - 1) / 2, W
+
+
+@dataclass
+class VariabilityMLAnalysis(VariabilityAnalysis):
+    """ln(표준편차)의 최대우도 결과. y·weights 는 수렴점의 작업 반응·가중치 2ν(계수·SE·VIF·회귀식 재사용)."""
+    std_values: np.ndarray = field(default=None, repr=False)
+
+    is_ml = True
+
+    @property
+    def df_error(self) -> int:                      # Z 검정(정규)
+        return 10 ** 9
+
+    @property
+    def mse(self) -> float:
+        return 1.0
+
+    @property
+    def y_original(self) -> np.ndarray:
+        return self.std_values
+
+    def method_table(self) -> pd.DataFrame:
+        return pd.DataFrame([{"Method": "Estimation", "Value": "Maximum likelihood"}])
+
+    def coefficients_table(self, expanded: bool = False, confidence: float = 0.95) -> pd.DataFrame:
+        return super().coefficients_table(expanded, confidence).rename(columns={"T-Value": "Z-Value"})
+
+    def summary_table(self, expanded: bool = False):
+        raise ValueError("최대우도 추정에서는 모형 요약을 표시하지 않습니다(Minitab 과 같음).")
+
+    def anova_table(self, seq_ss: bool = False):
+        raise ValueError("최대우도 추정에서는 분산분석표를 표시하지 않습니다(Minitab 과 같음).")
+
+
 def analyze_variability(ws, std_column: str, counts_column: str | None = None, *, order: int | None = 2,
                         terms: list[str] | None = None, include_blocks: bool | None = None,
-                        stepwise=None) -> VariabilityAnalysis:
-    """표준편차 열(전처리 결과)로 산포 분석. counts_column 이 있으면 가중치 4/ψ'((n−1)/2)."""
+                        stepwise=None, method: str = "ls") -> VariabilityAnalysis:
+    """표준편차 열(전처리 결과)로 산포 분석. counts_column 이 있으면 가중치 4/ψ'((n−1)/2).
+    method: 'ls'(최소제곱, 기본) / 'ml'(최대우도, 개수 열 필요)."""
+    if method == "ml":
+        return _analyze_variability_ml(ws, std_column, counts_column, order=order, terms=terms,
+                                       include_blocks=include_blocks, stepwise=stepwise)
+    if method != "ls":
+        raise ValueError("추정 방법은 'ls' 또는 'ml' 입니다.")
     from ..designs.definitive_screening import DefinitiveScreeningDesign
     from ..designs.mixture import MixtureDesign
     from ..designs.response_surface import ResponseSurfaceDesign
@@ -161,3 +253,34 @@ def analyze_variability(ws, std_column: str, counts_column: str | None = None, *
                             a.col_labels, a.col_term, a.covariates, weights=a.weights)
     v.selection = a.selection
     return v
+
+
+def _analyze_variability_ml(ws, std_column, counts_column, *, order, terms, include_blocks, stepwise):
+    from ..designs.definitive_screening import DefinitiveScreeningDesign
+    from ..designs.mixture import MixtureDesign
+    from ..designs.response_surface import ResponseSurfaceDesign
+    from ..designs.split_plot import SplitPlotDesign
+    d = ws.design
+    if isinstance(d, (ResponseSurfaceDesign, DefinitiveScreeningDesign, MixtureDesign, SplitPlotDesign)) or \
+            type(d).__name__ == "TaguchiDesign":
+        raise ValueError("산포 분석은 요인설계(2수준·Plackett-Burman·일반 완전요인)에서만 쓸 수 있습니다.")
+    if stepwise is not None and getattr(stepwise, "active", False):
+        raise ValueError("최대우도 추정에는 단계적 선택을 쓸 수 없습니다(최소제곱으로 항을 고른 뒤 최대우도로 추정하세요).")
+    if not counts_column:
+        raise ValueError("최대우도 추정에는 개수(count) 열이 필요합니다.")
+    s = ws.column(std_column).astype(float).values
+    if np.any(s[np.isfinite(s)] < 0):
+        raise ValueError("표준편차는 0 이상이어야 합니다.")
+    nu = ws.column(counts_column).astype(float).values - 1
+    ok = np.isfinite(s) & np.isfinite(nu) & (nu > 0)
+    dummy = np.where(ok, 0.0, np.nan)
+    coded, _, used, _ = _prepare(d, dummy, {})
+    if len(used) < 2:
+        raise ValueError("분석할 표준편차가 2개 이상 있어야 합니다.")
+    tl = factorial_terms(d, order=order, terms=terms, include_blocks=include_blocks, include_center=False,
+                         blocks_present=coded["Blocks"].nunique() > 1, center_present=False)
+    base = _build(d, std_column, coded, np.zeros(len(used)), used, tl, {})
+    sv, nv = s[used], nu[used]
+    beta, z, W = fit_variability_ml(base.X, sv, nv)
+    return VariabilityMLAnalysis(d, std_column, z, used, base.terms, base.removed_terms, base.X, base.col_labels,
+                                 base.col_term, {}, weights=W, std_values=sv)

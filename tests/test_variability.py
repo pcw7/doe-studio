@@ -228,3 +228,40 @@ def test_insulation_strength_raw_data_matches_minitab():
     from doe_core.analysis.variability import repeat_std, store_preprocessed
     sd, cnt = repeat_std(ws, [f"Strength_{k}" for k in range(1, 7)])
     assert np.allclose(sd, ws.column("Std").values, atol=6e-6) and set(cnt) == {6}
+
+
+def test_maximum_likelihood_matches_gamma_glm():
+    """최대우도: s² ~ σ²χ²ν/ν, ln σ = Xβ ⇔ 감마 GLM(로그 연결, 가중치 ν/2, 척도 1)의 ln σ² = 2Xβ.
+    statsmodels 와 계수·SE 일치, 포화 모형에서는 최소제곱과 같은 계수(문서), Z 값, 모형 요약·분산분석 없음."""
+    fx, ws = _insulation_strength()
+    a = analyze_variability(ws, "Std", "N", order=2, method="ml")
+    s = ws.column("Std").values[a.used_rows]
+    nu = ws.column("N").values[a.used_rows] - 1
+    res = sm.GLM(s ** 2, a.X, family=sm.families.Gamma(sm.families.links.Log()), var_weights=nu / 2).fit(
+        scale=1.0, tol=1e-14)
+    assert np.allclose(a.beta, res.params / 2, atol=1e-8) and np.allclose(a.se_coef(), res.bse / 2, rtol=1e-8)
+    t = a.coefficients_table()
+    assert list(t.columns) == ["Term", "Effect", "Ratio Effect", "Coef", "SE Coef", "Z-Value", "P-Value", "VIF"]
+    assert a.method_table().values.tolist() == [["Estimation", "Maximum likelihood"]]
+    with pytest.raises(ValueError):
+        a.summary_table()
+    with pytest.raises(ValueError):
+        a.anova_table()
+    z = a.coefficients()["T-Value"].values
+    assert np.allclose(a.coefficients()["P-Value"].values, 2 * stats.norm.sf(np.abs(z)), atol=1e-9)
+    sat_ls = analyze_variability(ws, "Std", "N", order=4)
+    sat_ml = analyze_variability(ws, "Std", "N", order=4, method="ml")
+    assert np.allclose(sat_ls.beta, sat_ml.beta, atol=1e-10)
+    # 표준편차 0 인 런: 최소제곱은 불가, 최대우도는 추정
+    ws.add_column("Std0", [0.0] + list(ws.column("Std").values[1:]), order="run")
+    with pytest.raises(ValueError):
+        analyze_variability(ws, "Std0", "N", order=1)
+    b = analyze_variability(ws, "Std0", "N", order=1, method="ml")
+    assert np.all(np.isfinite(b.beta))
+    with pytest.raises(ValueError):
+        analyze_variability(ws, "Std", None, order=1, method="ml")              # 개수 열 필요
+    from doe_core.analysis.stepwise import StepwiseOptions
+    with pytest.raises(ValueError):
+        analyze_variability(ws, "Std", "N", method="ml", stepwise=StepwiseOptions(method="backward"))
+    from doe_core.report import analysis_report, to_xlsx
+    assert to_xlsx(analysis_report(ws, a, figures=False))[:2] == b"PK"

@@ -84,13 +84,26 @@ with st.container(border=True):
     k = len(d.letters)
     order = st.slider(T("모형에 포함되는 항의 최대 차수 (Include terms up through order)"), 1, k, min(2, k), key="var_order")
     alpha = st.number_input(T("유의 수준 α"), 0.001, 0.5, 0.05, step=0.01, format="%.3f", key="var_alpha")
+    EST = {"ls": ("최소제곱 (Least squares)", "Least squares"), "ml": ("최대우도 (Maximum likelihood)", "Maximum likelihood")}
+    est = st.radio(T("추정 방법 (Estimation method)", "Estimation method"), list(EST), horizontal=True,
+                   format_func=lambda k: T(*EST[k]), key="var_est")
+    st.caption(T("최소제곱의 p 값으로 항을 고르고 최대우도로 최종 계수를 추정하는 방법을 권합니다. 최대우도는 개수 열이 필요하고 "
+                 "표준편차 0 인 런도 쓸 수 있으며, 모형 요약·분산분석표는 보이지 않습니다.",
+                 "Use the least squares p-values to choose terms and maximum likelihood for the final coefficients. "
+                 "Maximum likelihood needs a counts column, allows standard deviations of 0, and shows no model summary "
+                 "or ANOVA table."))
+    sw_opts = None
     with st.expander(T("단계적 선택 (Stepwise)", "Stepwise"), expanded=False):
-        sw_opts = stepwise_input(lambda: [t.name for t in factorial_terms(
-            d, order=order, include_center=False, blocks_present=d.coded["Blocks"].nunique() > 1)], "vsw")
+        if est == "ml":
+            st.caption(T("최대우도 추정에는 단계적 선택을 쓸 수 없습니다.", "Stepwise is not available with maximum likelihood."))
+        else:
+            sw_opts = stepwise_input(lambda: [t.name for t in factorial_terms(
+                d, order=order, include_center=False, blocks_present=d.coded["Blocks"].nunique() > 1)], "vsw")
     run = st.button(T("분석", "Analyze"), type="primary", key="var_run")
 if run:
     try:
-        va = analyze_variability(ws, std_col, None if cnt_col == "-" else cnt_col, order=order, stepwise=sw_opts)
+        va = analyze_variability(ws, std_col, None if cnt_col == "-" else cnt_col, order=order, stepwise=sw_opts,
+                                 method=est)
         st.session_state["variability"] = va
         st.session_state["var_alpha_used"] = va.selection.effects_alpha(alpha) if va.selection is not None else alpha
     except Exception as e:  # noqa: BLE001
@@ -115,12 +128,17 @@ with tab_tbl:
     show_table(a.coefficients_table())
     st.caption(T("Ratio Effect = exp(Effect): 높은 수준의 표준편차가 낮은 수준의 몇 배인지.",
                  "Ratio Effect = exp(Effect): the ratio of the standard deviation at the high level to the low level."))
-    st.markdown(f"**{a.summary_title()}**")
-    show_table(a.summary_table())
-    st.markdown(f"**{a.anova_title()}**")
-    tbl = a.anova_table()
-    tbl["Source"] = [(" " * r.level) + s for r, s in zip(a.anova_rows(), tbl["Source"])]
-    show_table(tbl)
+    if getattr(a, "is_ml", False):
+        st.caption(T("최대우도 추정에서는 모형 요약과 분산분석표를 표시하지 않습니다(Minitab 과 같음). 유의성은 Z 값으로 봅니다.",
+                     "With maximum likelihood, the model summary and ANOVA table are not shown (as in Minitab); use the "
+                     "Z-values for significance."))
+    else:
+        st.markdown(f"**{a.summary_title()}**")
+        show_table(a.summary_table())
+        st.markdown(f"**{a.anova_title()}**")
+        tbl = a.anova_table()
+        tbl["Source"] = [(" " * r.level) + s for r, s in zip(a.anova_rows(), tbl["Source"])]
+        show_table(tbl)
     eq = a.equation()
     if eq:
         st.markdown(f"**{eq[0]}**")
@@ -141,7 +159,9 @@ with tab_eff:
         except ValueError as err:
             st.info(str(err))
 with tab_res:
-    if a.df_error == 0:
+    if getattr(a, "is_ml", False):
+        st.info(T("잔차 그림은 최소제곱 추정에서 그립니다.", "Residual plots are drawn for least squares estimation."))
+    elif a.df_error == 0:
         st.info(T("오차 자유도가 0 이라 잔차 그림을 그리지 않습니다.", "With 0 error DF, residual plots are not drawn."))
     else:
         show_plot(four_in_one(a, "regular", mode_plot))
