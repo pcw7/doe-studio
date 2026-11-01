@@ -1,4 +1,4 @@
-"""시작 화면: 소개, 현재 워크시트, 파일 불러오기(DOE Studio JSON, Minitab .MWX, CSV, Excel .xlsx)."""
+"""시작 화면: 소개, 현재 워크시트, 파일 불러오기(DOE Studio JSON, .mwx, CSV, Excel .xlsx)."""
 import io
 from datetime import datetime
 
@@ -16,8 +16,8 @@ from doe_core.io.xlsx import read_xlsx_sheets
 from doe_core.io.worksheet import NAME_MAX, define_custom_design, design_kind_of, load_mwx_worksheet
 
 st.title("DOE Studio")
-st.caption(T("화학 연구원을 위한 실험계획법 도구 · Minitab 의 DOE 메뉴와 같은 순서와 같은 통계 결과를 목표로 합니다.",
-             "Design of experiments for chemical researchers · same workflow and statistics as Minitab's DOE menu."))
+st.caption(T("화학 연구원을 위한 실험계획법 도구 · 상용 통계 프로그램의 실험계획법 메뉴와 같은 순서와 같은 통계 결과를 목표로 합니다.",
+             "Design of experiments for chemical researchers · same workflow and statistics as commercial DOE software."))
 st.page_link("views/help.py", label=T("처음이라면: 실험 흐름·설계 고르기·용어 도움말", "New here? Workflow, choosing a design "
                                                                                    "and glossary"), icon=":material/help:")
 
@@ -131,8 +131,8 @@ with c1:
 
 with c2:
     st.subheader(T("파일 불러오기", "Open a file"))
-    up = st.file_uploader(T("DOE Studio 워크시트(.json), Minitab 워크시트(.mwx), CSV·텍스트(한글 엑셀 저장본 포함), Excel(.xlsx)",
-                            "DOE Studio worksheet (.json), Minitab worksheet (.mwx), CSV or text, Excel (.xlsx)"),
+    up = st.file_uploader(T("DOE Studio 워크시트(.json), .mwx 워크시트, CSV·텍스트(한글 엑셀 저장본 포함), Excel(.xlsx)",
+                            "DOE Studio worksheet (.json), .mwx worksheet, CSV or text, Excel (.xlsx)"),
                           type=["json", "mwx", "csv", "txt", "tsv", "xlsx"])
     # 올린 파일은 한 번만 읽는다(파일이 올라가 있는 동안 화면이 다시 그려질 때마다 다시 읽으면 st.rerun 이 끝없이
     # 되풀이되고, 정의를 마친 표의 '설계로 정의' 칸도 다시 나타난다).
@@ -231,7 +231,7 @@ with c2:
     available = [e for e in examples if (SAMPLES / e[0]).exists()]
     if available:
         st.divider()
-        st.write(T("**예제 데이터** — Minitab 문서 예제", "**Example data** — Minitab documentation examples"))
+        st.write(T("**예제 데이터** — 통계 프로그램 문서의 예제", "**Example data** — examples from statistics software documentation"))
         for fname, desc, facs, *extra in available:
             if st.button(T(f"{fname.removesuffix('.MWX')} 예제 불러오기", f"Load {fname.removesuffix('.MWX')} example"),
                          help=desc):

@@ -56,9 +56,9 @@ with st.container(border=True):
     bc_spec, bc_rounded = boxcox_input("bc_optimize", allow_custom=False)
     use_stored = st.checkbox(T("분석 화면에서 적합한 모형 쓰기(반응별)", "Use the models fitted on the Analyze page"),
                              value=True, key="opt_use_stored",
-                             help=T("Minitab 처럼 반응마다 마지막으로 분석한 모형(항 선택·단계적 선택·Box-Cox·가중치 포함)을 "
+                             help=T("반응마다 분석 화면에서 마지막으로 분석한 모형(항 선택·단계적 선택·Box-Cox·가중치 포함)을 "
                                     "씁니다. 끄면 모든 반응을 위의 공통 모형으로 다시 적합합니다.",
-                                    "Like Minitab, each response uses its last analyzed model (term selection, stepwise, "
+                                    "Each response uses its last model from the Analyze page (term selection, stepwise, "
                                     "Box-Cox and weights included). Turn off to refit every response with the common "
                                     "model above."))
     st.caption(T("최적화는 요인 수준 사이를 보간하므로 중앙점 항(Ct Pt)은 넣지 않습니다.",

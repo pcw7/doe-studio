@@ -77,7 +77,7 @@ def fold_design(d: TwoLevelDesign | PlackettBurmanDesign, on: str = "all") -> Tw
             bit = word_from_str(on)
             keep = [w for w in d.alias.defining if not (w & bit)]
         if len(keep) == len(d.alias.defining):
-            raise ValueError("접어도 정의관계가 줄지 않습니다(반복만 추가됨). Minitab 과 같이 설계를 만들지 않습니다.")
+            raise ValueError("접어도 정의관계가 줄지 않습니다(반복만 추가됨). 이런 경우 설계를 만들지 않습니다.")
         new_alias = alias_structure(d.n_factors, keep, [word_from_str(w) for w in d.block_generators])
 
     coded = d.coded
