@@ -85,6 +85,7 @@ class FactorialAnalysis:
     resid: np.ndarray = field(init=False)
     hat: np.ndarray = field(init=False)
     selection: object = field(default=None, repr=False)   # 단계적 선택 결과(StepwiseResult)
+    boxcox: object = field(default=None, repr=False)      # Box-Cox 변환(BoxCox) — y 는 변환한 값
 
     def __post_init__(self):
         X, y = self.X, self.y
@@ -98,6 +99,20 @@ class FactorialAnalysis:
     @property
     def n(self) -> int:
         return len(self.y)
+
+    @property
+    def response_label(self) -> str:
+        """표·식에 쓰는 반응 이름(Box-Cox 면 ln(Y), Y^0.5 꼴)."""
+        return self.boxcox.label if self.boxcox is not None else self.response
+
+    @property
+    def y_original(self) -> np.ndarray:
+        """원래 단위의 반응값."""
+        return self.boxcox.inverse(self.y) if self.boxcox is not None else self.y
+
+    def to_original(self, z):
+        """변환 단위의 적합치를 원래 단위로(변환이 없으면 그대로)."""
+        return z if self.boxcox is None else self.boxcox.inverse(z)
 
     @property
     def p(self) -> int:
@@ -450,7 +465,7 @@ class FactorialAnalysis:
             else:
                 sign = "-" if c < 0 else "+"
                 parts.append(f"{sign} {txt} {lab}".rstrip())
-        return title, f"{self.response} = " + " ".join(parts)
+        return title, f"{self.response_label} = " + " ".join(parts)
 
 
 # ---------------------------------------------------------------- 진입점
@@ -488,6 +503,27 @@ def _build(design, response, coded, yv, used, tl, cov) -> FactorialAnalysis:
     return FactorialAnalysis(design, response, yv, used, kept, removed, X, labels, col_term, cov)
 
 
+def _model_matrix(design, coded, tl, cov) -> np.ndarray | None:
+    """항 목록의 모형 행렬(앞 항과 종속인 항은 뺌). 오차 자유도가 없으면 None."""
+    X = np.ones((len(coded), 1))
+    for t in tl:
+        M, _ = term_matrix(t, design, coded, cov)
+        cand = np.hstack([X, M])
+        if _rank(cand) == cand.shape[1]:
+            X = cand
+    return X if X.shape[1] < len(coded) else None
+
+
+def _apply_boxcox(boxcox, design, response, coded, yv, tl, cov, rounded):
+    """(변환한 반응, BoxCox) — boxcox 가 None 이면 그대로."""
+    if boxcox is None:
+        return yv, None
+    from .boxcox import make_boxcox
+    X = _model_matrix(design, coded, tl, cov) if boxcox == "optimal" else None
+    bc = make_boxcox(boxcox, X, yv, response, rounded=rounded)
+    return bc.transform(yv), bc
+
+
 def analyze_factorial(
     design,
     y,
@@ -500,12 +536,15 @@ def analyze_factorial(
     include_center: bool | None = None,
     model: str | None = None,
     stepwise=None,
+    boxcox=None,
+    boxcox_rounded: bool = True,
 ) -> FactorialAnalysis:
     """design.coded 행 순서로 정렬된 반응 y 로 요인설계를 분석한다. 반응·공변량이 빈 행은 뺀다.
 
     반응표면 설계·확정적 선별설계가 들어오면 analyze_response_surface 로 넘긴다(order 대신 model 사용,
     기본은 반응표면 완전 2차, 확정적 선별설계 선형 — Minitab 'Analyze Screening Design' 예제의 Linear).
     stepwise: StepwiseOptions 를 주면 그 항들을 후보로 단계적 선택을 한다(분할구 설계는 불가).
+    boxcox: None(변환 없음) / 'optimal'(최적 λ, boxcox_rounded 면 0.5 단위 반올림) / λ 숫자.
     """
     from ..designs.split_plot import SplitPlotDesign
     if stepwise is not None and not getattr(stepwise, "active", False):
@@ -513,6 +552,8 @@ def analyze_factorial(
     if isinstance(design, SplitPlotDesign):
         if stepwise is not None:
             raise ValueError("분할구 설계에서는 단계적 선택을 쓸 수 없습니다.")
+        if boxcox is not None:
+            raise ValueError("분할구 설계에서는 Box-Cox 변환을 지원하지 않습니다.")
         from .split_plot import SplitPlotAnalysis
         coded, yv, used, cov = _prepare(design, y, covariates)
         tl = factorial_terms(design, order=order, terms=terms, covariates=list(cov), include_blocks=include_blocks,
@@ -524,7 +565,8 @@ def analyze_factorial(
         if model is None:
             model = "linear" if isinstance(design, DefinitiveScreeningDesign) else "full quadratic"
         return analyze_response_surface(design, y, response=response, covariates=covariates, model=model,
-                                        terms=terms, include_blocks=include_blocks, stepwise=stepwise)
+                                        terms=terms, include_blocks=include_blocks, stepwise=stepwise,
+                                        boxcox=boxcox, boxcox_rounded=boxcox_rounded)
     coded, yv, used, cov = _prepare(design, y, covariates)
     pt = design.point_col
     tl = factorial_terms(
@@ -532,10 +574,14 @@ def analyze_factorial(
         include_center=include_center, blocks_present=coded["Blocks"].nunique() > 1,
         center_present=(not isinstance(design, GeneralFullFactorialDesign)) and bool((coded[pt] == 0).any()),
     )
+    yv, bc = _apply_boxcox(boxcox, design, response, coded, yv, tl, cov, boxcox_rounded)
     if stepwise is not None:
         from .stepwise import select_model
-        return select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=True)
-    return _build(design, response, coded, yv, used, tl, cov)
+        a = select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=True)
+    else:
+        a = _build(design, response, coded, yv, used, tl, cov)
+    a.boxcox = bc
+    return a
 
 
 def analyze_response_surface(
@@ -548,15 +594,21 @@ def analyze_response_surface(
     terms: list[str] | None = None,
     include_blocks: bool | None = None,
     stepwise=None,
+    boxcox=None,
+    boxcox_rounded: bool = True,
 ) -> FactorialAnalysis:
     """반응표면 설계 분석(Minitab 'Analyze Response Surface Design'). 기본 완전 2차 모형."""
     coded, yv, used, cov = _prepare(design, y, covariates)
     tl = rs_terms(design, model=model, terms=terms, covariates=list(cov), include_blocks=include_blocks,
                   blocks_present=coded["Blocks"].nunique() > 1)
+    yv, bc = _apply_boxcox(boxcox, design, response, coded, yv, tl, cov, boxcox_rounded)
     if stepwise is not None and getattr(stepwise, "active", False):
         from .stepwise import select_model
-        return select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=False)
-    return _build(design, response, coded, yv, used, tl, cov)
+        a = select_model(design, response, coded, yv, used, tl, cov, stepwise, factorial=False)
+    else:
+        a = _build(design, response, coded, yv, used, tl, cov)
+    a.boxcox = bc
+    return a
 
 
 def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, ...] = (), **kwargs):
@@ -570,6 +622,9 @@ def analyze_worksheet(ws, response: str, *, covariates: list[str] | tuple[str, .
         sw = kwargs.pop("stepwise", None)
         if sw is not None and getattr(sw, "active", False):
             raise ValueError("혼합물 분석의 단계적 선택은 아직 지원하지 않습니다.")
+        kwargs.pop("boxcox_rounded", None)
+        if kwargs.pop("boxcox", None) is not None:
+            raise ValueError("혼합물 분석의 Box-Cox 변환은 아직 지원하지 않습니다.")
         return analyze_mixture(ws.design, y, response=response, **kwargs)
     cov = {c: ws.column(c).astype(float).values for c in covariates}
     return analyze_factorial(ws.design, y, response=response, covariates=cov, **kwargs)

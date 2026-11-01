@@ -62,3 +62,4 @@ streamlit run app/main.py          # 화면: http://localhost:8501
   - [x] 한/영 화면 전환(사이드바), 그래프·보고서도 선택한 언어로
   - [x] Taguchi 설계(직교배열 21종, S/N 비·평균 분석, 반응표, 주효과도, 예측)
   - [x] 단계적 모형 선택(Stepwise·Forward·Backward·AICc/BIC 정보 기준, 계층 규칙, 단계별 표)
+  - [x] Box-Cox 변환(최적 λ·신뢰구간, 예측·최적화는 원래 단위로)

@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from app.i18n import O, T, lang
-from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
+from app.state import boxcox_input, plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
 from doe_core.analysis.alias import alias_lines, alias_title, factor_name_table, has_aliasing
 from doe_core.analysis.diagnostics import unusual_legend, unusual_table
 from doe_core.analysis.effects import effects
@@ -154,13 +154,25 @@ with st.container(border=True):
                 sw_opts = StepwiseOptions(method=method, alpha_enter=a_enter, alpha_remove=a_remove, criterion=crit,
                                           hierarchy=hier, scope=scope, extra_terms=extra, force=tuple(force),
                                           initial=tuple(initial))
+    bc_spec, bc_rounded = None, True
+    with st.expander(T("옵션 (Options)", "Options"), expanded=False):
+        if is_sp:
+            st.caption(T("분할구 설계에서는 Box-Cox 변환을 지원하지 않습니다.",
+                         "Box-Cox transformation is not supported for split-plot designs."))
+        else:
+            bc_spec, bc_rounded = boxcox_input("bc_analyze")
+            st.caption(T("Box-Cox 변환은 반응이 모두 양수일 때 쓸 수 있습니다. 분석 표는 변환한 단위, "
+                         "예측·최적화·등고선은 원래 단위로 보입니다.",
+                         "Box-Cox requires all responses to be positive. Tables use transformed units; "
+                         "predictions, the optimizer and contour plots use original units."))
     run = st.button(T("분석", "Analyze"), type="primary")
 
 if run:
     try:
         st.session_state["analysis"] = analyze_worksheet(
             ws, response, covariates=covariates, order=order, terms=terms,
-            include_blocks=inc_blocks, include_center=inc_center, model=rs_model, stepwise=sw_opts)
+            include_blocks=inc_blocks, include_center=inc_center, model=rs_model, stepwise=sw_opts,
+            boxcox=bc_spec, boxcox_rounded=bc_rounded)
         sel = st.session_state["analysis"].selection
         st.session_state["alpha"] = sel.effects_alpha(alpha) if sel is not None else alpha
     except Exception as e:  # noqa: BLE001
@@ -195,6 +207,11 @@ tab_tbl, tab_eff, tab_res, tab_fac, tab_con = st.tabs([T("결과표", "Tables"),
                                                       T("등고선·표면도", "Contour & surface")])
 
 with tab_tbl:
+    if getattr(a, "boxcox", None) is not None:
+        st.markdown(T("**방법 (Method)**"))
+        show_table(a.boxcox.method_table())
+        st.caption(T(f"분석 표는 변환한 반응 {a.response_label} 기준입니다.",
+                     f"Tables are for the transformed response {a.response_label}."))
     sel = a.selection
     if sel is not None:
         st.markdown(T(f"**{METHOD_TITLE_KO[sel.method]} ({sel.title()})**", f"**{sel.title()}**"))

@@ -23,7 +23,8 @@ def diagnostics(a) -> pd.DataFrame:
     n, p = a.n, getattr(a, "p_resid", a.p)       # 분할구: 고정효과 + 전구 항의 계수(순위)
     h = a.hat
     e = a.resid
-    out = pd.DataFrame({"Obs": a.used_rows + 1, a.response: a.y, "Fit": a.fitted, "Resid": e, "HI": h})
+    label = getattr(a, "response_label", a.response)
+    out = pd.DataFrame({"Obs": a.used_rows + 1, label: a.y, "Fit": a.fitted, "Resid": e, "HI": h})
     if a.mse is None:
         for c in ("SE Fit", "Std Resid", "Del Resid", "Cook's D", "DFITS"):
             out[c] = np.nan
@@ -48,20 +49,21 @@ def diagnostics(a) -> pd.DataFrame:
         f = ("R" if np.isfinite(sr) and abs(sr) > 2 else "") + (" X" if hi > lev_cut else "")
         flags.append(f.strip())
     out["Flag"] = flags
-    return out[["Obs", a.response, "Fit", "SE Fit", "Resid", "Std Resid", "Del Resid", "HI", "Cook's D", "DFITS", "Flag"]]
+    return out[["Obs", label, "Fit", "SE Fit", "Resid", "Std Resid", "Del Resid", "HI", "Cook's D", "DFITS", "Flag"]]
 
 
 def unusual_table(a) -> pd.DataFrame:
     """Minitab 'Fits and Diagnostics for Unusual Observations' 표(문자열). 이상 관측치가 없으면 빈 표."""
     d = diagnostics(a)
     d = d[d["Flag"] != ""]
+    label = getattr(a, "response_label", a.response)
     rows = []
     for r in d.itertuples(index=False):
         se_fit = r[3]
         dec = fmt.decimals_for_sig(se_fit, 3)
-        rows.append({"Obs": str(int(r[0])), a.response: fmt.fixed(r[1], dec), "Fit": fmt.fixed(r[2], dec),
+        rows.append({"Obs": str(int(r[0])), label: fmt.fixed(r[1], dec), "Fit": fmt.fixed(r[2], dec),
                      "Resid": fmt.fixed(r[4], dec), "Std Resid": fmt.fixed(r[5], 2), "": r[10]})
-    return pd.DataFrame(rows, columns=["Obs", a.response, "Fit", "Resid", "Std Resid", ""])
+    return pd.DataFrame(rows, columns=["Obs", label, "Fit", "Resid", "Std Resid", ""])
 
 
 def unusual_legend(a) -> list[str]:

@@ -2,7 +2,7 @@
 import pandas as pd
 import streamlit as st
 
-from app.state import plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
+from app.state import boxcox_input, plot_mode, report_downloads, require_ws, show_plot, show_table, ws_caption
 from doe_core.analysis.factorial import analyze_worksheet
 from doe_core.analysis.model import RS_MODELS
 from doe_core.designs.definitive_screening import DefinitiveScreeningDesign
@@ -51,6 +51,7 @@ with st.container(border=True):
         model = "full quadratic"
         order = st.slider(T("모든 반응에 쓸 모형 차수", "Model order for all responses"), 1, len(d.letters),
                           min(2, len(d.letters)))
+    bc_spec, bc_rounded = boxcox_input("bc_optimize", allow_custom=False)
     st.caption(T("최적화는 요인 수준 사이를 보간하므로 중앙점 항(Ct Pt)은 넣지 않습니다.",
                  "The optimizer interpolates between factor levels, so the center point term (Ct Pt) is left out."))
 
@@ -60,7 +61,8 @@ if not responses:
 models = {}
 for r in responses:
     try:
-        models[r] = analyze_worksheet(ws, r, covariates=covariates, order=order, model=model, include_center=False)
+        models[r] = analyze_worksheet(ws, r, covariates=covariates, order=order, model=model, include_center=False,
+                                      boxcox=bc_spec, boxcox_rounded=bc_rounded)
     except Exception as e:  # noqa: BLE001
         st.error(T(f"{r} 모형을 적합하지 못했습니다: ", f"Could not fit the model for {r}: ") + str(e))
         st.stop()

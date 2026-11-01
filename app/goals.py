@@ -25,8 +25,9 @@ def goals_editor(models: dict, key: str) -> list:
                "Set the goal, lower, target and upper values. Empty values use the data minimum and maximum. "
                "Weight and importance are 0.1 to 10."))
     labels = GOAL_LABEL_EN if is_en() else GOAL_KO
-    rows = [{"반응": r, "목표": labels["maximize"], "하한": float(np.min(a.y)), "목표값": float(np.max(a.y)),
-             "상한": float(np.max(a.y)), "가중치": 1.0, "중요도": 1.0} for r, a in models.items()]
+    yo = {r: getattr(a, "y_original", a.y) for r, a in models.items()}          # Box-Cox 면 원래 단위
+    rows = [{"반응": r, "목표": labels["maximize"], "하한": float(np.min(yo[r])), "목표값": float(np.max(yo[r])),
+             "상한": float(np.max(yo[r])), "가중치": 1.0, "중요도": 1.0} for r, a in models.items()]
     cfg = {c: st.column_config.Column(T(c, en)) for c, en in COLS_EN.items() if c != "목표"}
     cfg["목표"] = st.column_config.SelectboxColumn(T("목표", "Goal"), options=list(labels.values()), required=True)
     gdf = st.data_editor(pd.DataFrame(rows), key=f"{key}_{'en' if is_en() else 'ko'}", hide_index=True, width="stretch",
@@ -37,7 +38,8 @@ def goals_editor(models: dict, key: str) -> list:
             a = models[row[0]]
             g = GOAL_EN[row[1]]
             lo, tg, hi = float(row[2]), float(row[3]), float(row[4])
-            ymin, ymax = float(np.min(a.y)), float(np.max(a.y))
+            yy = getattr(a, "y_original", a.y)
+            ymin, ymax = float(np.min(yy)), float(np.max(yy))
             kw = {}
             if g in ("maximize", "target") and not np.isclose(lo, ymin):
                 kw["lower"] = lo
